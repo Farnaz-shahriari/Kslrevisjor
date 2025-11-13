@@ -345,7 +345,7 @@ export function WriteReportPage({
                           } w-full ${
                             isActive ? 'text-[#174295]' : 'text-[#1a1c16]'
                           }`}>
-                            <p className="leading-[24px]">{step.label}</p>
+                            <p className="body-large">{step.label}</p>
                           </div>
                         </div>
                       </div>

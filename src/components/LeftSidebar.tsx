@@ -402,7 +402,7 @@ export function LeftSidebar({
                                 {/* Question Text - Truncated to 3 lines */}
                                 <div className="flex-1 min-w-0">
                                   <p 
-                                    className="line-clamp-3"
+                                    className="body-large line-clamp-3"
                                     style={{
                                       display: '-webkit-box',
                                       WebkitLineClamp: 3,
