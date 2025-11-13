@@ -1,0 +1,604 @@
+@import url('https://fonts.googleapis.com/css2?family=Quatro:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500&display=swap');
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   THEME SYSTEM - Multi-Platform Color Schemes
+   ============================================
+   Apply one of these classes to the root element to switch themes:
+   - .theme-ksl (default - KSL colors)
+   - .theme-lokalmat (LokalMat colors)
+   - .theme-nyt-norge (Nyt Norge colors)
+   - .theme-spesialitet (Spesialitet colors)
+*/
+
+:root,
+.theme-ksl {
+  --font-size: 16px;
+  /* Typography scale variables */
+  --text-4xl: 57px;
+  --text-2xl: 32px;
+  --text-xl: 24px;
+  --text-lg: 22px;
+  --text-base: 16px;
+  --text-sm: 14px;
+  /* Font family variables */
+  --font-family-quatro: 'Quatro', serif;
+  --font-family-manrope: 'Manrope', sans-serif;
+  
+  /* KSL Color Scheme (Default) */
+  /* Primary colors */
+  --primary: #4A671E;
+  --primary-foreground: #FFFFFF;
+  --primary-container: #EFF1E7;
+  --primary-container-foreground: #284000;
+  
+  /* Secondary colors */
+  --secondary: #3655AE;
+  --secondary-foreground: #FFFFFF;
+  --secondary-container: #DAE2FF;
+  --secondary-container-foreground: #174295;
+  
+  /* Tertiary colors */
+  --tertiary: #005D21;
+  --tertiary-foreground: #FFFFFF;
+  --tertiary-container: #B3F2B3;
+  --tertiary-container-foreground: #00531C;
+  
+  /* Error colors */
+  --error: #BA1A1A;
+  --error-foreground: #FFFFFF;
+  --error-container: #FFDAD6;
+  --error-container-foreground: #410002;
+  
+  /* Deviation severity colors */
+  --deviation-s: #705400;
+  --deviation-s-foreground: #FFFFFF;
+  
+  /* Deviation container colors */
+  --s-avvik-container: #FFDAD6;
+  --on-s-avvik-container: #410002;
+  --l-avvik-container: #FDEEB1;
+  --on-l-avvik-container: #3D2C00;
+  --avvik-container: #FDD19F;
+  --on-avvik-container: #3D2100;
+  
+  /* Background and surface colors */
+  --background: #FFFFFF;
+  --foreground: #1A1C16;
+  --card: #FFFFFF;
+  --card-foreground: #1A1C16;
+  --popover: #EEEEE4;
+  --popover-foreground: #1A1C16;
+  
+  /* Muted colors */
+  --muted: #EEEEE4;
+  --muted-foreground: #44483B;
+  
+  /* Accent colors */
+  --accent: #DAE2FF;
+  --accent-foreground: #174295;
+  
+  /* Destructive colors (same as error) */
+  --destructive: #BA1A1A;
+  --destructive-foreground: #FFFFFF;
+  
+  /* Border and input colors */
+  --border: #C4C8B7;
+  --input: #E3E3D9;
+  --input-background: #E3E3D9;
+  
+  /* Ring/focus color */
+  --ring: #4A671E;
+  
+  /* Font weights */
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  
+  /* Shadow */
+  --elevation-sm: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 2px 6px 2px rgba(0,0,0,0.15);
+  
+  /* Chart colors */
+  --chart-1: #4A671E;
+  --chart-2: #3655AE;
+  --chart-3: #005D21;
+  --chart-4: #932601;
+  --chart-5: #BA1A1A;
+  
+  /* Border radius */
+  --radius: 4px;
+  --radius-button: 100px;
+  --radius-card: 12px;
+  --radius-dialog: 28px;
+  
+  /* Sidebar colors */
+  --sidebar: #2F312B;
+  --sidebar-foreground: #F1F1E7;
+  --sidebar-primary: #AFD27C;
+  --sidebar-primary-foreground: #111F00;
+  --sidebar-accent: #AFD27C;
+  --sidebar-accent-foreground: #111F00;
+  --sidebar-border: #74796A;
+  --sidebar-ring: #AFD27C;
+}
+
+/* LokalMat Theme */
+.theme-lokalmat {
+  --primary: #A80000;
+  --primary-foreground: #FFFFFF;
+  --primary-container: #C1D6C0;
+  --primary-container-foreground: #2F4131;
+  
+  --secondary: #2B4F27;
+  --secondary-foreground: #FFFFFF;
+  --secondary-container: #D3E8D1;
+  --secondary-container-foreground: #2B4F27;
+  
+  --tertiary: #800000;
+  --tertiary-foreground: #FFFFFF;
+  --tertiary-container: #FFEDEA;
+  --tertiary-container-foreground: #930000;
+  
+  --error: #BA1A1A;
+  --error-foreground: #FFFFFF;
+  --error-container: #FFDAD6;
+  --error-container-foreground: #410002;
+  
+  --deviation-s: #705400;
+  --deviation-s-foreground: #FFFFFF;
+  
+  /* Deviation container colors */
+  --s-avvik-container: #FFDAD6;
+  --on-s-avvik-container: #410002;
+  --l-avvik-container: #FDEEB1;
+  --on-l-avvik-container: #3D2C00;
+  --avvik-container: #FDD19F;
+  --on-avvik-container: #3D2100;
+}
+
+/* Nyt Norge Theme */
+.theme-nyt-norge {
+  --primary: #00319E;
+  --primary-foreground: #FFFFFF;
+  --primary-container: #DCE1FF;
+  --primary-container-foreground: #0039B5;
+  
+  --secondary: #446900;
+  --secondary-foreground: #FFFFFF;
+  --secondary-container: #C3E196;
+  --secondary-container-foreground: #213600;
+  
+  --tertiary: #4D6629;
+  --tertiary-foreground: #FFFFFF;
+  --tertiary-container: #C9E79B;
+  --tertiary-container-foreground: #344B11;
+  
+  --error: #BA1A1A;
+  --error-foreground: #FFFFFF;
+  --error-container: #FFDAD6;
+  --error-container-foreground: #410002;
+  
+  --deviation-s: #705400;
+  --deviation-s-foreground: #FFFFFF;
+  
+  /* Deviation container colors */
+  --s-avvik-container: #FFDAD6;
+  --on-s-avvik-container: #410002;
+  --l-avvik-container: #FDEEB1;
+  --on-l-avvik-container: #3D2C00;
+  --avvik-container: #FDD19F;
+  --on-avvik-container: #3D2100;
+}
+
+/* Spesialitet Theme */
+.theme-spesialitet {
+  --primary: #594414;
+  --primary-foreground: #FFFFFF;
+  --primary-container: #E5DBC9;
+  --primary-container-foreground: #221700;
+  
+  --secondary: #212222;
+  --secondary-foreground: #FFFFFF;
+  --secondary-container: #424242;
+  --secondary-container-foreground: #DAD8D7;
+  
+  --tertiary: #6B5D3E;
+  --tertiary-foreground: #FFFFFF;
+  --tertiary-container: #D3C19B;
+  --tertiary-container-foreground: #3E3217;
+  
+  --error: #BA1A1A;
+  --error-foreground: #FFFFFF;
+  --error-container: #FFDAD6;
+  --error-container-foreground: #410002;
+  
+  --deviation-s: #705400;
+  --deviation-s-foreground: #FFFFFF;
+  
+  /* Deviation container colors */
+  --s-avvik-container: #FFDAD6;
+  --on-s-avvik-container: #410002;
+  --l-avvik-container: #FDEEB1;
+  --on-l-avvik-container: #3D2C00;
+  --avvik-container: #FDD19F;
+  --on-avvik-container: #3D2100;
+}
+
+.dark {
+  --background: rgba(47, 49, 43, 1.00);
+  --foreground: rgba(241, 241, 231, 1.00);
+  --card: rgba(47, 49, 43, 1.00);
+  --card-foreground: rgba(241, 241, 231, 1.00);
+  --popover: rgba(47, 49, 43, 1.00);
+  --popover-foreground: rgba(241, 241, 231, 1.00);
+  --primary: rgba(175, 210, 124, 1.00);
+  --primary-foreground: rgba(17, 31, 0, 1.00);
+  --secondary: rgba(175, 210, 124, 1.00);
+  --secondary-foreground: rgba(17, 31, 0, 1.00);
+  --muted: rgba(68, 72, 59, 1.00);
+  --muted-foreground: rgba(196, 200, 183, 1.00);
+  --accent: rgba(175, 210, 124, 1.00);
+  --accent-foreground: rgba(17, 31, 0, 1.00);
+  --destructive: rgba(186, 26, 26, 1.00);
+  --destructive-foreground: rgba(255, 255, 255, 1.00);
+  --border: rgba(116, 121, 106, 1.00);
+  --input: rgba(68, 72, 59, 1.00);
+  --input-background: rgba(68, 72, 59, 1.00);
+  --ring: rgba(175, 210, 124, 1.00);
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --chart-1: rgba(175, 210, 124, 1.00);
+  --chart-2: rgba(54, 91, 174, 1.00);
+  --chart-3: rgba(0, 93, 33, 1.00);
+  --chart-4: rgba(147, 38, 1, 1.00);
+  --chart-5: rgba(186, 26, 26, 1.00);
+  --sidebar: rgba(26, 28, 22, 1.00);
+  --sidebar-foreground: rgba(241, 241, 231, 1.00);
+  --sidebar-primary: rgba(175, 210, 124, 1.00);
+  --sidebar-primary-foreground: rgba(17, 31, 0, 1.00);
+  --sidebar-accent: rgba(175, 210, 124, 1.00);
+  --sidebar-accent-foreground: rgba(17, 31, 0, 1.00);
+  --sidebar-border: rgba(116, 121, 106, 1.00);
+  --sidebar-ring: rgba(175, 210, 124, 1.00);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-dialog);
+  --radius-button: var(--radius-button);
+  --elevation-sm: var(--elevation-sm);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  
+  /* Deviation container colors for Tailwind */
+  --color-s-avvik-container: var(--s-avvik-container);
+  --color-on-s-avvik-container: var(--on-s-avvik-container);
+  --color-l-avvik-container: var(--l-avvik-container);
+  --color-on-l-avvik-container: var(--on-l-avvik-container);
+  --color-avvik-container: var(--avvik-container);
+  --color-on-avvik-container: var(--on-avvik-container);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family-manrope);
+  }
+}
+
+/**
+ * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
+ */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-family: var(--font-family-quatro);
+      font-size: var(--text-4xl);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-family: var(--font-family-quatro);
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    h3 {
+      font-family: var(--font-family-quatro);
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    h4 {
+      font-family: var(--font-family-quatro);
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    p {
+      font-family: var(--font-family-manrope);
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    label {
+      font-family: var(--font-family-manrope);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    button {
+      font-family: var(--font-family-manrope);
+      font-size: var(--text-sm);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    input {
+      font-family: var(--font-family-manrope);
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+/* Custom typography classes */
+.title-large {
+  font-family: var(--font-family-quatro);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+.title-small {
+  font-family: var(--font-family-manrope);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.body-large {
+  font-family: var(--font-family-manrope);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+.body-medium {
+  font-family: var(--font-family-manrope);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+.label-large {
+  font-family: var(--font-family-manrope);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.label-medium {
+  font-family: var(--font-family-manrope);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.label-small {
+  font-family: var(--font-family-manrope);
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  line-height: 16px;
+}
+
+.label-xsmall {
+  font-family: var(--font-family-manrope);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  line-height: 14px;
+}
+
+.title-medium {
+  font-family: var(--font-family-quatro);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
+
+/* Custom scrollbar styles - hide by default, show on hover */
+.scrollable-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.scrollable-sidebar:hover {
+  scrollbar-color: rgba(196, 200, 183, 0.5) transparent;
+}
+
+.scrollable-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable-sidebar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.scrollable-sidebar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(196, 200, 183, 0.5);
+}
+
+.scrollable-sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(196, 200, 183, 0.8);
+}
+
+/* Hidden scrollbar that shows on scroll for content areas */
+.scrollable-content {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.scrollable-content:hover,
+.scrollable-content:active {
+  scrollbar-color: rgba(196, 200, 183, 0.5) transparent;
+}
+
+.scrollable-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable-content::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 3px;
+  transition: background-color 0.3s ease;
+}
+
+.scrollable-content:hover::-webkit-scrollbar-thumb,
+.scrollable-content:active::-webkit-scrollbar-thumb {
+  background-color: rgba(196, 200, 183, 0.5);
+}
+
+/* Documents menu scrollbar - hide by default, show on scroll */
+.documents-menu-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.documents-menu-scroll:hover {
+  scrollbar-color: rgba(196, 200, 183, 0.5) transparent;
+}
+
+.documents-menu-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.documents-menu-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.documents-menu-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.documents-menu-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(196, 200, 183, 0.5);
+}
+
+.documents-menu-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(196, 200, 183, 0.8);
+}
+
+/* Global scrollbar hiding - hide by default */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, and Opera */
+}
+
+/* Show scrollbar on hover for scrollable elements */
+.overflow-auto:hover,
+.overflow-y-auto:hover,
+.overflow-x-auto:hover {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 200, 183, 0.5) transparent;
+}
+
+.overflow-auto:hover::-webkit-scrollbar,
+.overflow-y-auto:hover::-webkit-scrollbar,
+.overflow-x-auto:hover::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+  height: 8px;
+}
+
+.overflow-auto:hover::-webkit-scrollbar-track,
+.overflow-y-auto:hover::-webkit-scrollbar-track,
+.overflow-x-auto:hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-auto:hover::-webkit-scrollbar-thumb,
+.overflow-y-auto:hover::-webkit-scrollbar-thumb,
+.overflow-x-auto:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(196, 200, 183, 0.5);
+  border-radius: 4px;
+}
+
+.overflow-auto:hover::-webkit-scrollbar-thumb:hover,
+.overflow-y-auto:hover::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto:hover::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(196, 200, 183, 0.8);
+}
+
+/* Body medium typography class */
+.body-medium {
+  font-family: var(--font-family-manrope);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}

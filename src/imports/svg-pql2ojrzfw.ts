@@ -1,0 +1,3 @@
+export default {
+p2ccb20: "M6 8H0V6H6V0H8V6H14V8H8V14H6V8Z",
+}
