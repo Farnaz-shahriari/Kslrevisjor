@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import svgPaths from '../imports/svg-lebuxrzm9d';
 import svgPathsChip from '../imports/svg-cne2b5etox';
 import { ExpandableInput } from './ExpandableInput';
@@ -42,7 +43,10 @@ export function WriteReportPage({
   onLockDeviations,
   deviationsLocked 
 }: WriteReportPageProps) {
-  const [currentStep, setCurrentStep] = useState(0);
+  // Check if desktop (≥1400px) - only auto-select on desktop, not mobile
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1400;
+  const [currentStep, setCurrentStep] = useState<number | null>(isDesktop ? 0 : null);
+  const [showingMenu, setShowingMenu] = useState(true);
   
   // Step 0: Informasjon om foretaket
   const [aboutCompanyText, setAboutCompanyText] = useState('');
@@ -264,12 +268,12 @@ export function WriteReportPage({
       case 3: // Avvikshåndtering - OPTIONAL (but requires locked + all complete)
         return isAvvikshandteringComplete;
       case 4: // Hovedkonklusjon - REQUIRED
-        const allChecklistChecked = Object.values(checklistItems).every(item => item === true);
+        const anyChecklistChecked = Object.values(checklistItems).some(item => item === true);
         return mainConclusion.trim() !== '' && 
                presentAtRevision.trim() !== '' && 
                revisionDuration.trim() !== '' && 
                implementationDescription.trim() !== '' &&
-               allChecklistChecked;
+               anyChecklistChecked;
       default:
         return false;
     }
@@ -298,10 +302,116 @@ export function WriteReportPage({
     return steps.every(step => isStepComplete(step.id));
   };
 
+  const handleStepClick = (stepId: number) => {
+    setCurrentStep(stepId);
+    setShowingMenu(false);
+  };
+
+  const handleBackToMenu = () => {
+    setShowingMenu(true);
+  };
+
   return (
-    <div className="basis-0 content-stretch flex grow h-full items-start min-h-px min-w-px relative shrink-0 w-full" data-name="write report">
-      {/* Left sidebar - Steps */}
-      <div className="box-border content-stretch flex flex-col gap-[8px] h-full items-start overflow-x-clip overflow-y-auto p-[16px] relative shrink-0 w-[392px] z-[3]" data-name="Report steps">
+    <div className="basis-0 content-stretch flex grow h-full items-start min-h-px min-w-px relative shrink-0 w-full overflow-hidden" data-name="write report">
+      {/* MOBILE/TABLET: Steps Menu - Shows ONLY when showingMenu is true */}
+      {showingMenu && (
+        <div className="min-[1400px]:hidden w-full h-full box-border content-stretch flex flex-col gap-[8px] items-start overflow-x-clip overflow-y-auto p-[16px] bg-background" data-name="Report steps mobile">
+          {steps.map((step) => {
+            const isComplete = isStepComplete(step.id);
+            const isActive = currentStep === step.id;
+            
+            return (
+              <div
+                key={step.id}
+                onClick={() => handleStepClick(step.id)}
+                className={`${
+                  isActive ? 'bg-[#dae2ff]' : 'bg-white'
+                } box-border content-stretch cursor-pointer flex gap-[16px] items-center min-h-[64px] px-0 py-[8px] relative rounded-[12px] shrink-0 w-full ${
+                  !isActive && 'hover:bg-[#f4f4ea]'
+                } transition-colors`}
+                data-name="checklist Question"
+              >
+                <div className="basis-0 grow h-[64px] min-h-px min-w-px relative shrink-0">
+                  <div className="flex flex-col justify-center size-full">
+                    <div className="box-border content-stretch flex flex-col gap-[8px] h-[64px] items-start justify-center px-[8px] py-0 relative w-full">
+                      <div className="content-stretch flex flex-col h-[72px] items-center justify-center min-h-[56px] relative shrink-0 w-full" data-name="List item/List Item: 0 Density">
+                        <div className="absolute inset-0" data-name="state-layer overlay" />
+                        <div className="basis-0 box-border content-stretch flex gap-[16px] grow items-center min-h-px min-w-px px-0 py-[8px] relative shrink-0 w-full" data-name="state-layer">
+                          <div className="content-stretch flex flex-col items-start justify-center overflow-clip relative shrink-0" data-name="Leading element">
+                            <div className="bg-[#eff1e7] overflow-clip relative rounded-[100px] shrink-0 size-[40px]" data-name=".Building Blocks/Monogram">
+                              <div className="absolute body-large left-1/2 size-[40px] text-[#284000] text-center top-1/2 translate-x-[-50%] translate-y-[-50%] flex items-center justify-center">
+                                <p className="m-0">{step.id + 1}</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className={`basis-0 content-stretch flex flex-col grow h-full items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 ${
+                            isComplete ? 'leading-[0] tracking-[0.5px]' : ''
+                          }`} data-name="Content">
+                            {isComplete && (
+                              <div className="label-small text-muted-foreground w-full">
+                                <p className="m-0">Fullført</p>
+                              </div>
+                            )}
+                            <div className={`body-large w-full ${
+                              isActive ? 'text-secondary-container-foreground' : 'text-foreground'
+                            }`}>
+                              <p className="m-0">{step.label}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Lock report button */}
+          <div className="relative shrink-0 w-full" data-name="Summary">
+            <div className="size-full">
+              <div className="box-border content-stretch flex flex-col items-start px-[16px] py-[24px] relative w-full">
+                <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+                  <div className="content-stretch flex items-center justify-center relative shrink-0" data-name="Button">
+                    <button
+                      disabled={!isReportComplete()}
+                      className={`content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 transition-all ${
+                        isReportComplete() 
+                          ? 'bg-[#4a671e] hover:bg-[#3d5618] cursor-pointer shadow-sm' 
+                          : 'bg-[rgba(26,28,22,0.12)] cursor-not-allowed'
+                      }`}
+                      data-name="Content"
+                    >
+                      <div className="box-border content-stretch flex gap-[8px] items-center justify-center px-[24px] py-[16px] relative shrink-0" data-name="State-layer">
+                        <div className="relative shrink-0 size-[24px]" data-name="Icon">
+                          <div className="absolute inset-0 overflow-clip" data-name="lock">
+                            <div className="absolute inset-[6.25%_16.67%]" data-name="Vector">
+                              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 21">
+                                <path d={svgPaths.p29f40100} fill="white" id="Vector" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="body-large text-white">
+                          <p className="m-0 whitespace-pre">Lås rapport</p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                  {!isReportComplete() && (
+                    <div className="body-medium text-muted-foreground">
+                      <p className="m-0">Rapporten inneholder ufullstendige deler</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DESKTOP: Left sidebar - Steps - Always visible */}
+      <div className="max-[1400px]:hidden box-border content-stretch flex flex-col gap-[8px] h-full items-start overflow-x-clip overflow-y-auto p-[16px] relative shrink-0 w-[392px] z-[3]" data-name="Report steps">
         {steps.map((step) => {
           const isComplete = isStepComplete(step.id);
           const isActive = currentStep === step.id;
@@ -325,8 +435,8 @@ export function WriteReportPage({
                       <div className="basis-0 box-border content-stretch flex gap-[16px] grow items-center min-h-px min-w-px px-0 py-[8px] relative shrink-0 w-full" data-name="state-layer">
                         <div className="content-stretch flex flex-col items-start justify-center overflow-clip relative shrink-0" data-name="Leading element">
                           <div className="bg-[#eff1e7] overflow-clip relative rounded-[100px] shrink-0 size-[40px]" data-name=".Building Blocks/Monogram">
-                            <div className="absolute flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] left-1/2 size-[40px] text-[#284000] text-[16px] text-center top-1/2 tracking-[0.15px] translate-x-[-50%] translate-y-[-50%]">
-                              <p className="leading-[24px]">{step.id + 1}</p>
+                            <div className="absolute body-large left-1/2 size-[40px] text-[#284000] text-center top-1/2 translate-x-[-50%] translate-y-[-50%] flex items-center justify-center">
+                              <p className="m-0">{step.id + 1}</p>
                             </div>
                           </div>
                         </div>
@@ -334,18 +444,14 @@ export function WriteReportPage({
                           isComplete ? 'leading-[0] tracking-[0.5px]' : ''
                         }`} data-name="Content">
                           {isComplete && (
-                            <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center relative shrink-0 text-[#44483b] text-[12px] w-full">
-                              <p className="leading-[16px]">Fullført</p>
+                            <div className="label-small text-muted-foreground w-full">
+                              <p className="m-0">Fullført</p>
                             </div>
                           )}
-                          <div className={`flex flex-col font-['Manrope:Regular',sans-serif] font-normal justify-center ${
-                            isComplete ? '' : 'leading-[0]'
-                          } relative shrink-0 text-[16px] ${
-                            isComplete ? '' : 'tracking-[0.5px]'
-                          } w-full ${
-                            isActive ? 'text-[#174295]' : 'text-[#1a1c16]'
+                          <div className={`body-large w-full ${
+                            isActive ? 'text-secondary-container-foreground' : 'text-foreground'
                           }`}>
-                            <p className="body-large">{step.label}</p>
+                            <p className="m-0">{step.label}</p>
                           </div>
                         </div>
                       </div>
@@ -382,15 +488,15 @@ export function WriteReportPage({
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[16px] text-nowrap text-white tracking-[0.15px]">
-                        <p className="leading-[24px] whitespace-pre">Lås rapport</p>
+                      <div className="body-large text-white">
+                        <p className="m-0 whitespace-pre">Lås rapport</p>
                       </div>
                     </div>
                   </button>
                 </div>
                 {!isReportComplete() && (
-                  <div className="flex flex-col font-['Manrope:Regular',sans-serif] font-normal justify-center leading-[0] min-w-full relative shrink-0 text-[#44483b] text-[14px] tracking-[0.25px] w-[min-content]">
-                    <p className="leading-[20px]">Rapporten inneholder ufullstendige deler</p>
+                  <div className="body-medium text-muted-foreground">
+                    <p className="m-0">Rapporten inneholder ufullstendige deler</p>
                   </div>
                 )}
               </div>
@@ -399,19 +505,49 @@ export function WriteReportPage({
         </div>
       </div>
 
-      {/* Vertical divider */}
-      <div className="h-full w-px shrink-0 z-[2]" style={{ backgroundColor: 'var(--border)' }} data-name="Vertical divider" />
+      {/* Vertical divider - Desktop only */}
+      <div className="max-[1400px]:hidden h-full w-px shrink-0 z-[2]" style={{ backgroundColor: 'var(--border)' }} data-name="Vertical divider" />
 
-      {/* Right content area */}
-      <div className="content-stretch flex flex-col h-full items-start relative shrink-0 flex-1 z-[1] overflow-y-auto" data-name="About producer">
+      {/* MOBILE/TABLET & DESKTOP: Content area */}
+      <div className={`content-stretch flex flex-col h-full items-start relative shrink-0 flex-1 z-[1] overflow-y-auto ${
+        showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex max-[1400px]:w-full'
+      } min-[1400px]:flex`} data-name="Content area">
+        {/* Back button for mobile/tablet */}
+        {!showingMenu && currentStep !== null && (
+          <div className="px-6 pt-4 pb-2 min-[1400px]:hidden">
+            <button
+              onClick={handleBackToMenu}
+              className="flex items-center gap-2 label-large text-foreground hover:opacity-70 transition-opacity"
+              aria-label="Tilbake til meny"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              Tilbake
+            </button>
+          </div>
+        )}
+
         {currentStep === 0 && (
           <div className="content-stretch flex flex-col items-start relative size-full" data-name="About producer">
             <div className="relative shrink-0 w-full" data-name="Heading">
               <div className="flex flex-col size-full">
-                <div className="box-border content-stretch flex flex-col gap-[16px] items-start px-[40px] py-[12px] relative w-full">
-                  {/* Heading */}
-                  <div className="flex flex-col font-['Quatro:Regular',sans-serif] h-[48px] justify-center leading-[0] not-italic relative shrink-0 text-[#1a1c16] text-[22px] w-full">
-                    <p className="leading-[28px]">Informasjon om foretaket</p>
+                <div className="box-border content-stretch flex flex-col gap-[16px] items-start px-[40px] max-[1400px]:px-6 pt-[12px] pb-[24px] relative w-full">
+                  {/* Heading with Navigation Buttons */}
+                  <div className="flex items-center justify-between w-full h-[48px] max-[1400px]:hidden">
+                    <div className="title-large text-foreground">
+                      <p className="m-0">Informasjon om foretaket</p>
+                    </div>
+                    
+                    {/* Navigation buttons - always enabled */}
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant={isStepComplete(0) ? "primary" : "tertiary"}
+                        onClick={() => setCurrentStep(1)}
+                        className="flex items-center gap-2"
+                      >
+                        <span>Neste</span>
+                        <ChevronLeft className="w-5 h-5 rotate-180" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Om foretaket field */}
@@ -443,20 +579,20 @@ export function WriteReportPage({
                             </div>
                           </div>
                           <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0" data-name="Content">
-                            <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center relative shrink-0 text-[#44483b] text-[12px] w-full mb-2">
-                              <p className="leading-[16px] m-0">Revisjonssted</p>
+                            <div className="label-small text-muted-foreground w-full mb-2">
+                              <p className="m-0">Revisjonssted</p>
                             </div>
                             <input
                               type="text"
                               value={tempAddress.street}
                               onChange={(e) => setTempAddress({ ...tempAddress, street: e.target.value })}
-                              className="w-full px-3 py-2 mb-2 border-2 border-[#4a671e] rounded-[8px] text-[#1a1c16] text-[16px] leading-[24px] font-['Manrope:Regular',sans-serif] focus:outline-none focus:border-[#4a671e]"
+                              className="w-full px-3 py-2 mb-2 border-2 border-primary rounded-[8px] body-large text-foreground focus:outline-none focus:border-primary"
                             />
                             <input
                               type="text"
                               value={tempAddress.postalCode}
                               onChange={(e) => setTempAddress({ ...tempAddress, postalCode: e.target.value })}
-                              className="w-full px-3 py-2 border-2 border-[#4a671e] rounded-[8px] text-[#1a1c16] text-[16px] leading-[24px] font-['Manrope:Regular',sans-serif] focus:outline-none focus:border-[#4a671e]"
+                              className="w-full px-3 py-2 border-2 border-primary rounded-[8px] body-large text-foreground focus:outline-none focus:border-primary"
                             />
                           </div>
                           <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]" data-name="Icon button">
@@ -501,11 +637,11 @@ export function WriteReportPage({
                               </div>
                             </div>
                           </div>
-                          <div className="basis-0 content-stretch flex flex-col grow items-start justify-center leading-[0] min-h-px min-w-px overflow-clip relative shrink-0 tracking-[0.5px]" data-name="Content">
-                            <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center relative shrink-0 text-[#44483b] text-[12px] w-full">
-                              <p className="leading-[16px] m-0">Revisjonssted</p>
+                          <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0" data-name="Content">
+                            <div className="label-small text-muted-foreground w-full">
+                              <p className="m-0">Revisjonssted</p>
                             </div>
-                            <div className="flex flex-col font-['Manrope:Regular',sans-serif] font-normal justify-center leading-[24px] relative shrink-0 text-[#1a1c16] text-[16px] w-full">
+                            <div className="body-large text-foreground w-full">
                               <p className="mb-0">{address.street}</p>
                               <p className="m-0">{address.postalCode}</p>
                             </div>
@@ -538,21 +674,6 @@ export function WriteReportPage({
                     </div>
                   )}
                   </div>
-
-                  {/* Navigation buttons - only show when step is complete */}
-                  {isStepComplete(0) && (
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => setCurrentStep(1)}
-                        className="px-6 py-4 rounded-[var(--radius-button)] bg-primary text-primary-foreground label-medium hover:opacity-90 transition-opacity flex items-center gap-2"
-                      >
-                        <span>Neste</span>
-                        <svg className="w-5 h-5 rotate-[-90deg]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -569,22 +690,31 @@ export function WriteReportPage({
             </div>
 
             {/* Production table */}
-            <div className="content-stretch flex flex-col gap-[24px] items-start relative shrink-0 w-full px-[40px] py-[24px]" data-name="Content">
-              <div className="content-stretch flex items-start relative shrink-0 w-full">
-                <div className="content-stretch flex flex-col items-start relative shrink-0 w-[372px]">
-                  <ProductionTableHeader title="Produksjon" variant="type" />
+            <div className="flex-1 overflow-auto relative w-full">
+              <table className="w-full table-fixed">
+                <thead className="bg-surface-container-low sticky top-0 z-10">
+                  <tr className="border-b border-border">
+                    <th className="px-10 py-2 text-left bg-surface-container-low w-1/2">
+                      <span className="label-medium text-foreground">Produksjon</span>
+                    </th>
+                    <th className="px-4 py-2 text-left bg-surface-container-low w-1/2">
+                      <span className="label-medium text-foreground">Volum importert fra LDIR</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
                   {productionData.map((item, index) => (
-                    <ProductionTableRow key={index} text={item.type} variant="type" />
+                    <tr key={index} className="border-b border-border transition-colors hover:bg-muted">
+                      <td className="px-10 py-3">
+                        <span className="body-medium text-foreground">{item.type}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="body-medium text-foreground">{item.volume}</span>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-
-                <div className="basis-0 content-stretch flex flex-col grow items-start min-h-px min-w-px relative shrink-0">
-                  <ProductionTableHeader title="Volum importert fra LDIR" variant="volume" />
-                  {productionData.map((item, index) => (
-                    <ProductionTableRow key={index} text={item.volume} variant="volume" />
-                  ))}
-                </div>
-              </div>
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -594,15 +724,35 @@ export function WriteReportPage({
             {/* Heading section */}
             <div className="relative shrink-0 w-full" data-name="Heading">
               <div className="flex flex-col size-full">
-                <div className="box-border content-stretch flex flex-col gap-[16px] items-start px-[40px] py-[12px] relative w-full">
-                  {/* Page title */}
-                  <div className="flex flex-col font-['Quatro:Regular',sans-serif] h-[48px] justify-center leading-[0] not-italic relative shrink-0 text-[#1a1c16] text-[22px] w-full">
-                    <p className="leading-[28px]">Tidligere revisjoner</p>
+                <div className="box-border content-stretch flex flex-col gap-[16px] items-start px-[40px] max-[1400px]:px-6 pt-[12px] pb-[24px] relative w-full">
+                  {/* Page title with Navigation Buttons */}
+                  <div className="flex items-center justify-between w-full h-[48px] max-[1400px]:hidden">
+                    <div className="title-large text-foreground">
+                      <p className="m-0">Tidligere revisjoner</p>
+                    </div>
+                    
+                    {/* Navigation buttons - always enabled */}
+                    <div className="flex items-center gap-4">
+                      <Button
+                        variant="tertiary"
+                        onClick={() => setCurrentStep(0)}
+                      >
+                        Forrige
+                      </Button>
+                      <Button
+                        variant={isStepComplete(1) ? "primary" : "tertiary"}
+                        onClick={() => setCurrentStep(2)}
+                        className="flex items-center gap-2"
+                      >
+                        <span>Neste</span>
+                        <ChevronLeft className="w-5 h-5 rotate-180" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Description text */}
                   <div className="content-stretch flex flex-col gap-[8px] items-start relative shrink-0 w-full">
-                    <div className="flex flex-col font-['Manrope:Regular',sans-serif] font-normal justify-center leading-[24px] relative shrink-0 text-[#1a1c16] text-[16px] tracking-[0.5px] w-full">
+                    <div className="body-large text-foreground w-full">
                       <p className="mb-0">Tabellen over åpne og lukkede avvik fra siste eksterne revisjon og egenrevisjon vises ikke i rapporten.</p>
                       <p>Åpne avvik fra egenrevisjon blir markert som lukket.</p>
                     </div>
@@ -615,27 +765,6 @@ export function WriteReportPage({
                       onChange={setPreviousRevisionNotes}
                     />
                   </div>
-
-                  {/* Navigation buttons - only show when step is complete */}
-                  {isStepComplete(1) && (
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => setCurrentStep(0)}
-                        className="px-6 py-4 rounded-[var(--radius-button)] text-primary label-medium hover:bg-primary/10 transition-colors"
-                      >
-                        Tilbake
-                      </button>
-                      <button
-                        onClick={() => setCurrentStep(2)}
-                        className="px-6 py-4 rounded-[var(--radius-button)] bg-primary text-primary-foreground label-medium hover:opacity-90 transition-opacity flex items-center gap-2"
-                      >
-                        <span>Neste</span>
-                        <svg className="w-5 h-5 rotate-[-90deg]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -656,8 +785,8 @@ export function WriteReportPage({
                           <div className="flex flex-col items-center justify-center overflow-clip rounded-[inherit] size-full">
                             <div className="box-border content-stretch flex flex-col items-center justify-center px-[16px] py-[14px] relative size-full">
                               <div className="basis-0 content-stretch flex gap-[4px] grow items-center justify-center min-h-px min-w-px relative shrink-0" data-name="Tab Contents">
-                                <div className={`flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-center text-nowrap tracking-[0.1px] ${previousRevisionTab === 'ekstern' ? 'text-[#1a1c16]' : 'text-[#44483b]'}`}>
-                                  <p className="leading-[20px] whitespace-pre">Ekstern revisjon</p>
+                                <div className={`label-medium text-center ${previousRevisionTab === 'ekstern' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                  <p className="m-0 whitespace-pre">Ekstern revisjon</p>
                                 </div>
                               </div>
                               {previousRevisionTab === 'ekstern' && (
@@ -674,8 +803,8 @@ export function WriteReportPage({
                       >
                         <div className="basis-0 box-border content-stretch flex flex-col grow items-center justify-center min-h-px min-w-px overflow-clip px-[16px] py-[14px] relative shrink-0" data-name="State-layer">
                           <div className="basis-0 content-stretch flex gap-[4px] grow items-center justify-center min-h-px min-w-px relative shrink-0" data-name="Tab Contents">
-                            <div className={`flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-center text-nowrap tracking-[0.1px] ${previousRevisionTab === 'egen' ? 'text-[#1a1c16]' : 'text-[#44483b]'}`}>
-                              <p className="leading-[20px] whitespace-pre">Egenrevisjon</p>
+                            <div className={`label-medium text-center ${previousRevisionTab === 'egen' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              <p className="m-0 whitespace-pre">Egenrevisjon</p>
                             </div>
                           </div>
                           {previousRevisionTab === 'egen' && (
@@ -692,8 +821,8 @@ export function WriteReportPage({
                           <div className="flex flex-col items-center justify-center overflow-clip rounded-[inherit] size-full">
                             <div className="box-border content-stretch flex flex-col items-center justify-center px-[16px] py-[14px] relative size-full">
                               <div className="basis-0 content-stretch flex gap-[4px] grow items-center justify-center min-h-px min-w-px relative shrink-0" data-name="Tab Contents">
-                                <div className={`flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-center text-nowrap tracking-[0.1px] ${previousRevisionTab === 'forbedring' ? 'text-[#1a1c16]' : 'text-[#44483b]'}`}>
-                                  <p className="leading-[20px] whitespace-pre">Forbedringspunkter</p>
+                                <div className={`label-medium text-center ${previousRevisionTab === 'forbedring' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                  <p className="m-0 whitespace-pre">Forbedringspunkter</p>
                                 </div>
                               </div>
                               {previousRevisionTab === 'forbedring' && (
@@ -712,8 +841,8 @@ export function WriteReportPage({
                           <div className="flex flex-col items-center justify-center overflow-clip rounded-[inherit] size-full">
                             <div className="box-border content-stretch flex flex-col items-center justify-center px-[16px] py-[14px] relative size-full">
                               <div className="basis-0 content-stretch flex gap-[4px] grow items-center justify-center min-h-px min-w-px relative shrink-0" data-name="Tab Contents">
-                                <div className={`flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[14px] text-center text-nowrap tracking-[0.1px] ${previousRevisionTab === 'positive' ? 'text-[#1a1c16]' : 'text-[#44483b]'}`}>
-                                  <p className="leading-[20px] whitespace-pre">Positive observasjoner</p>
+                                <div className={`label-medium text-center ${previousRevisionTab === 'positive' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                  <p className="m-0 whitespace-pre">Positive observasjoner</p>
                                 </div>
                               </div>
                               {previousRevisionTab === 'positive' && (
@@ -756,13 +885,16 @@ export function WriteReportPage({
                       onSelectQuestion={setSelectedPreviousQuestion}
                     />
 
-                    {/* Detail Panel */}
+                    {/* Vertical Divider - Desktop only */}
+                    <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
+
+                    {/* Detail Panel - Desktop only */}
                     {selectedPreviousQuestion && (() => {
                       const question = previousRevisionData[previousRevisionTab].find(
                         q => q.id === selectedPreviousQuestion
                       );
                       return question ? (
-                        <div className="bg-background flex flex-col overflow-hidden" style={{ width: '520px' }}>
+                        <div className="bg-background flex flex-col overflow-hidden max-[1400px]:hidden min-[1400px]:flex" style={{ width: '520px' }}>
                           <PreviousRevisionQuestionDetail
                             questionNumber={question.questionNumber}
                             questionText={question.questionText}
@@ -776,7 +908,7 @@ export function WriteReportPage({
                     })()}
                     
                     {!selectedPreviousQuestion && (
-                      <div className="flex items-center justify-center bg-background" style={{ width: '520px' }}>
+                      <div className="flex items-center justify-center bg-background max-[1400px]:hidden min-[1400px]:flex" style={{ width: '520px' }}>
                         <p className="body-medium text-muted-foreground">Velg et spørsmål fra tabellen</p>
                       </div>
                     )}
@@ -814,6 +946,8 @@ export function WriteReportPage({
               setSvaroversiktInitialFilter('ubesvarte');
               setCurrentStep(2);
             }}
+            onPrevious={() => setCurrentStep(2)}
+            onNext={() => setCurrentStep(4)}
             hasAgreed={avvikHasAgreed}
             onHasAgreedChange={setAvvikHasAgreed}
             isLocked={avvikIsLocked}
@@ -825,9 +959,26 @@ export function WriteReportPage({
 
         {currentStep === 4 && (
           <div className="flex-1 overflow-auto w-full">
-            <div className="px-[40px] py-[12px] flex flex-col gap-4 w-full">
-              {/* Title */}
-              <h2 className="title-large text-foreground m-0">Hovedkonklusjon</h2>
+            <div className="px-[40px] max-[1400px]:px-6 py-[12px] flex flex-col gap-4 w-full">
+              {/* Title with Navigation Buttons */}
+              <div className="flex items-center justify-between max-[1400px]:hidden">
+                <h2 className="title-large text-foreground m-0">Hovedkonklusjon</h2>
+                
+                {/* Navigation buttons - always enabled */}
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="tertiary"
+                    onClick={() => setCurrentStep(3)}
+                  >
+                    Forrige
+                  </Button>
+                  <Button
+                    variant={isStepComplete(4) ? "primary" : "tertiary"}
+                  >
+                    Fullfør
+                  </Button>
+                </div>
+              </div>
 
               {/* Konklusjon fra revisjonen */}
               <div className="w-full">
@@ -926,16 +1077,6 @@ export function WriteReportPage({
                   />
                 </div>
               </div>
-
-              {/* Navigation buttons */}
-              <div className="flex items-center gap-4 py-3">
-                <button
-                  onClick={() => setCurrentStep(3)}
-                  className="px-6 py-4 rounded-[var(--radius-button)] text-primary label-medium hover:bg-primary/10 transition-colors"
-                >
-                  Forrige
-                </button>
-              </div>
             </div>
           </div>
         )}
@@ -1017,39 +1158,10 @@ function OmForetaketInput({ value, onChange }: { value: string; onChange: (value
   if (mode === 'empty') {
     return (
       <div className="relative shrink-0 w-full">
-        <div className="flex flex-row items-center size-full">
-          <div className="box-border content-stretch flex gap-[16px] items-center p-[8px] relative w-full">
-            {/* Leading Icon Button - Plus */}
-            <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]" data-name="Icon button">
-              <div 
-                onClick={handleAdd}
-                className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
-                data-name="Content"
-              >
-                <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full" data-name="State-layer">
-                  <div className="relative shrink-0 size-[24px]" data-name="Icon">
-                    <div className="absolute inset-[20.833%]" data-name="icon">
-                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                        <path d={svgPaths.p2ccb20} fill="#44483B" id="icon" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Content - clickable to activate edit mode */}
-            <button
-              onClick={handleAdd}
-              className="basis-0 content-stretch flex flex-col font-['Manrope:Regular',sans-serif] font-normal grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
-              data-name="Content"
-            >
-              <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-[#1a1c16] text-[16px] tracking-[0.5px] w-full">
-                <p className="leading-[24px] m-0">Om foretaket</p>
-              </div>
-              <p className="leading-[20px] relative shrink-0 text-[#44483b] text-[14px] tracking-[0.25px] w-full m-0">Påkrevd</p>
-            </button>
-            {/* Trenger utfylling chip */}
-            <div className="bg-[#f4f4ea] box-border flex items-center justify-center overflow-clip relative rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_1px_3px_1px_rgba(0,0,0,0.15)] shrink-0">
+        <div className="flex flex-col size-full">
+          {/* Trenger utfylling chip - Show above on small screens */}
+          <div className="max-[400px]:flex max-[400px]:justify-start max-[400px]:mb-2 hidden">
+            <div className="bg-[var(--primary-container)] box-border flex items-center justify-center overflow-clip relative rounded-[var(--radius)] shadow-[var(--elevation-sm)] shrink-0">
               <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
                 <div className="relative shrink-0 w-[18px] h-[18px]">
                   <div className="absolute inset-[8.333%]">
@@ -1064,6 +1176,57 @@ function OmForetaketInput({ value, onChange }: { value: string; onChange: (value
               </div>
             </div>
           </div>
+
+          {/* Main input row */}
+          <div className="box-border content-stretch flex gap-4 items-center p-2 relative w-full">
+            {/* Leading Icon Button - Plus */}
+            <div className="content-stretch flex items-center justify-center relative shrink-0 size-12" data-name="Icon button">
+              <div 
+                onClick={handleAdd}
+                className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
+                data-name="Content"
+              >
+                <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
+                  <div className="relative shrink-0 size-6" data-name="Icon">
+                    <div className="absolute inset-[20.833%]" data-name="icon">
+                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
+                        <path d="M7 0V14M0 7H14" stroke="#44483B" strokeWidth="2" fill="none" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Content - clickable to activate edit mode */}
+            <button
+              onClick={handleAdd}
+              className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
+              data-name="Content"
+            >
+              <div className="flex flex-col justify-center leading-[0] relative shrink-0 w-full">
+                <p className="body-large text-foreground leading-6 m-0">Om foretaket</p>
+              </div>
+            </button>
+            
+            {/* Trenger utfylling chip - Show inline on larger screens */}
+            <div className="max-[400px]:hidden">
+              <div className="bg-[var(--primary-container)] box-border flex items-center justify-center overflow-clip relative rounded-[var(--radius)] shadow-[var(--elevation-sm)] shrink-0">
+                <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
+                  <div className="relative shrink-0 w-[18px] h-[18px]">
+                    <div className="absolute inset-[8.333%]">
+                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
+                        <path d={svgPathsChip.p1c3b4f80} fill="#BA1A1A" />
+                      </svg>
+                    </div>
+                  </div>
+                  <span className="label-medium text-foreground whitespace-nowrap">
+                    Trenger utfylling
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1074,20 +1237,20 @@ function OmForetaketInput({ value, onChange }: { value: string; onChange: (value
     return (
       <div className="relative shrink-0 w-full">
         <div className="flex flex-row items-center size-full">
-          <div className="box-border content-stretch flex gap-[16px] items-start p-[8px] relative w-full">
+          <div className="box-border content-stretch flex gap-4 items-start p-2 relative w-full">
             {/* Leading Icon Button - Check/Save */}
-            <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]" data-name="Icon button">
+            <div className="content-stretch flex items-center justify-center relative shrink-0 size-12" data-name="Icon button">
               <div
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleSave();
                 }}
-                className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
+                className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
                 data-name="Content"
               >
-                <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full" data-name="State-layer">
-                  <div className="relative shrink-0 size-[24px]" data-name="Icon">
+                <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
+                  <div className="relative shrink-0 size-6" data-name="Icon">
                     <div className="absolute inset-[16.667%]">
                       <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
                         <path d="M16.667 5L7.5 14.167L3.333 10" stroke="#44483B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -1099,8 +1262,8 @@ function OmForetaketInput({ value, onChange }: { value: string; onChange: (value
             </div>
             {/* Content */}
             <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0" data-name="Content">
-              <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center relative shrink-0 text-[#44483b] text-[12px] w-full mb-1">
-                <p className="leading-[16px] m-0">Om foretaket</p>
+              <div className="label-small text-muted-foreground w-full mb-1">
+                <p className="m-0">Om foretaket</p>
               </div>
               <textarea
                 ref={textareaRef}
@@ -1110,7 +1273,7 @@ function OmForetaketInput({ value, onChange }: { value: string; onChange: (value
                 onBlur={handleBlur}
                 placeholder=""
                 rows={1}
-                className="w-full px-3 py-2 border-2 border-[#4a671e] rounded-[8px] text-[#1a1c16] text-[16px] leading-[24px] font-['Manrope:Regular',sans-serif] focus:outline-none focus:border-[#4a671e] resize-none overflow-hidden"
+                className="w-full px-3 py-2 border-2 border-primary rounded-[var(--radius)] body-large text-foreground focus:outline-none focus:border-primary resize-none overflow-hidden"
                 style={{ minHeight: '72px' }}
               />
             </div>
@@ -1124,16 +1287,16 @@ function OmForetaketInput({ value, onChange }: { value: string; onChange: (value
   return (
     <div className="relative shrink-0 w-full">
       <div className="flex flex-row items-center size-full">
-        <div className="box-border content-stretch flex gap-[16px] items-start p-[8px] relative w-full">
+        <div className="box-border content-stretch flex gap-4 items-start p-2 relative w-full">
           {/* Leading Icon Button - Edit */}
-          <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]" data-name="Icon button">
+          <div className="content-stretch flex items-center justify-center relative shrink-0 size-12" data-name="Icon button">
             <div
               onClick={handleEdit}
-              className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
+              className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
               data-name="Content"
             >
-              <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full" data-name="State-layer">
-                <div className="relative shrink-0 size-[24px]" data-name="Icon">
+              <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
+                <div className="relative shrink-0 size-6" data-name="Icon">
                   <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
                     <path d={svgPaths.p25003780} fill="#44483B" />
                   </svg>
@@ -1147,11 +1310,11 @@ function OmForetaketInput({ value, onChange }: { value: string; onChange: (value
             className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
             data-name="Content"
           >
-            <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center relative shrink-0 text-[#44483b] text-[12px] w-full">
-              <p className="leading-[16px] m-0">Om foretaket</p>
+            <div className="label-small text-muted-foreground w-full">
+              <p className="m-0">Om foretaket</p>
             </div>
-            <div className="flex flex-col font-['Manrope:Regular',sans-serif] font-normal justify-center relative shrink-0 text-[#1a1c16] text-[16px] w-full">
-              <p className="leading-[24px] m-0">{value}</p>
+            <div className="body-large text-foreground w-full">
+              <p className="m-0">{value}</p>
             </div>
           </button>
         </div>
@@ -1233,39 +1396,10 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
   if (mode === 'empty') {
     return (
       <div className="relative shrink-0 w-full">
-        <div className="flex flex-row items-center size-full">
-          <div className="box-border content-stretch flex gap-[16px] items-center p-[8px] relative w-full">
-            {/* Leading Icon Button - Plus */}
-            <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]" data-name="Icon button">
-              <div 
-                onClick={handleAdd}
-                className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
-                data-name="Content"
-              >
-                <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full" data-name="State-layer">
-                  <div className="relative shrink-0 size-[24px]" data-name="Icon">
-                    <div className="absolute inset-[20.833%]" data-name="icon">
-                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                        <path d={svgPaths.p2ccb20} fill="#44483B" id="icon" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Content - clickable to activate edit mode */}
-            <button
-              onClick={handleAdd}
-              className="basis-0 content-stretch flex flex-col font-['Manrope:Regular',sans-serif] font-normal grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
-              data-name="Content"
-            >
-              <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-[#1a1c16] text-[16px] tracking-[0.5px] w-full">
-                <p className="leading-[24px] m-0">Oppfølging fra tidligere revisjoner</p>
-              </div>
-              <p className="leading-[20px] relative shrink-0 text-[#44483b] text-[14px] tracking-[0.25px] w-full m-0">Påkrevd</p>
-            </button>
-            {/* Trenger utfylling chip */}
-            <div className="bg-[#f4f4ea] box-border flex items-center justify-center overflow-clip relative rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_1px_3px_1px_rgba(0,0,0,0.15)] shrink-0">
+        <div className="flex flex-col size-full">
+          {/* Trenger utfylling chip - Show above on small screens */}
+          <div className="max-[400px]:flex max-[400px]:justify-start max-[400px]:mb-2 hidden">
+            <div className="bg-[var(--primary-container)] box-border flex items-center justify-center overflow-clip relative rounded-[var(--radius)] shadow-[var(--elevation-sm)] shrink-0">
               <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
                 <div className="relative shrink-0 w-[18px] h-[18px]">
                   <div className="absolute inset-[8.333%]">
@@ -1280,6 +1414,57 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
               </div>
             </div>
           </div>
+
+          {/* Main input row */}
+          <div className="box-border content-stretch flex gap-4 items-center p-2 relative w-full">
+            {/* Leading Icon Button - Plus */}
+            <div className="content-stretch flex items-center justify-center relative shrink-0 size-12" data-name="Icon button">
+              <div 
+                onClick={handleAdd}
+                className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
+                data-name="Content"
+              >
+                <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
+                  <div className="relative shrink-0 size-6" data-name="Icon">
+                    <div className="absolute inset-[20.833%]" data-name="icon">
+                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
+                        <path d="M7 0V14M0 7H14" stroke="#44483B" strokeWidth="2" fill="none" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Content - clickable to activate edit mode */}
+            <button
+              onClick={handleAdd}
+              className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
+              data-name="Content"
+            >
+              <div className="flex flex-col justify-center leading-[0] relative shrink-0 w-full">
+                <p className="body-large text-foreground leading-6 m-0">Oppfølging fra tidligere revisjoner</p>
+              </div>
+            </button>
+            
+            {/* Trenger utfylling chip - Show inline on larger screens */}
+            <div className="max-[400px]:hidden">
+              <div className="bg-[var(--primary-container)] box-border flex items-center justify-center overflow-clip relative rounded-[var(--radius)] shadow-[var(--elevation-sm)] shrink-0">
+                <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
+                  <div className="relative shrink-0 w-[18px] h-[18px]">
+                    <div className="absolute inset-[8.333%]">
+                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
+                        <path d={svgPathsChip.p1c3b4f80} fill="#BA1A1A" />
+                      </svg>
+                    </div>
+                  </div>
+                  <span className="label-medium text-foreground whitespace-nowrap">
+                    Trenger utfylling
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1290,16 +1475,16 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
     return (
       <div className="relative shrink-0 w-full">
         <div className="flex flex-row items-center size-full">
-          <div className="box-border content-stretch flex gap-[16px] items-start p-[8px] relative w-full">
+          <div className="box-border content-stretch flex gap-4 items-start p-2 relative w-full">
             {/* Leading Icon Button - Check/Save */}
-            <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]" data-name="Icon button">
+            <div className="content-stretch flex items-center justify-center relative shrink-0 size-12" data-name="Icon button">
               <div
                 onClick={handleSave}
-                className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
+                className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
                 data-name="Content"
               >
-                <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full" data-name="State-layer">
-                  <div className="relative shrink-0 size-[24px]" data-name="Icon">
+                <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
+                  <div className="relative shrink-0 size-6" data-name="Icon">
                     <div className="absolute inset-[16.667%]">
                       <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
                         <path d="M16.667 5L7.5 14.167L3.333 10" stroke="#44483B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -1311,8 +1496,8 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
             </div>
             {/* Content */}
             <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0" data-name="Content">
-              <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center relative shrink-0 text-[#44483b] text-[12px] w-full mb-1">
-                <p className="leading-[16px] m-0">Oppfølging fra tidligere revisjoner</p>
+              <div className="label-small text-muted-foreground w-full mb-1">
+                <p className="m-0">Oppfølging fra tidligere revisjoner</p>
               </div>
               <textarea
                 ref={textareaRef}
@@ -1322,7 +1507,7 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
                 onBlur={handleBlur}
                 placeholder=""
                 rows={3}
-                className="w-full px-3 py-2 border-2 border-[#4a671e] rounded-[8px] text-[#1a1c16] text-[16px] leading-[24px] font-['Manrope:Regular',sans-serif] focus:outline-none focus:border-[#4a671e] resize-none"
+                className="w-full px-3 py-2 border-2 border-primary rounded-[var(--radius)] body-large text-foreground focus:outline-none focus:border-primary resize-none"
               />
             </div>
           </div>
@@ -1335,16 +1520,16 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
   return (
     <div className="relative shrink-0 w-full">
       <div className="flex flex-row items-center size-full">
-        <div className="box-border content-stretch flex gap-[16px] items-start p-[8px] relative w-full">
+        <div className="box-border content-stretch flex gap-4 items-start p-2 relative w-full">
           {/* Leading Icon Button - Edit */}
-          <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]" data-name="Icon button">
+          <div className="content-stretch flex items-center justify-center relative shrink-0 size-12" data-name="Icon button">
             <div
               onClick={handleEdit}
-              className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
+              className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
               data-name="Content"
             >
-              <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full" data-name="State-layer">
-                <div className="relative shrink-0 size-[24px]" data-name="Icon">
+              <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
+                <div className="relative shrink-0 size-6" data-name="Icon">
                   <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
                     <path d={svgPaths.p25003780} fill="#44483B" />
                   </svg>
@@ -1358,11 +1543,11 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
             className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
             data-name="Content"
           >
-            <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center relative shrink-0 text-[#44483b] text-[12px] w-full">
-              <p className="leading-[16px] m-0">Oppfølging fra tidligere revisjoner</p>
+            <div className="label-small text-muted-foreground w-full">
+              <p className="m-0">Oppfølging fra tidligere revisjoner</p>
             </div>
-            <div className="flex flex-col font-['Manrope:Regular',sans-serif] font-normal justify-center relative shrink-0 text-[#1a1c16] text-[16px] w-full">
-              <p className="leading-[24px] m-0">{value}</p>
+            <div className="body-large text-foreground w-full">
+              <p className="m-0">{value}</p>
             </div>
           </button>
         </div>
@@ -1371,65 +1556,4 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
   );
 }
 
-// Production Table Components
-function ProductionTableHeader({ title, variant = 'type' }: { title: string; variant?: 'type' | 'volume' }) {
-  return (
-    <div className="content-stretch flex flex-col h-[56px] items-center justify-center min-h-[56px] relative shrink-0 w-full" data-name="List item/List Item: 0 Density">
-      <div className="absolute inset-0" data-name="state-layer overlay" />
-      <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full" data-name="state-layer">
-        <div className="flex flex-row items-center size-full">
-          <div className={`box-border content-stretch flex gap-[16px] items-center py-[8px] relative size-full ${
-            variant === 'type' ? 'pl-[40px] pr-[16px]' : 'px-[16px]'
-          }`}>
-            <div className="content-stretch flex flex-col h-full items-start justify-center overflow-clip relative shrink-0" data-name="Content">
-              <div className="flex flex-col font-['Manrope:SemiBold',sans-serif] font-semibold justify-center leading-[0] relative shrink-0 text-[#1a1c16] text-[14px] tracking-[0.1px] whitespace-nowrap">
-                <p className="leading-[20px] m-0">{title}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="content-stretch flex flex-col items-start justify-center relative shrink-0 w-full" data-name="Divider">
-        <div className="h-0 relative shrink-0 w-full" data-name="Divider">
-          <div className="absolute bottom-0 left-0 right-0 top-[-1px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 372 1">
-              <line stroke="var(--border)" x2="372" y1="0.5" y2="0.5" />
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function ProductionTableRow({ text, variant = 'type' }: { text: string; variant?: 'type' | 'volume' }) {
-  return (
-    <div className="content-stretch flex flex-col h-[56px] items-center justify-center min-h-[56px] relative shrink-0 w-full" data-name="List item/List Item: 0 Density">
-      <div className="absolute inset-0" data-name="state-layer overlay" />
-      <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full" data-name="state-layer">
-        <div className="flex flex-row items-center size-full">
-          <div className={`box-border content-stretch flex gap-[16px] items-center py-[8px] relative size-full ${
-            variant === 'type' ? 'pl-[40px] pr-[16px]' : 'px-[16px]'
-          }`}>
-            <div className="basis-0 content-stretch flex flex-col grow h-full items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0" data-name="Content">
-              <div className={`flex flex-col font-['Manrope:Regular',sans-serif] font-normal justify-center leading-[0] min-w-full relative shrink-0 text-[#1a1c16] tracking-[0.5px] w-[min-content] ${
-                variant === 'type' ? 'text-[16px]' : 'text-[14px] overflow-ellipsis overflow-hidden text-nowrap tracking-[0.25px]'
-              }`}>
-                <p className={`${variant === 'type' ? 'leading-[24px]' : 'leading-[20px] overflow-ellipsis overflow-hidden [white-space-collapse:collapse]'} m-0`}>{text}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="content-stretch flex flex-col items-start justify-center relative shrink-0 w-full" data-name="Divider">
-        <div className="h-0 relative shrink-0 w-full" data-name="Divider">
-          <div className="absolute bottom-0 left-0 right-0 top-[-1px]">
-            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 372 1">
-              <line stroke="var(--border)" x2="372" y1="0.5" y2="0.5" />
-            </svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

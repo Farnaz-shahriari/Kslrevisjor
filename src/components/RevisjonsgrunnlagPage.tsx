@@ -1,6 +1,10 @@
-import { useState, useMemo } from 'react';
-import { Check, Plus, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react';
+import { OverlayScrollContainer } from './OverlayScrollContainer';
 import { questionsData } from '../data/questions';
+import { ArrowLeft } from 'lucide-react';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from './ui/sheet';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
 // Mock data for checklists
 const checklists = [
@@ -267,7 +271,7 @@ const questionData = [
   },
   {
     id: '1.6.1',
-    text: '1.6.1 – Følger du opplysningsplikten for meldepliktige skadegjørere og floghavre?',
+    text: '1.6.1  Følger du opplysningsplikten for meldepliktige skadegjørere og floghavre?',
     isGroup: false,
     previousDeviation: null,
     companyAnswer: 'Ja',
@@ -482,6 +486,9 @@ export function RevisjonsgrunnlagPage({
   const [addedToBasics, setAddedToBasics] = useState<Set<string>>(
     new Set(['1.1.1', '1.1.2', '1.1.4', '1.2.1', '1.2.2'])
   );
+  // Mobile/Tablet state - true = showing menu, false = showing detail
+  const [showingMenu, setShowingMenu] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const selectedChecklist = checklists.find((c) => c.id === selectedChecklistId);
 
@@ -560,6 +567,25 @@ export function RevisjonsgrunnlagPage({
     setAddedToBasics(new Set(allQuestionIds));
   };
 
+  // Handler for navigating to detail with animation
+  const handleNavigateToDetail = (checklistId: string) => {
+    setSelectedChecklistId(checklistId);
+    setIsAnimating(true);
+    setTimeout(() => {
+      setShowingMenu(false);
+      setIsAnimating(false);
+    }, 300);
+  };
+
+  // Handler for going back to menu with animation
+  const handleBackToMenu = () => {
+    setIsAnimating(true);
+    setTimeout(() => {
+      setShowingMenu(true);
+      setIsAnimating(false);
+    }, 300);
+  };
+
   const getDeviationChip = (type: string | null) => {
     if (!type) return null;
 
@@ -592,7 +618,7 @@ export function RevisjonsgrunnlagPage({
       <div
         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] ${style.bg} ${style.text}`}
       >
-        <span className="text-[14px] font-['Manrope:Medium',sans-serif] font-medium tracking-[0.1px]">
+        <span className="label-medium">
           {type}
         </span>
       </div>
@@ -600,11 +626,83 @@ export function RevisjonsgrunnlagPage({
   };
 
   return (
-    <div className="flex h-full w-full">
-      {/* Left Sidebar - Checklists */}
-      <div className="w-[400px] h-full bg-background border-r border-[var(--border)] flex flex-col gap-6 p-4 overflow-y-auto">
+    <div className="flex h-full w-full overflow-hidden">
+      {/* MOBILE/TABLET: Menu Panel - Shows ONLY when showingMenu is true */}
+      {showingMenu && (
+        <OverlayScrollContainer className="min-[1400px]:hidden w-full h-full bg-background flex flex-col gap-6 p-6 overflow-y-auto">
+          {/* Update button */}
+          <button className="w-full bg-primary text-primary-foreground rounded-[var(--radius-button)] px-6 py-3.5 h-14 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors label-medium">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20Z"
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+              <path
+                d="M12 8V16M8 12H16"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="body-large">
+              Oppdater revisjongrunnlag
+            </span>
+          </button>
+
+          {/* Header */}
+          <div className="flex items-center gap-4 px-4 py-2">
+            <span className="body-large text-foreground">
+              Revisjonshistorikk og rapporter
+            </span>
+          </div>
+
+          {/* Divider with subheading */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[var(--border)]" />
+            </div>
+            <div className="relative flex justify-start">
+              <span className="bg-background pr-3 label-medium text-muted-foreground">
+                Sjekklister for foretaket
+              </span>
+            </div>
+          </div>
+
+          {/* Checklist items */}
+          <div className="flex flex-col gap-2">
+            {checklists.map((checklist) => (
+              <button
+                key={checklist.id}
+                onClick={() => handleNavigateToDetail(checklist.id)}
+                className="flex items-center gap-4 px-4 py-2 rounded-[12px] transition-colors hover:bg-muted"
+              >
+                {/* Icon/Number */}
+                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <span className="label-medium text-foreground">
+                    {checklist.icon}
+                  </span>
+                </div>
+                {/* Name */}
+                <span className="body-large text-left flex-1 text-foreground">
+                  {checklist.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        </OverlayScrollContainer>
+      )}
+
+      {/* DESKTOP: Left Sidebar - Always visible */}
+      <OverlayScrollContainer className="w-[400px] max-[1400px]:hidden h-full bg-background border-r border-[var(--border)] flex flex-col gap-6 p-4 overflow-y-auto">
         {/* Update button */}
-        <button className="w-full bg-primary text-primary-foreground rounded-[100px] px-6 py-4 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+        <button className="w-full bg-primary text-primary-foreground rounded-[var(--radius-button)] px-6 py-3.5 h-14 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors label-medium">
           <svg
             width="20"
             height="20"
@@ -624,14 +722,14 @@ export function RevisjonsgrunnlagPage({
               strokeLinecap="round"
             />
           </svg>
-          <span className="font-['Manrope:Medium',sans-serif] font-medium text-[16px] tracking-[0.15px]">
+          <span className="body-large">
             Oppdater revisjongrunnlag
           </span>
         </button>
 
         {/* Header */}
         <div className="flex items-center gap-4 px-4 py-2">
-          <span className="font-['Manrope:Regular',sans-serif] text-[16px] tracking-[0.5px] text-foreground">
+          <span className="body-large text-foreground">
             Revisjonshistorikk og rapporter
           </span>
         </div>
@@ -642,7 +740,7 @@ export function RevisjonsgrunnlagPage({
             <div className="w-full border-t border-[var(--border)]" />
           </div>
           <div className="relative flex justify-start">
-            <span className="bg-background pr-3 text-[14px] font-['Manrope:Medium',sans-serif] font-medium tracking-[0.1px] text-muted-foreground">
+            <span className="bg-background pr-3 label-medium text-muted-foreground">
               Sjekklister for foretaket
             </span>
           </div>
@@ -656,58 +754,62 @@ export function RevisjonsgrunnlagPage({
               onClick={() => setSelectedChecklistId(checklist.id)}
               className={`flex items-center gap-4 px-4 py-2 rounded-[12px] transition-colors ${
                 selectedChecklistId === checklist.id
-                  ? 'bg-secondary-container text-secondary-container-foreground'
-                  : 'hover:bg-muted text-foreground'
+                  ? 'bg-secondary-container'
+                  : 'hover:bg-muted'
               }`}
             >
               {/* Icon/Number */}
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <span className="font-['Manrope:Medium',sans-serif] font-medium text-[14px] text-foreground">
+              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center shrink-0">
+                <span className="label-medium text-foreground">
                   {checklist.icon}
                 </span>
               </div>
               {/* Name */}
-              <span className="font-['Manrope:Regular',sans-serif] text-[16px] tracking-[0.5px] text-left flex-1">
+              <span className={`body-large text-left flex-1 ${
+                selectedChecklistId === checklist.id
+                  ? 'text-secondary-container-foreground'
+                  : 'text-foreground'
+              }`}>
                 {checklist.name}
               </span>
             </button>
           ))}
         </div>
-      </div>
+      </OverlayScrollContainer>
 
-      {/* Vertical Divider */}
-      <div className="w-px h-full bg-[var(--border)]" />
+      {/* Vertical Divider - Desktop only */}
+      <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
 
-      {/* Right Side - Selected Checklist */}
-      <div className="flex-1 h-full flex flex-col">
+      {/* MOBILE/TABLET & DESKTOP: Detail Panel - Shows when NOT showingMenu on mobile/tablet */}
+      <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full`}>
+        {/* Back button for mobile/tablet */}
+        <div className="px-6 pt-4 pb-2 min-[1400px]:hidden border-b border-[var(--border)]">
+          <button
+            onClick={handleBackToMenu}
+            className="flex items-center gap-2 label-large text-foreground hover:opacity-70 transition-opacity"
+            aria-label="Tilbake til kategorimeny"
+          >
+            <ArrowLeft size={20} className="text-foreground" />
+            Tilbake
+          </button>
+        </div>
+
         {/* Header */}
-        <div className="border-b border-[var(--border)] px-10 py-3">
-          <div className="flex items-center justify-between w-full mb-2">
-            <div className="flex items-center gap-4">
-              <h2 className="font-['Quatro:Regular',sans-serif] text-[22px] text-foreground">
+        <div className="border-b border-[var(--border)] px-10 max-[1400px]:px-6 py-3">
+          <div className="flex flex-col gap-3 w-full mb-2 min-[600px]:flex-row min-[600px]:items-center min-[600px]:justify-between">
+            <div className="flex items-center gap-3 flex-1 min-[600px]:order-1">
+              {/* Title */}
+              <h2 className="title-large text-foreground">
                 {selectedChecklist?.name}
               </h2>
-              {/* Back button with 16px gap */}
-              <button
-                className="flex items-center gap-2 px-0 py-0 hover:opacity-70 transition-opacity"
-                onClick={() => {
-                  // Handle navigation back to accepted revisions
-                  console.log('Navigate back to accepted revisions');
-                }}
-              >
-                <ArrowLeft size={20} className="text-foreground" />
-                <span className="font-['Manrope:Medium',sans-serif] font-medium text-[14px] tracking-[0.1px] text-foreground">
-                  Tilbake til aksepterte revisjoner
-                </span>
-              </button>
             </div>
             {/* Add all questions button */}
             <button
               onClick={handleAddAllQuestions}
-              className="px-6 py-4 rounded-[100px] border border-[var(--border)] hover:bg-muted transition-colors flex items-center gap-2"
+              className="px-6 py-4 rounded-[100px] border border-[var(--border)] hover:bg-muted transition-colors flex items-center gap-2 max-[1400px]:hidden min-[600px]:order-2"
             >
               <Plus size={20} className="text-foreground" />
-              <span className="font-['Manrope:Medium',sans-serif] font-medium text-[16px] tracking-[0.15px] text-foreground">
+              <span className="body-large text-foreground">
                 Legg til alle spørsmål
               </span>
             </button>
@@ -717,21 +819,21 @@ export function RevisjonsgrunnlagPage({
           <div className="flex items-center gap-4 py-2">
             <button
               onClick={() => setMarkedAsReviewed(!markedAsReviewed)}
-              className="w-10 h-10 rounded-[100px] flex items-center justify-center hover:bg-muted transition-colors"
+              className="w-14 h-14 rounded-[100px] flex items-center justify-center hover:bg-muted transition-colors"
             >
               <div className="w-[18px] h-[18px] rounded-[2px] border-2 border-[#44483b] flex items-center justify-center">
                 {markedAsReviewed && <Check size={14} className="text-[#44483b]" />}
               </div>
             </button>
-            <span className="font-['Manrope:Regular',sans-serif] text-[16px] tracking-[0.5px] text-foreground">
+            <span className="body-large text-foreground">
               Marker som gjennomgått
             </span>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-[var(--border)] pl-[52px]">
-          <div className="flex">
+        <div className="border-b border-[var(--border)] pl-[52px] max-[1400px]:pl-6">
+          <div className="flex overflow-x-auto">
             {[
               { id: 'alle', label: 'Alle spørsmål' },
               { id: 'avvik-ekstern', label: 'Avvik (ekstern)' },
@@ -742,7 +844,7 @@ export function RevisjonsgrunnlagPage({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)}
-                className={`px-4 py-[14px] font-['Manrope:Medium',sans-serif] font-medium text-[14px] tracking-[0.1px] relative ${
+                className={`px-4 py-[14px] label-medium relative whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
@@ -760,18 +862,18 @@ export function RevisjonsgrunnlagPage({
         {/* Table */}
         <div className="flex-1 overflow-auto">
           <table className="w-full">
-            <thead className="sticky top-0 bg-background border-b border-[var(--border)]">
+            <thead className="sticky top-0 bg-surface-container-low border-b border-[var(--border)]">
               <tr>
-                <th className="text-left px-4 py-2 font-['Manrope:SemiBold',sans-serif] font-semibold text-[14px] tracking-[0.1px] text-foreground">
+                <th className="text-left px-4 py-2 label-medium text-foreground bg-surface-container-low">
                   Sjekklistepunkt
                 </th>
-                <th className="text-left px-4 py-2 font-['Manrope:SemiBold',sans-serif] font-semibold text-[14px] tracking-[0.1px] text-foreground w-[160px]">
+                <th className="text-left px-4 py-2 label-medium text-foreground w-[160px] bg-surface-container-low max-[1400px]:hidden">
                   Tidligere avvik
                 </th>
-                <th className="text-left px-4 py-2 font-['Manrope:SemiBold',sans-serif] font-semibold text-[14px] tracking-[0.1px] text-foreground w-[152px]">
+                <th className="text-left px-4 py-2 label-medium text-foreground w-[152px] bg-surface-container-low max-[1400px]:hidden">
                   Foretakets svar
                 </th>
-                <th className="text-left px-4 py-2 font-['Manrope:SemiBold',sans-serif] font-semibold text-[14px] tracking-[0.1px] text-foreground w-[154px]">
+                <th className="text-left px-4 py-2 label-medium text-foreground w-[154px] bg-surface-container-low">
                   Del av grunnlaget
                 </th>
               </tr>
@@ -798,15 +900,15 @@ export function RevisjonsgrunnlagPage({
                       </p>
                     </td>
 
-                    {/* Previous deviation */}
-                    <td className="px-4 py-4 w-[160px]">
+                    {/* Previous deviation - Hidden on mobile/tablet */}
+                    <td className="px-4 py-4 w-[160px] max-[1400px]:hidden">
                       {question.previousDeviation && getDeviationChip(question.previousDeviation)}
                     </td>
 
-                    {/* Company answer */}
-                    <td className="px-4 py-4 w-[152px]">
+                    {/* Company answer - Hidden on mobile/tablet */}
+                    <td className="px-4 py-4 w-[152px] max-[1400px]:hidden">
                       {question.companyAnswer && (
-                        <p className="font-['Manrope:Regular',sans-serif] text-[14px] tracking-[0.25px] text-foreground">
+                        <p className="body-medium text-foreground">
                           {question.companyAnswer}
                         </p>
                       )}
@@ -818,7 +920,7 @@ export function RevisjonsgrunnlagPage({
                         <>
                           {isFocus ? (
                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295]">
-                              <span className="text-[14px] font-['Manrope:Medium',sans-serif] font-medium tracking-[0.1px]">
+                              <span className="label-medium">
                                 Fokusområde
                               </span>
                             </div>
@@ -829,7 +931,7 @@ export function RevisjonsgrunnlagPage({
                               title="Klikk for å fjerne fra Register Revisjon"
                             >
                               <Check size={18} />
-                              <span className="text-[14px] font-['Manrope:Medium',sans-serif] font-medium tracking-[0.1px]">
+                              <span className="label-medium">
                                 Lagt til
                               </span>
                             </button>
@@ -840,7 +942,7 @@ export function RevisjonsgrunnlagPage({
                               title="Klikk for å legge til i Register Revisjon"
                             >
                               <Plus size={18} className="text-foreground" />
-                              <span className="text-[14px] font-['Manrope:Medium',sans-serif] font-medium tracking-[0.1px] text-foreground">
+                              <span className="label-medium text-foreground">
                                 Legg til
                               </span>
                             </button>

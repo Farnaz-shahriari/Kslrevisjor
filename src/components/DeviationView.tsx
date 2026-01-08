@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import { TextInputField } from './ui/text-input-field';
 import svgPaths from '../imports/svg-bywq3u55d8';
-import svgPathsCommon from '../imports/svg-0xfhwo02nd';
 
 type SeverityLevel = 'lite-avvik' | 'avvik' | 'stor-avvik' | null;
 
@@ -15,6 +15,7 @@ interface DeviationData {
 interface DeviationViewProps {
   deviationData?: DeviationData;
   onUpdate?: (data: DeviationData | undefined) => void;
+  showTrengerUtfylling?: boolean;
 }
 
 // Predefined krav options
@@ -24,33 +25,20 @@ const KRAV_OPTIONS = [
   'Matproduksjonsforskriften § 2 - Krav til hygiene og kontroll ved primærproduksjon'
 ];
 
-export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
+export function DeviationView({ deviationData, onUpdate, showTrengerUtfylling }: DeviationViewProps) {
   const [selectedSeverity, setSelectedSeverity] = useState<SeverityLevel>(deviationData?.severity || null);
   const [severityExpanded, setSeverityExpanded] = useState(!deviationData?.severity);
   
-  // Mangel state
-  const [mangelMode, setMangelMode] = useState<'empty' | 'edit' | 'view'>('empty');
+  // Mangel, Bevis, Krav values
   const [mangelValue, setMangelValue] = useState(deviationData?.mangel || '');
-  const [mangelEditValue, setMangelEditValue] = useState('');
-  
-  // Bevis text state
-  const [bevisMode, setBevisMode] = useState<'empty' | 'edit' | 'view'>('empty');
   const [bevisValue, setBevisValue] = useState(deviationData?.bevis || '');
-  const [bevisEditValue, setBevisEditValue] = useState('');
+  const [kravValue, setKravValue] = useState(deviationData?.krav || '');
   
   // Bevis images state
   const [bevisImages, setBevisImages] = useState<Array<{ id: string; name: string; url: string }>>(
     deviationData?.bevisImages || []
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Krav state
-  const [kravMode, setKravMode] = useState<'empty' | 'edit' | 'view'>('empty');
-  const [kravValue, setKravValue] = useState(deviationData?.krav || '');
-  const [kravEditValue, setKravEditValue] = useState('');
-  const [showKravDropdown, setShowKravDropdown] = useState(false);
-  const [filteredKravOptions, setFilteredKravOptions] = useState(KRAV_OPTIONS);
-  const kravInputRef = useRef<HTMLInputElement>(null);
 
   // Sync with deviationData when it changes
   useEffect(() => {
@@ -59,16 +47,13 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
         setSelectedSeverity(deviationData.severity);
         setSeverityExpanded(!deviationData.severity);
       }
-      if (deviationData.mangel) {
-        setMangelMode('view');
+      if (deviationData.mangel !== undefined) {
         setMangelValue(deviationData.mangel);
       }
-      if (deviationData.bevis) {
-        setBevisMode('view');
+      if (deviationData.bevis !== undefined) {
         setBevisValue(deviationData.bevis);
       }
-      if (deviationData.krav) {
-        setKravMode('view');
+      if (deviationData.krav !== undefined) {
         setKravValue(deviationData.krav);
       }
       if (deviationData.bevisImages) {
@@ -106,62 +91,6 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
     setSeverityExpanded(!severityExpanded);
   };
 
-  // Mangel handlers
-  const handleMangelAdd = () => {
-    setMangelMode('edit');
-    setMangelEditValue(mangelValue);
-  };
-
-  const handleMangelEdit = () => {
-    setMangelMode('edit');
-    setMangelEditValue(mangelValue);
-  };
-
-  const handleMangelSave = () => {
-    const trimmed = mangelEditValue.trim();
-    if (trimmed) {
-      setMangelValue(trimmed);
-      setMangelMode('view');
-      updateDeviationData({ mangel: trimmed });
-    } else {
-      setMangelValue('');
-      setMangelMode('empty');
-      updateDeviationData({ mangel: '' });
-    }
-  };
-
-  const handleMangelBlur = () => {
-    handleMangelSave();
-  };
-
-  // Bevis text handlers
-  const handleBevisAdd = () => {
-    setBevisMode('edit');
-    setBevisEditValue(bevisValue);
-  };
-
-  const handleBevisEdit = () => {
-    setBevisMode('edit');
-    setBevisEditValue(bevisValue);
-  };
-
-  const handleBevisSave = () => {
-    const trimmed = bevisEditValue.trim();
-    if (trimmed) {
-      setBevisValue(trimmed);
-      setBevisMode('view');
-      updateDeviationData({ bevis: trimmed });
-    } else {
-      setBevisValue('');
-      setBevisMode('empty');
-      updateDeviationData({ bevis: '' });
-    }
-  };
-
-  const handleBevisBlur = () => {
-    handleBevisSave();
-  };
-
   // Image upload handlers
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -189,23 +118,17 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
 
   // Krav handlers
   const handleKravAdd = () => {
-    setKravMode('edit');
-    setKravEditValue(kravValue);
-    setShowKravDropdown(true);
-    setFilteredKravOptions(KRAV_OPTIONS);
-    setTimeout(() => kravInputRef.current?.focus(), 0);
+    setKravValue('');
+    updateDeviationData({ krav: '' });
   };
 
   const handleKravEdit = () => {
-    setKravMode('edit');
-    setKravEditValue(kravValue);
-    setShowKravDropdown(true);
-    setFilteredKravOptions(KRAV_OPTIONS);
-    setTimeout(() => kravInputRef.current?.focus(), 0);
+    setKravValue('');
+    updateDeviationData({ krav: '' });
   };
 
   const handleKravInputChange = (value: string) => {
-    setKravEditValue(value);
+    setKravValue(value);
     if (value.trim()) {
       const filtered = KRAV_OPTIONS.filter(option =>
         option.toLowerCase().includes(value.toLowerCase())
@@ -219,7 +142,6 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
   };
 
   const handleKravSelect = (option: string) => {
-    setKravEditValue(option);
     setKravValue(option);
     setKravMode('view');
     setShowKravDropdown(false);
@@ -227,7 +149,7 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
   };
 
   const handleKravSave = () => {
-    const trimmed = kravEditValue.trim();
+    const trimmed = kravValue.trim();
     if (trimmed) {
       setKravValue(trimmed);
       setKravMode('view');
@@ -251,12 +173,9 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
 
   const handleDelete = () => {
     setSelectedSeverity(null);
-    setMangelMode('empty');
     setMangelValue('');
-    setBevisMode('empty');
     setBevisValue('');
     setBevisImages([]);
-    setKravMode('empty');
     setKravValue('');
     onUpdate?.(undefined);
   };
@@ -377,94 +296,17 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
         </div>
 
         {/* Mangel Section */}
-        <div className="box-border content-stretch flex flex-col gap-[8px] items-center justify-center min-h-[64px] overflow-visible pb-0 pt-[8px] px-0 relative shrink-0 w-full mb-2">
-          <div className="relative shrink-0 w-full">
-            <div className="flex flex-row items-center size-full">
-              <div className="box-border content-stretch flex gap-[8px] items-center p-[8px] relative w-full">
-                {mangelMode === 'empty' && (
-                  <>
-                    <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0">
-                      <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-foreground text-[16px] tracking-[0.5px] w-full">
-                        <p className="leading-[24px] m-0">Mangel</p>
-                      </div>
-                      <p className="leading-[20px] relative shrink-0 text-muted-foreground text-[14px] tracking-[0.25px] w-full m-0">Påkrevd</p>
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleMangelAdd}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <div className="absolute inset-[21%]">
-                            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                              <path d={svgPathsCommon.p2ccb20} fill="#44483B" />
-                            </svg>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-                {mangelMode === 'edit' && (
-                  <>
-                    <div className="basis-0 grow relative">
-                      <label className="flex flex-col justify-center leading-[0] relative shrink-0 text-muted-foreground text-[12px] tracking-[0.5px] mb-1">
-                        <p className="leading-[16px] m-0">Mangel</p>
-                      </label>
-                      <input
-                        type="text"
-                        value={mangelEditValue}
-                        onChange={(e) => setMangelEditValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleMangelSave()}
-                        onBlur={handleMangelBlur}
-                        placeholder="Mangel"
-                        autoFocus
-                        className="w-full px-3 py-2 border border-border rounded-[8px] text-foreground bg-input-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      />
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleMangelSave}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-                            <path d="M16.667 5L7.5 14.167L3.333 10" stroke="#44483B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                          </svg>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-                {mangelMode === 'view' && (
-                  <>
-                    <div 
-                      onClick={handleMangelEdit}
-                      className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 cursor-pointer hover:bg-muted rounded-[8px] p-2 -ml-2 transition-colors"
-                    >
-                      <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-muted-foreground text-[12px] tracking-[0.5px] w-full mb-1">
-                        <p className="leading-[16px] m-0">Mangel</p>
-                      </div>
-                      <p className="leading-[24px] relative shrink-0 text-foreground text-[16px] tracking-[0.5px] w-full m-0">{mangelValue}</p>
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleMangelEdit}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-                            <path d="M14.166 2.5a2.5 2.5 0 0 1 3.536 3.536l-10 10-4.166.833.833-4.166 10-10Z" stroke="#44483B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                          </svg>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <TextInputField
+          label="Mangel"
+          value={mangelValue}
+          onChange={(value) => {
+            setMangelValue(value);
+            updateDeviationData({ mangel: value });
+          }}
+          placeholder="Mangel"
+          multiline={false}
+          showTrengerUtfylling={showTrengerUtfylling}
+        />
 
         {/* Divider */}
         <div className="h-0 w-full relative mb-2">
@@ -476,94 +318,17 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
         </div>
 
         {/* Bevis Section */}
-        <div className="box-border content-stretch flex flex-col gap-[8px] items-center justify-center min-h-[64px] overflow-visible pb-0 pt-[8px] px-0 relative shrink-0 w-full mb-4">
-          <div className="relative shrink-0 w-full">
-            <div className="flex flex-row items-center size-full">
-              <div className="box-border content-stretch flex gap-[8px] items-center p-[8px] relative w-full">
-                {bevisMode === 'empty' && (
-                  <>
-                    <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0">
-                      <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-foreground text-[16px] tracking-[0.5px] w-full">
-                        <p className="leading-[24px] m-0">Bevis</p>
-                      </div>
-                      <p className="leading-[20px] relative shrink-0 text-muted-foreground text-[14px] tracking-[0.25px] w-full m-0">Påkrevd</p>
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleBevisAdd}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <div className="absolute inset-[21%]">
-                            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                              <path d={svgPathsCommon.p2ccb20} fill="#44483B" />
-                            </svg>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-                {bevisMode === 'edit' && (
-                  <>
-                    <div className="basis-0 grow relative">
-                      <label className="flex flex-col justify-center leading-[0] relative shrink-0 text-muted-foreground text-[12px] tracking-[0.5px] mb-1">
-                        <p className="leading-[16px] m-0">Bevis</p>
-                      </label>
-                      <input
-                        type="text"
-                        value={bevisEditValue}
-                        onChange={(e) => setBevisEditValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleBevisSave()}
-                        onBlur={handleBevisBlur}
-                        placeholder="Bevis"
-                        autoFocus
-                        className="w-full px-3 py-2 border border-border rounded-[8px] text-foreground bg-input-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      />
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleBevisSave}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-                            <path d="M16.667 5L7.5 14.167L3.333 10" stroke="#44483B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                          </svg>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-                {bevisMode === 'view' && (
-                  <>
-                    <div 
-                      onClick={handleBevisEdit}
-                      className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 cursor-pointer hover:bg-muted rounded-[8px] p-2 -ml-2 transition-colors"
-                    >
-                      <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-muted-foreground text-[12px] tracking-[0.5px] w-full mb-1">
-                        <p className="leading-[16px] m-0">Bevis</p>
-                      </div>
-                      <p className="leading-[24px] relative shrink-0 text-foreground text-[16px] tracking-[0.5px] w-full m-0">{bevisValue}</p>
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleBevisEdit}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-                            <path d="M14.166 2.5a2.5 2.5 0 0 1 3.536 3.536l-10 10-4.166.833.833-4.166 10-10Z" stroke="#44483B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                          </svg>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <TextInputField
+          label="Bevis"
+          value={bevisValue}
+          onChange={(value) => {
+            setBevisValue(value);
+            updateDeviationData({ bevis: value });
+          }}
+          placeholder="Bevis"
+          multiline={false}
+          showTrengerUtfylling={showTrengerUtfylling}
+        />
 
         {/* Upload Button */}
         <div className="mb-4">
@@ -614,127 +379,27 @@ export function DeviationView({ deviationData, onUpdate }: DeviationViewProps) {
           </div>
         ))}
 
-        {bevisImages.length > 0 && (
-          <>
-            {/* Divider */}
-            <div className="h-0 w-full relative mb-4">
-              <div className="absolute bottom-0 left-0 right-0 top-[-1px]">
-                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 496 1">
-                  <line stroke="#C4C8B7" x2="496" y1="0.5" y2="0.5" />
-                </svg>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Krav Section */}
-        <div className="box-border content-stretch flex flex-col gap-[8px] items-center justify-center min-h-[64px] overflow-visible pb-0 pt-[8px] px-0 relative shrink-0 w-full mb-4">
-          <div className="relative shrink-0 w-full">
-            <div className="flex flex-row items-center size-full">
-              <div className="box-border content-stretch flex gap-[8px] items-center p-[8px] relative w-full">
-                {kravMode === 'empty' && (
-                  <>
-                    <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0">
-                      <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-foreground text-[16px] tracking-[0.5px] w-full">
-                        <p className="leading-[24px] m-0">Krav (fra veileder)</p>
-                      </div>
-                      <p className="leading-[20px] relative shrink-0 text-muted-foreground text-[14px] tracking-[0.25px] w-full m-0">Påkrevd</p>
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleKravAdd}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <div className="absolute inset-[21%]">
-                            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                              <path d={svgPathsCommon.p2ccb20} fill="#44483B" />
-                            </svg>
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-                {kravMode === 'edit' && (
-                  <>
-                    <div className="basis-0 grow relative">
-                      <label className="flex flex-col justify-center leading-[0] relative shrink-0 text-muted-foreground text-[12px] tracking-[0.5px] mb-1">
-                        <p className="leading-[16px] m-0">Krav (fra veileder)</p>
-                      </label>
-                      <input
-                        ref={kravInputRef}
-                        type="text"
-                        value={kravEditValue}
-                        onChange={(e) => handleKravInputChange(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleKravSave()}
-                        onBlur={handleKravBlur}
-                        onFocus={() => setShowKravDropdown(true)}
-                        placeholder="Søk eller skriv krav"
-                        autoFocus
-                        className="w-full px-3 py-2 border border-border rounded-[8px] text-foreground bg-input-background focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      />
-                      {/* Dropdown menu */}
-                      {showKravDropdown && filteredKravOptions.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-[8px] shadow-[var(--elevation-sm)] max-h-[200px] overflow-y-auto">
-                          {filteredKravOptions.map((option, index) => (
-                            <button
-                              key={index}
-                              onMouseDown={(e) => {
-                                e.preventDefault();
-                                handleKravSelect(option);
-                              }}
-                              className="w-full px-3 py-2 text-left hover:bg-muted transition-colors border-b border-border last:border-b-0"
-                            >
-                              <p className="text-foreground text-[14px] leading-[20px] m-0">{option}</p>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleKravSave}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-                            <path d="M16.667 5L7.5 14.167L3.333 10" stroke="#44483B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                          </svg>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-                {kravMode === 'view' && (
-                  <>
-                    <div 
-                      onClick={handleKravEdit}
-                      className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 cursor-pointer hover:bg-muted rounded-[8px] p-2 -ml-2 transition-colors"
-                    >
-                      <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-muted-foreground text-[12px] tracking-[0.5px] w-full mb-1">
-                        <p className="leading-[16px] m-0">Krav (fra veileder)</p>
-                      </div>
-                      <p className="leading-[24px] relative shrink-0 text-foreground text-[16px] tracking-[0.5px] w-full m-0">{kravValue}</p>
-                    </div>
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <button 
-                        onClick={handleKravEdit}
-                        className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[32px] h-[32px] hover:bg-muted transition-colors"
-                      >
-                        <div className="relative shrink-0 size-[20px]">
-                          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-                            <path d="M14.166 2.5a2.5 2.5 0 0 1 3.536 3.536l-10 10-4.166.833.833-4.166 10-10Z" stroke="#44483B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                          </svg>
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
+        {/* Divider between Bevis and Krav */}
+        <div className="h-0 w-full relative mb-2">
+          <div className="absolute bottom-0 left-0 right-0 top-[-1px]">
+            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 496 1">
+              <line stroke="#C4C8B7" x2="496" y1="0.5" y2="0.5" />
+            </svg>
           </div>
         </div>
+
+        {/* Krav Section */}
+        <TextInputField
+          label="Krav (fra veileder)"
+          value={kravValue}
+          onChange={(value) => {
+            setKravValue(value);
+            updateDeviationData({ krav: value });
+          }}
+          placeholder="Krav (fra veileder)"
+          multiline={false}
+          showTrengerUtfylling={showTrengerUtfylling}
+        />
 
         {/* Delete Button */}
         <div className="flex items-center justify-end w-full">

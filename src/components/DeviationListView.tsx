@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 
 type SeverityLevel = 'lite-avvik' | 'avvik' | 'stor-avvik' | null;
 
-interface DeviationData {
+interface DeviationItem {
   id: string;
   severity?: SeverityLevel;
   mangel?: string;
@@ -14,38 +14,32 @@ interface DeviationData {
 }
 
 interface DeviationListViewProps {
-  deviations?: DeviationData[];
-  onUpdate?: (deviations: DeviationData[]) => void;
-  questionId?: string;
-  questionData?: any;
-  onUpdateQuestionData?: (questionId: string, data: any) => void;
+  deviations?: DeviationItem[];
+  onUpdate?: (deviations: DeviationItem[]) => void;
+  showTrengerUtfylling?: boolean;
 }
 
 export function DeviationListView({ 
   deviations = [], 
   onUpdate,
-  questionId,
-  questionData,
-  onUpdateQuestionData
+  showTrengerUtfylling
 }: DeviationListViewProps) {
   // Use either deviations prop or questionData.deviations
   const initialDeviations = deviations.length > 0 
     ? deviations 
-    : (questionData?.deviations || [{ id: `deviation-${Date.now()}` }]);
+    : [{ id: `deviation-${Date.now()}` }];
     
-  const [deviationList, setDeviationList] = useState<DeviationData[]>(initialDeviations);
+  const [deviationList, setDeviationList] = useState<DeviationItem[]>(initialDeviations);
 
   // Sync when questionData changes
   useEffect(() => {
-    if (questionData?.deviations && questionData.deviations.length > 0) {
-      setDeviationList(questionData.deviations);
-    } else if (deviations.length > 0) {
+    if (deviations.length > 0) {
       setDeviationList(deviations);
     }
-  }, [questionData?.deviations, deviations]);
+  }, [deviations]);
 
   // Check if a deviation is complete (all required fields filled)
-  const isDeviationComplete = (deviation: DeviationData): boolean => {
+  const isDeviationComplete = (deviation: DeviationItem): boolean => {
     const hasSeverity = !!deviation.severity;
     const hasMangel = !!deviation.mangel && deviation.mangel.trim().length > 0;
     const hasBevis = 
@@ -59,8 +53,8 @@ export function DeviationListView({
   // Check if we should show the "Add new deviation" button
   const canAddNewDeviation = deviationList.some(dev => isDeviationComplete(dev));
 
-  const handleDeviationUpdate = (id: string, data: DeviationData | undefined) => {
-    let updatedList: DeviationData[];
+  const handleDeviationUpdate = (id: string, data: DeviationItem | undefined) => {
+    let updatedList: DeviationItem[];
     
     if (data === undefined) {
       // Remove the deviation
@@ -81,13 +75,11 @@ export function DeviationListView({
     // Update via appropriate callback
     if (onUpdate) {
       onUpdate(updatedList);
-    } else if (onUpdateQuestionData && questionId) {
-      onUpdateQuestionData(questionId, { deviations: updatedList });
     }
   };
 
   const handleAddNewDeviation = () => {
-    const newDeviation: DeviationData = {
+    const newDeviation: DeviationItem = {
       id: `deviation-${Date.now()}`
     };
     const updatedList = [...deviationList, newDeviation];
@@ -96,8 +88,6 @@ export function DeviationListView({
     // Update via appropriate callback
     if (onUpdate) {
       onUpdate(updatedList);
-    } else if (onUpdateQuestionData && questionId) {
-      onUpdateQuestionData(questionId, { deviations: updatedList });
     }
   };
 
@@ -107,10 +97,10 @@ export function DeviationListView({
       {canAddNewDeviation && (
         <button
           onClick={handleAddNewDeviation}
-          className="flex items-center gap-2 px-6 py-3 rounded-[var(--radius-button)] border border-border hover:bg-muted transition-colors"
+          className="flex items-center gap-2 px-6 py-3.5 h-14 rounded-[var(--radius-button)] border border-border hover:bg-muted transition-colors label-medium"
         >
           <Plus className="size-5" />
-          <span className="label-medium">Legg til nytt avvik</span>
+          Legg til nytt avvik
         </button>
       )}
 
@@ -120,6 +110,7 @@ export function DeviationListView({
           key={deviation.id}
           deviationData={deviation}
           onUpdate={(data) => handleDeviationUpdate(deviation.id, data)}
+          showTrengerUtfylling={showTrengerUtfylling}
         />
       ))}
     </div>

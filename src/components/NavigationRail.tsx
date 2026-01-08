@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { imgVector7, imgVector12, imgVector17, imgVector22, imgVector6 } from '../imports/svg-djl4p';
 import svgPaths from '../imports/svg-e1u4yqsnoc';
 import logoSvgPaths from '../imports/svg-pn3j7cyndy';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from './ui/sheet';
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
 type TabType = 'forside' | 'tildelteRevisjoner' | 'aksepterteRevisjoner' | 'avviksoversikt' | 'fakturagrunnlag' | 'revisjonshistorikk';
 
@@ -13,7 +15,7 @@ interface NavigationRailProps {
 // Logo component from Figma imports
 function KSLLogo({ collapsed }: { collapsed: boolean }) {
   if (collapsed) {
-    // Small logo for collapsed state - Type=KSL, Background=Default, Size=Default
+    // Small logo for collapsed state and mobile top bar
     return (
       <div className="flex items-center justify-center">
         <div className="h-[21px] relative shrink-0 w-[69.695px]">
@@ -39,11 +41,11 @@ function KSLLogo({ collapsed }: { collapsed: boolean }) {
     );
   }
 
-  // Full logo for expanded state - using Logo-106-7260 with max height 64px
+  // Full logo for expanded state
   return (
-    <div className="flex items-center justify-center px-3">
-      <div className="relative w-full max-w-[160px]" style={{ height: '64px' }}>
-        <svg className="absolute inset-0 w-full h-full" fill="none" preserveAspectRatio="xMidYMid meet" viewBox="0 0 173.293 104">
+    <div className="flex items-center justify-center w-full h-full">
+      <div className="relative" style={{ width: '106px', height: '64px' }}>
+        <svg className="block w-full h-full" fill="none" preserveAspectRatio="xMinYMin meet" viewBox="0 0 173.293 104">
           {/* Top part - KSL graphic logo */}
           <g>
             <path d={logoSvgPaths.pc59adc0} fill="#79B61D" />
@@ -190,6 +192,16 @@ function UserIcon({ className }: { className?: string }) {
   );
 }
 
+function ChangeRoleIcon({ className }: { className?: string }) {
+  return (
+    <div className={`relative w-6 h-6 ${className || ''}`}>
+      <svg className="absolute inset-0" width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 0C5.376 0 0 5.376 0 12C0 18.624 5.376 24 12 24C18.624 24 24 18.624 24 12C24 5.376 18.624 0 12 0ZM12 21.6C6.708 21.6 2.4 17.292 2.4 12C2.4 6.708 6.708 2.4 12 2.4C17.292 2.4 21.6 6.708 21.6 12C21.6 17.292 17.292 21.6 12 21.6ZM17.004 15.312L15.684 13.992C16.536 12.396 16.32 10.38 14.976 9.036C14.148 8.208 13.08 7.8 12 7.8C11.964 7.8 11.928 7.812 11.892 7.812L13.2 9.12L11.928 10.392L8.532 6.996L11.928 3.6L13.2 4.872L12.048 6.024C13.572 6.036 15.084 6.6 16.248 7.752C18.288 9.804 18.54 12.984 17.004 15.312ZM15.468 17.004L12.072 20.4L10.8 19.128L11.94 17.988C10.428 17.976 8.916 17.388 7.764 16.236C5.712 14.184 5.46 11.016 6.996 8.688L8.316 10.008C7.464 11.604 7.68 13.62 9.024 14.964C9.864 15.804 10.98 16.212 12.096 16.176L10.8 14.88L12.072 13.608L15.468 17.004Z" fill="currentColor" />
+      </svg>
+    </div>
+  );
+}
+
 function MenuIcon({ className }: { className?: string }) {
   return (
     <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -218,31 +230,20 @@ function AcceptedIcon({ className }: { className?: string }) {
   );
 }
 
-export function NavigationRail({ activeTab, onTabChange }: NavigationRailProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const railRef = useRef<HTMLDivElement>(null);
-
-  // Handle clicks outside to collapse
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (railRef.current && !railRef.current.contains(event.target as Node)) {
-        setIsExpanded(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  // Handle clicks inside to expand
-  const handleRailClick = () => {
-    if (!isExpanded) {
-      setIsExpanded(true);
-    }
-  };
-
+// Navigation content component (shared between desktop sidebar and mobile drawer)
+function NavigationContent({ 
+  activeTab, 
+  onTabChange, 
+  isExpanded, 
+  onMenuClick,
+  closeDrawer 
+}: {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+  isExpanded: boolean;
+  onMenuClick?: () => void;
+  closeDrawer?: () => void;
+}) {
   const navigationItems = [
     { id: 'forside' as TabType, icon: HomeIcon, label: 'Forside' },
     { id: 'tildelteRevisjoner' as TabType, icon: AssignedIcon, label: 'Tildelte Revisjoner' },
@@ -252,17 +253,15 @@ export function NavigationRail({ activeTab, onTabChange }: NavigationRailProps) 
     { id: 'revisjonshistorikk' as TabType, icon: HistoryIcon, label: 'Revisjonshistorikk' },
   ];
 
+  const handleNavClick = (tab: TabType) => {
+    onTabChange(tab);
+    if (closeDrawer) {
+      closeDrawer();
+    }
+  };
+
   return (
-    <div 
-      ref={railRef}
-      onClick={handleRailClick}
-      className="bg-background flex flex-col h-screen transition-all duration-300"
-      style={{ 
-        width: isExpanded ? '256px' : '88px',
-        minWidth: isExpanded ? '256px' : '88px',
-        borderRight: '1px solid var(--border)'
-      }}
-    >
+    <>
       {/* Logo Section - 88px height */}
       <div className="flex items-center justify-center shrink-0" style={{ height: '88px' }}>
         <KSLLogo collapsed={!isExpanded} />
@@ -271,10 +270,7 @@ export function NavigationRail({ activeTab, onTabChange }: NavigationRailProps) 
       {/* Menu Toggle - 56px height */}
       <div className="flex items-center justify-center shrink-0" style={{ height: '56px' }}>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsExpanded(!isExpanded);
-          }}
+          onClick={onMenuClick}
           className="flex items-center gap-3 h-14 rounded-[var(--radius)] hover:bg-muted transition-colors"
           style={{
             paddingLeft: isExpanded ? '16px' : '0',
@@ -291,8 +287,8 @@ export function NavigationRail({ activeTab, onTabChange }: NavigationRailProps) 
         </button>
       </div>
 
-      {/* Navigation Items */}
-      <nav className="flex flex-col gap-1 py-2 px-3">
+      {/* Navigation Items - Scrollable */}
+      <nav className="flex flex-col gap-1 py-2 px-3 flex-1 overflow-y-auto">
         {navigationItems.map((item) => (
           <NavItem
             key={item.id}
@@ -300,7 +296,7 @@ export function NavigationRail({ activeTab, onTabChange }: NavigationRailProps) 
             label={item.label}
             isActive={activeTab === item.id}
             isExpanded={isExpanded}
-            onClick={() => onTabChange(item.id)}
+            onClick={() => handleNavClick(item.id)}
           />
         ))}
 
@@ -319,10 +315,114 @@ export function NavigationRail({ activeTab, onTabChange }: NavigationRailProps) 
             <span className="label-large whitespace-nowrap">Min profil</span>
           )}
         </button>
-      </nav>
 
-      {/* Spacer to push content to top */}
-      <div className="flex-1"></div>
-    </div>
+        {/* Change Role Item */}
+        <button
+          onClick={() => {
+            handleNavClick('byttRolle' as any);
+          }}
+          className="flex items-center gap-3 h-14 rounded-[var(--radius)] hover:bg-muted transition-colors w-full text-foreground"
+          aria-label="Bytt rolle"
+          style={{
+            paddingLeft: isExpanded ? '16px' : '0',
+            paddingRight: isExpanded ? '24px' : '0',
+            justifyContent: isExpanded ? 'flex-start' : 'center'
+          }}
+        >
+          <ChangeRoleIcon className="shrink-0" />
+          {isExpanded && (
+            <span className="label-large whitespace-nowrap">Bytt rolle</span>
+          )}
+        </button>
+      </nav>
+    </>
+  );
+}
+
+export function NavigationRail({ activeTab, onTabChange }: NavigationRailProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const railRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicks outside to collapse (desktop only)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (railRef.current && !railRef.current.contains(event.target as Node)) {
+        setIsExpanded(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Handle clicks inside to expand (desktop only)
+  const handleRailClick = () => {
+    if (!isExpanded) {
+      setIsExpanded(true);
+    }
+  };
+
+  return (
+    <>
+      {/* Mobile/Tablet Top Bar - Visible only on < 1400px - Positioned absolutely above everything */}
+      <div className="max-[1400px]:block hidden w-full">
+        <div className="h-14 bg-background border-b border-border flex items-center px-4 gap-4 shrink-0">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="flex items-center justify-center w-8 h-8 text-foreground hover:bg-muted rounded transition-colors"
+            aria-label="Åpne meny"
+          >
+            <MenuIcon className="w-8 h-8" />
+          </button>
+          <KSLLogo collapsed={true} />
+        </div>
+      </div>
+
+      {/* Desktop Sidebar - Visible only on >= 1400px */}
+      <div 
+        ref={railRef}
+        onClick={handleRailClick}
+        className="max-[1400px]:hidden bg-background flex flex-col h-screen transition-all duration-300"
+        style={{ 
+          width: isExpanded ? '256px' : '88px',
+          minWidth: isExpanded ? '256px' : '88px',
+          borderRight: '1px solid var(--border)'
+        }}
+      >
+        <NavigationContent
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          isExpanded={isExpanded}
+          onMenuClick={(e) => {
+            e?.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
+        />
+      </div>
+
+      {/* Mobile/Tablet Drawer Menu */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="left" className="p-0 w-[256px] border-r border-border">
+          <VisuallyHidden.Root>
+            <SheetTitle>Navigasjonsmeny</SheetTitle>
+            <SheetDescription>
+              Hovednavigasjon for applikasjonen
+            </SheetDescription>
+          </VisuallyHidden.Root>
+          <div className="bg-background flex flex-col h-full">
+            <NavigationContent
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+              isExpanded={true}
+              onMenuClick={() => setIsMobileMenuOpen(false)}
+              closeDrawer={() => setIsMobileMenuOpen(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

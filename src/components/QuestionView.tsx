@@ -1,13 +1,16 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ChevronLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ObservationView } from './ObservationView';
 import { DeviationListView } from './DeviationListView';
 import { NotatView } from './NotatView';
 import { DocumentsMenu } from './DocumentsMenu';
 import { AttachedDocumentCard } from './AttachedDocumentCard';
+import { KravVeiledningMobile } from './KravVeiledningMobile';
+import { QuestionHeadingWithNavigation } from './QuestionHeadingWithNavigation';
 import { getQuestionById, getNextQuestionId, getPreviousQuestionId } from '../data/questions';
 import svgPaths from '../imports/svg-4o5ww5kgwr';
 import DocumentationChip from '../imports/DocumentationChip';
+import { RadioButton } from './ui/radio-button';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
 type TabType = 'observasjoner' | 'egenvurderinger' | 'notat' | 'avvik';
@@ -31,9 +34,11 @@ interface QuestionViewProps {
   onNavigate?: (questionId: string) => void;
   onNavigateToDocument?: (documentIndex: number) => void;
   deviationsLocked?: boolean;
+  showBackButton?: boolean;
+  onBackToMenu?: () => void;
 }
 
-export function QuestionView({ questionId, questionData: savedData, onAnswer, onUpdateData, onNavigate, onNavigateToDocument, deviationsLocked }: QuestionViewProps) {
+export function QuestionView({ questionId, questionData: savedData, onAnswer, onUpdateData, onNavigate, onNavigateToDocument, deviationsLocked, showBackButton, onBackToMenu }: QuestionViewProps) {
   const questionInfo = getQuestionById(questionId);
   const [selectedAnswer, setSelectedAnswer] = useState<AnswerType | null>(savedData.answer || null);
   const [activeTab, setActiveTab] = useState<TabType>('egenvurderinger');
@@ -140,22 +145,52 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
   }
 
   return (
-    <div className="flex-1 bg-background flex flex-col h-full overflow-hidden">
-      {/* Fixed header section: Question info, answers, tabs */}
-      <div className="shrink-0 px-[40px] pt-[12px] border-b border-border">
-        {/* Question number and text on same line */}
-        <div className="flex items-start gap-[8px] w-full mb-2">
-          <div className="shrink-0">
-            <p className="title-large m-0 text-nowrap">{questionId}</p>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="title-large m-0">{questionInfo.title}</p>
-          </div>
+    <div className="flex-1 bg-background flex flex-col h-full overflow-auto">
+      {/* Back button for mobile/tablet */}
+      {showBackButton && onBackToMenu && (
+        <div className="px-6 pt-4 pb-2 min-[1400px]:hidden">
+          <button
+            onClick={onBackToMenu}
+            className="flex items-center gap-2 label-large text-foreground hover:opacity-70 transition-opacity"
+            aria-label="Tilbake til spørsmålsliste"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            Tilbake
+          </button>
+        </div>
+      )}
+
+      {/* Scrollable content */}
+      <div className="px-[40px] max-[1400px]:px-6 pt-[12px] pb-6">
+        {/* Question heading with navigation */}
+        <div className="mb-2">
+          <QuestionHeadingWithNavigation
+            questionNumber={questionId}
+            hasAnswer={!!selectedAnswer}
+            onPrevious={() => {
+              const prevId = getPreviousQuestionId(questionId);
+              if (prevId && onNavigate) {
+                onNavigate(prevId);
+              }
+            }}
+            onNext={() => {
+              const nextId = getNextQuestionId(questionId);
+              if (nextId && onNavigate) {
+                onNavigate(nextId);
+              }
+            }}
+            hasPrevious={!!getPreviousQuestionId(questionId)}
+            hasNext={!!getNextQuestionId(questionId)}
+          />
+        </div>
+
+        {/* Question title */}
+        <div className="w-full mb-2">
+          <p className="title-large m-0">{questionInfo.title}</p>
         </div>
 
         {/* Information chips */}
-        <div className="flex gap-2 items-center w-full mb-2">
-          {questionInfo.requiresDocumentation && (
+        <div className="flex gap-2 items-center w-full mb-2">{questionInfo.requiresDocumentation && (
             <div className="bg-secondary h-8 flex items-center justify-center rounded-[8px]">
               <div className="flex gap-2 items-center justify-center pl-2 pr-3 py-1.5">
                 <div className="w-[18px] h-[18px] flex items-center justify-center">
@@ -169,97 +204,58 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
           )}
         </div>
 
+        {/* Mobile Krav og Veiledning - Shows when combined width of question + right panel < 1000px */}
+        <div className="max-[1600px]:block hidden w-full mb-4">
+          <KravVeiledningMobile
+            veilederRevisorText={questionInfo.veilederRevisorText}
+            veilederText={questionInfo.veilederText}
+            kravLinks={questionInfo.kravLinks}
+          />
+        </div>
+
         {/* Answer selection */}
-        <div className="flex flex-row items-center w-full gap-2 mb-4">
-          <button
-            onClick={() => handleAnswerSelect('ja')}
-            disabled={deviationsLocked}
-            className={`flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors ${
-              deviationsLocked 
-                ? 'opacity-40 cursor-not-allowed' 
-                : 'hover:bg-muted'
-            }`}
-          >
-            <div className="flex flex-row items-center w-full h-full">
-              <div className="flex gap-4 items-center px-4 w-full h-full">
-                <div className="flex items-center justify-center shrink-0">
-                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{
-                    borderColor: selectedAnswer === 'ja' ? '#4a671e' : '#44483B',
-                    backgroundColor: selectedAnswer === 'ja' ? '#4a671e' : 'transparent'
-                  }}>
-                    {selectedAnswer === 'ja' && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1 flex flex-col items-start justify-center overflow-hidden">
-                  <p className={`body-large m-0 transition-colors ${
-                    selectedAnswer === 'ja' ? 'text-primary' : 'text-foreground'
-                  }`}>Ja</p>
-                </div>
-              </div>
-            </div>
-          </button>
+        <div className="flex flex-col min-[768px]:flex-row items-stretch min-[768px]:items-center w-full gap-2 mb-6">
+          <div className={`flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors ${
+            deviationsLocked 
+              ? 'opacity-40 cursor-not-allowed' 
+              : 'hover:bg-muted'
+          }`}>
+            <RadioButton
+              checked={selectedAnswer === 'ja'}
+              onClick={() => !deviationsLocked && handleAnswerSelect('ja')}
+              label="Ja"
+              disabled={deviationsLocked}
+              className="w-full px-4"
+            />
+          </div>
 
-          <button
-            onClick={() => handleAnswerSelect('nei')}
-            disabled={deviationsLocked}
-            className={`flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors ${
-              deviationsLocked 
-                ? 'opacity-40 cursor-not-allowed' 
-                : 'hover:bg-muted'
-            }`}
-          >
-            <div className="flex flex-row items-center w-full h-full">
-              <div className="flex gap-4 items-center px-4 w-full h-full">
-                <div className="flex items-center justify-center shrink-0">
-                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{
-                    borderColor: selectedAnswer === 'nei' ? '#4a671e' : '#44483B',
-                    backgroundColor: selectedAnswer === 'nei' ? '#4a671e' : 'transparent'
-                  }}>
-                    {selectedAnswer === 'nei' && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1 flex flex-col items-start justify-center overflow-hidden">
-                  <p className={`body-large m-0 transition-colors ${
-                    selectedAnswer === 'nei' ? 'text-primary' : 'text-foreground'
-                  }`}>Nei</p>
-                </div>
-              </div>
-            </div>
-          </button>
+          <div className={`flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors ${
+            deviationsLocked 
+              ? 'opacity-40 cursor-not-allowed' 
+              : 'hover:bg-muted'
+          }`}>
+            <RadioButton
+              checked={selectedAnswer === 'nei'}
+              onClick={() => !deviationsLocked && handleAnswerSelect('nei')}
+              label="Nei"
+              disabled={deviationsLocked}
+              className="w-full px-4"
+            />
+          </div>
 
-          <button
-            onClick={() => handleAnswerSelect('ikke-relevant')}
-            disabled={deviationsLocked}
-            className={`flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors ${
-              deviationsLocked 
-                ? 'opacity-40 cursor-not-allowed' 
-                : 'hover:bg-muted'
-            }`}
-          >
-            <div className="flex flex-row items-center w-full h-full">
-              <div className="flex gap-4 items-center px-4 w-full h-full">
-                <div className="flex items-center justify-center shrink-0">
-                  <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{
-                    borderColor: selectedAnswer === 'ikke-relevant' ? '#4a671e' : '#44483B',
-                    backgroundColor: selectedAnswer === 'ikke-relevant' ? '#4a671e' : 'transparent'
-                  }}>
-                    {selectedAnswer === 'ikke-relevant' && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1 flex flex-col items-start justify-center overflow-hidden">
-                  <p className={`body-large m-0 transition-colors ${
-                    selectedAnswer === 'ikke-relevant' ? 'text-primary' : 'text-foreground'
-                  }`}>Ikke relevant</p>
-                </div>
-              </div>
-            </div>
-          </button>
+          <div className={`flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors ${
+            deviationsLocked 
+              ? 'opacity-40 cursor-not-allowed' 
+              : 'hover:bg-muted'
+          }`}>
+            <RadioButton
+              checked={selectedAnswer === 'ikke-relevant'}
+              onClick={() => !deviationsLocked && handleAnswerSelect('ikke-relevant')}
+              label="Ikke relevant"
+              disabled={deviationsLocked}
+              className="w-full px-4"
+            />
+          </div>
         </div>
 
         {/* Tabs */}
@@ -295,204 +291,173 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Scrollable tab content */}
-      <div className="flex-1 overflow-y-auto px-[40px] pt-4 pb-4">
-        {selectedAnswer && (
-          <div className="max-w-2xl">
-            {activeTab === 'observasjoner' && (
-              <ObservationView 
-                improvementText={savedData.improvementText}
-                improvementImages={savedData.improvementImages}
-                positiveText={savedData.positiveText}
-                positiveImages={savedData.positiveImages}
-                onUpdate={(data) => onUpdateData?.(questionId, data)}
-              />
-            )}
-            {activeTab === 'avvik' && (
-              <DeviationListView 
-                deviations={savedData.deviations}
-                onUpdate={(deviations) => onUpdateData?.(questionId, { deviations })}
-              />
-            )}
-            {activeTab === 'notat' && (
-              <NotatView 
-                notatText={savedData.notatText}
-                onUpdate={(text) => onUpdateData?.(questionId, { notatText: text })}
-              />
-            )}
-          </div>
-        )}
-
-        {/* Show farmer's self-audit answer when viewing Egenrevisjonssvar tab (before answer selection) */}
-        {activeTab === 'egenvurderinger' && !selectedAnswer && (
-          <div className="flex flex-col gap-4 items-start shrink-0 w-full">
-              <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
-                <div className="shrink-0 w-full">
-                  <div className="size-full">
-                    <div className="flex gap-4 items-start p-2 w-full">
-                      <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
-                        <div className="flex flex-col justify-center shrink-0 w-full">
-                          <p className="label-small text-muted-foreground m-0">Svarvalg</p>
-                        </div>
-                        <div className="flex flex-col justify-center shrink-0 w-full">
-                          <p className="body-large text-foreground m-0">Ja</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
-                <div className="shrink-0 w-full">
-                  <div className="size-full">
-                    <div className="flex gap-4 items-start p-2 w-full">
-                      <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
-                        <div className="flex flex-col justify-center shrink-0 w-full">
-                          <p className="label-small text-muted-foreground m-0">Svartekst</p>
-                        </div>
-                        <div className="flex flex-col justify-center shrink-0 w-full">
-                          <p className="body-large text-foreground m-0">{questionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Attached documents section */}
-              {savedData.attachedDocuments && savedData.attachedDocuments.length > 0 && (
-                <div className="flex flex-col gap-2 items-start shrink-0 w-full pt-2">
-                  <div className="shrink-0" style={{ width: '480px' }}>
-                    <div className="flex flex-col justify-center shrink-0 w-full mb-3 px-2">
-                      <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                      {savedData.attachedDocuments.map((doc, index) => (
-                        <AttachedDocumentCard
-                          key={index}
-                          documentName={doc}
-                          onRemove={() => handleRemoveDocument(index)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
+        {/* Tab content - no separate scroll */}
+        <div className="pt-4">
+          {selectedAnswer && (
+            <div className="max-w-2xl">
+              {activeTab === 'observasjoner' && (
+                <ObservationView 
+                  improvementText={savedData.improvementText}
+                  improvementImages={savedData.improvementImages}
+                  positiveText={savedData.positiveText}
+                  positiveImages={savedData.positiveImages}
+                  onUpdate={(data) => onUpdateData?.(questionId, data)}
+                />
               )}
-              
-            <DocumentsMenu 
-              isOpen={showDocumentsMenu} 
-              onToggle={() => setShowDocumentsMenu(!showDocumentsMenu)}
-              attachedDocuments={savedData.attachedDocuments || []}
-              onAttachDocuments={(documents) => onUpdateData?.(questionId, { attachedDocuments: documents })}
-              onNavigateToDocument={onNavigateToDocument}
-            />
-          </div>
-        )}
-
-        {/* Show farmer's answer when viewing Egenrevisjonssvar tab (after answer selection) */}
-        {activeTab === 'egenvurderinger' && selectedAnswer && (
-          <div className="flex flex-col gap-4 items-start shrink-0 w-full">
-              <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
-                <div className="shrink-0 w-full">
-                  <div className="size-full">
-                    <div className="flex gap-4 items-start p-2 w-full">
-                      <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
-                        <div className="flex flex-col justify-center shrink-0 w-full">
-                          <p className="label-small text-muted-foreground m-0">Svarvalg</p>
-                        </div>
-                        <div className="flex flex-col justify-center shrink-0 w-full">
-                          <p className="body-large text-foreground m-0">Ja</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
-                <div className="shrink-0 w-full">
-                  <div className="size-full">
-                    <div className="flex gap-4 items-start p-2 w-full">
-                      <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
-                        <div className="flex flex-col justify-center shrink-0 w-full">
-                          <p className="label-small text-muted-foreground m-0">Svartekst</p>
-                        </div>
-                        <div className="flex flex-col justify-center shrink-0 w-full">
-                          <p className="body-large text-foreground m-0">{questionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Attached documents section */}
-              {savedData.attachedDocuments && savedData.attachedDocuments.length > 0 && (
-                <div className="flex flex-col gap-2 items-start shrink-0 w-full pt-2">
-                  <div className="shrink-0" style={{ width: '480px' }}>
-                    <div className="flex flex-col justify-center shrink-0 w-full mb-3 px-2">
-                      <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
-                    </div>
-                    <div className="flex flex-col gap-2 w-full">
-                      {savedData.attachedDocuments.map((doc, index) => (
-                        <AttachedDocumentCard
-                          key={index}
-                          documentName={doc}
-                          onRemove={() => handleRemoveDocument(index)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
+              {activeTab === 'avvik' && (
+                <DeviationListView 
+                  deviations={savedData.deviations}
+                  onUpdate={(deviations) => onUpdateData?.(questionId, { deviations })}
+                  showTrengerUtfylling={false}
+                />
               )}
-              
-            <DocumentsMenu 
-              isOpen={showDocumentsMenu} 
-              onToggle={() => setShowDocumentsMenu(!showDocumentsMenu)}
-              attachedDocuments={savedData.attachedDocuments || []}
-              onAttachDocuments={(documents) => onUpdateData?.(questionId, { attachedDocuments: documents })}
-              onNavigateToDocument={onNavigateToDocument}
-            />
-          </div>
-        )}
-
-        {!selectedAnswer && activeTab === 'notat' && (
-          <NotatView 
-            notatText={savedData.notatText}
-            onUpdate={(text) => onUpdateData?.(questionId, { notatText: text })}
-          />
-        )}
-      </div>
-
-      {/* Fixed navigation buttons at bottom */}
-      <div className="shrink-0 bg-background border-t border-border shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1),0_-2px_4px_-2px_rgba(0,0,0,0.1)]">
-        <div className="px-[40px] py-4 flex gap-2 items-center justify-end">
-          {getPreviousQuestionId(questionId) && (
-            <button
-              onClick={() => {
-                const prevId = getPreviousQuestionId(questionId);
-                if (prevId && onNavigate) {
-                  onNavigate(prevId);
-                }
-              }}
-              className="flex items-center justify-center px-6 py-4 rounded-[100px] transition-colors hover:bg-muted"
-            >
-              <p className="label-large m-0 whitespace-nowrap" style={{ color: 'var(--primary)' }}>Forrige spørsmål</p>
-            </button>
+              {activeTab === 'notat' && (
+                <NotatView 
+                  notatText={savedData.notatText}
+                  onUpdate={(text) => onUpdateData?.(questionId, { notatText: text })}
+                />
+              )}
+            </div>
           )}
-          {getNextQuestionId(questionId) && (
-            <button
-              onClick={() => {
-                const nextId = getNextQuestionId(questionId);
-                if (nextId && onNavigate) {
-                  onNavigate(nextId);
-                }
-              }}
-              className="bg-primary flex items-center justify-center overflow-hidden rounded-[100px] px-6 py-4"
-            >
-              <p className="label-large text-white m-0 whitespace-nowrap">Neste spørsmål</p>
-            </button>
+
+          {/* Show farmer's self-audit answer when viewing Egenrevisjonssvar tab (before answer selection) */}
+          {activeTab === 'egenvurderinger' && !selectedAnswer && (
+            <div className="flex flex-col gap-4 items-start shrink-0 w-full">
+                <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                  <div className="shrink-0 w-full">
+                    <div className="size-full">
+                      <div className="flex gap-4 items-start p-2 w-full">
+                        <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                          <div className="flex flex-col justify-center shrink-0 w-full">
+                            <p className="label-small text-muted-foreground m-0">Svarvalg</p>
+                          </div>
+                          <div className="flex flex-col justify-center shrink-0 w-full">
+                            <p className="body-large text-foreground m-0">Ja</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                  <div className="shrink-0 w-full">
+                    <div className="size-full">
+                      <div className="flex gap-4 items-start p-2 w-full">
+                        <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                          <div className="flex flex-col justify-center shrink-0 w-full">
+                            <p className="label-small text-muted-foreground m-0">Svartekst</p>
+                          </div>
+                          <div className="flex flex-col justify-center shrink-0 w-full">
+                            <p className="body-large text-foreground m-0">{questionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Attached documents section */}
+                {savedData.attachedDocuments && savedData.attachedDocuments.length > 0 && (
+                  <div className="flex flex-col gap-2 items-start shrink-0 w-full pt-2">
+                    <div className="shrink-0" style={{ width: '480px' }}>
+                      <div className="flex flex-col justify-center shrink-0 w-full mb-3 px-2">
+                        <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
+                      </div>
+                      <div className="flex flex-col gap-2 w-full">
+                        {savedData.attachedDocuments.map((doc, index) => (
+                          <AttachedDocumentCard
+                            key={index}
+                            documentName={doc}
+                            onRemove={() => handleRemoveDocument(index)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+              <DocumentsMenu 
+                isOpen={showDocumentsMenu} 
+                onToggle={() => setShowDocumentsMenu(!showDocumentsMenu)}
+                attachedDocuments={savedData.attachedDocuments || []}
+                onAttachDocuments={(documents) => onUpdateData?.(questionId, { attachedDocuments: documents })}
+                onNavigateToDocument={onNavigateToDocument}
+              />
+            </div>
+          )}
+
+          {/* Show farmer's answer when viewing Egenrevisjonssvar tab (after answer selection) */}
+          {activeTab === 'egenvurderinger' && selectedAnswer && (
+            <div className="flex flex-col gap-4 items-start shrink-0 w-full">
+                <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                  <div className="shrink-0 w-full">
+                    <div className="size-full">
+                      <div className="flex gap-4 items-start p-2 w-full">
+                        <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                          <div className="flex flex-col justify-center shrink-0 w-full">
+                            <p className="label-small text-muted-foreground m-0">Svarvalg</p>
+                          </div>
+                          <div className="flex flex-col justify-center shrink-0 w-full">
+                            <p className="body-large text-foreground m-0">Ja</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                  <div className="shrink-0 w-full">
+                    <div className="size-full">
+                      <div className="flex gap-4 items-start p-2 w-full">
+                        <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                          <div className="flex flex-col justify-center shrink-0 w-full">
+                            <p className="label-small text-muted-foreground m-0">Svartekst</p>
+                          </div>
+                          <div className="flex flex-col justify-center shrink-0 w-full">
+                            <p className="body-large text-foreground m-0">{questionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Attached documents section */}
+                {savedData.attachedDocuments && savedData.attachedDocuments.length > 0 && (
+                  <div className="flex flex-col gap-2 items-start shrink-0 w-full pt-2">
+                    <div className="shrink-0" style={{ width: '480px' }}>
+                      <div className="flex flex-col justify-center shrink-0 w-full mb-3 px-2">
+                        <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
+                      </div>
+                      <div className="flex flex-col gap-2 w-full">
+                        {savedData.attachedDocuments.map((doc, index) => (
+                          <AttachedDocumentCard
+                            key={index}
+                            documentName={doc}
+                            onRemove={() => handleRemoveDocument(index)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+              <DocumentsMenu 
+                isOpen={showDocumentsMenu} 
+                onToggle={() => setShowDocumentsMenu(!showDocumentsMenu)}
+                attachedDocuments={savedData.attachedDocuments || []}
+                onAttachDocuments={(documents) => onUpdateData?.(questionId, { attachedDocuments: documents })}
+                onNavigateToDocument={onNavigateToDocument}
+              />
+            </div>
+          )}
+
+          {!selectedAnswer && activeTab === 'notat' && (
+            <NotatView 
+              notatText={savedData.notatText}
+              onUpdate={(text) => onUpdateData?.(questionId, { notatText: text })}
+            />
           )}
         </div>
       </div>

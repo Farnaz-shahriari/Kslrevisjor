@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Check, ChevronDown, Search, AlertTriangle, Calendar as CalendarIcon, User, CheckCircle2, Circle, Edit2, Plus } from 'lucide-react';
+import { Check, ChevronDown, ChevronLeft, Search, AlertTriangle, Calendar as CalendarIcon, User, CheckCircle2, Circle, Edit2, Plus } from 'lucide-react';
 import { questionsData, getQuestionById } from '../data/questions';
 import { DeviationListView } from './DeviationListView';
 import { NotatView } from './NotatView';
 import { AttachedDocumentCard } from './AttachedDocumentCard';
 import { DocumentsMenu } from './DocumentsMenu';
 import { StatusChip } from './StatusChip';
+import { BottomSheet } from './ui/bottom-sheet';
+import { Button } from './ui/button';
 import svgPaths from '../imports/svg-8axi0x1eud';
 import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
 import svgPathsNew from '../imports/svg-87gmswxs21';
@@ -41,6 +43,9 @@ interface AvvikshandteringPageProps {
   onLockDeviations?: () => void;
   onCompletionChange?: (isComplete: boolean) => void;
   onNavigateToSvaroversikt?: () => void;
+  // Navigation props
+  onPrevious?: () => void;
+  onNext?: () => void;
   // Persistent state props
   hasAgreed?: boolean;
   onHasAgreedChange?: (value: boolean) => void;
@@ -74,6 +79,8 @@ export function AvvikshandteringPage({
   onLockDeviations,
   onCompletionChange,
   onNavigateToSvaroversikt,
+  onPrevious,
+  onNext,
   hasAgreed: externalHasAgreed,
   onHasAgreedChange,
   isLocked: externalIsLocked,
@@ -99,6 +106,7 @@ export function AvvikshandteringPage({
   const [panelWidth, setPanelWidth] = useState(520);
   const [isResizing, setIsResizing] = useState(false);
   const [showResizeHandle, setShowResizeHandle] = useState(false);
+  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   
   // Editing states
   const [editingResponsible, setEditingResponsible] = useState<string | null>(null);
@@ -304,6 +312,7 @@ export function AvvikshandteringPage({
 
   // Track if component has mounted to avoid calling onCompletionChange during initial render
   const hasMountedRef = useRef(false);
+  const previousCompletionRef = useRef<boolean | null>(null);
   
   // Notify parent when completion status changes
   useEffect(() => {
@@ -315,7 +324,11 @@ export function AvvikshandteringPage({
     
     if (onCompletionChange) {
       const isComplete = isLocked && allAvviksComplete;
-      onCompletionChange(isComplete);
+      // Only call if the value has actually changed
+      if (previousCompletionRef.current !== isComplete) {
+        previousCompletionRef.current = isComplete;
+        onCompletionChange(isComplete);
+      }
     }
   }, [isLocked, allAvviksComplete, onCompletionChange]);
 
@@ -369,8 +382,29 @@ export function AvvikshandteringPage({
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header Section */}
-      <div className="px-10 py-3 border-b border-border">
-        <h2 className="title-large mb-4">Avvikshåndtering</h2>
+      <div className="px-10 pt-3 pb-6 border-b border-border">
+        {/* Title with Navigation Buttons */}
+        <div className="flex items-center justify-between mb-4 max-[1400px]:block">
+          <h2 className="title-large max-[1400px]:mb-2">Avvikshåndtering</h2>
+          
+          {/* Navigation buttons - always enabled */}
+          <div className="flex items-center gap-4 max-[1400px]:hidden">
+            <Button
+              variant="tertiary"
+              onClick={onPrevious}
+            >
+              Forrige
+            </Button>
+            <Button
+              variant={(isLocked && allAvviksComplete) ? "primary" : "tertiary"}
+              onClick={onNext}
+              className="flex items-center gap-2"
+            >
+              <span>Neste</span>
+              <ChevronLeft className="w-5 h-5 rotate-180" />
+            </Button>
+          </div>
+        </div>
 
         {!isLocked && (
           <>
@@ -463,29 +497,29 @@ export function AvvikshandteringPage({
         {/* Table */}
         <div className="flex-1 overflow-auto border-r border-border">
           <table className="w-full">
-            <thead className="bg-background sticky top-0 z-10">
+            <thead className="bg-surface-container-low sticky top-0 z-10">
               <tr className="border-b border-border">
                 {isLocked && (
-                  <th className="w-48 px-4 py-2 text-left">
+                  <th className="w-48 px-4 py-2 text-left bg-surface-container-low">
                     <span className="label-medium text-foreground">Gradering</span>
                   </th>
                 )}
                 {!isLocked && (
-                  <th className="w-46 px-10 py-2 text-left">
+                  <th className="w-46 px-10 py-2 text-left bg-surface-container-low">
                     <div className="flex items-center gap-2">
                       <ChevronDown className="w-6 h-6 text-foreground" />
                       <span className="label-medium text-foreground">Svar</span>
                     </div>
                   </th>
                 )}
-                <th className="px-4 py-2 text-left">
+                <th className="px-4 py-2 text-left bg-surface-container-low">
                   <div className="flex items-center gap-2">
                     <Search className="w-6 h-6 text-foreground" />
                     <span className="label-medium text-foreground">Sjekklistespørsmål</span>
                   </div>
                 </th>
                 {isLocked && (
-                  <th className="w-56 px-4 py-2 text-left">
+                  <th className="w-56 px-4 py-2 text-left bg-surface-container-low">
                     <span className="label-medium text-foreground">Status</span>
                   </th>
                 )}
@@ -495,7 +529,11 @@ export function AvvikshandteringPage({
               {answers.map((answer) => (
                 <tr
                   key={answer.id}
-                  onClick={() => setSelectedQuestionId(answer.id)}
+                  onClick={() => {
+                    setSelectedQuestionId(answer.id);
+                    // Open bottom sheet on mobile/tablet
+                    setIsBottomSheetOpen(true);
+                  }}
                   className={`cursor-pointer border-b border-border transition-colors ${
                     selectedQuestionId === answer.id
                       ? 'bg-accent'
@@ -543,10 +581,10 @@ export function AvvikshandteringPage({
           </table>
         </div>
 
-        {/* Detail Panel */}
+        {/* Detail Panel - Desktop only */}
         {selectedQuestion && selectedQuestionInfo && (
           <div 
-            className="bg-background relative flex flex-col"
+            className="bg-background relative flex flex-col max-[1400px]:hidden"
             style={{ width: `${panelWidth}px` }}
             onMouseEnter={() => setShowResizeHandle(true)}
             onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
@@ -1180,9 +1218,9 @@ export function AvvikshandteringPage({
                 <div className="px-6 py-4">
                   {selectedQuestionData.answer && activeTab === 'avvik' && (
                     <DeviationListView 
-                      questionId={selectedQuestionId}
-                      questionData={selectedQuestionData}
-                      onUpdateQuestionData={onUpdateQuestionData}
+                      deviations={selectedQuestionData.deviations}
+                      onUpdate={(deviations) => onUpdateQuestionData?.(selectedQuestionId, { deviations })}
+                      showTrengerUtfylling={true}
                     />
                   )}
 
@@ -1237,6 +1275,137 @@ export function AvvikshandteringPage({
           </div>
         )}
       </div>
+
+      {/* MOBILE/TABLET: Bottom Sheet */}
+      {selectedQuestion && selectedQuestionInfo && (
+        <BottomSheet
+          isOpen={isBottomSheetOpen}
+          onClose={() => setIsBottomSheetOpen(false)}
+          title={selectedQuestionInfo.id}
+          maxHeight={90}
+        >
+          {!isLocked ? (
+            <>
+              <div className="px-6 py-4 border-b border-border">
+                <h3 className="body-large text-foreground mb-3">
+                  {selectedQuestion.questionText}
+                </h3>
+                
+                {selectedQuestionInfo.requiresDocumentation && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg label-medium">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 16">
+                      <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" />
+                    </svg>
+                    Dokumentasjon kreves
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-4 border-b border-border">
+                <h4 className="label-medium text-foreground mb-3">Velg svar</h4>
+                <div className="space-y-2">
+                  {(['Ja', 'Nei', 'Ikke relevant'] as const).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleAnswerChange(option)}
+                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded-[var(--radius)] transition-colors"
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedQuestion.answer === option ? 'border-primary bg-primary' : 'border-foreground'}`}>
+                        {selectedQuestion.answer === option && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                        )}
+                      </div>
+                      <span className={`body-medium ${selectedQuestion.answer === option ? 'text-primary' : 'text-foreground'}`}>
+                        {option}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-b border-border">
+                <div className="flex overflow-x-auto scrollbar-hide px-4">
+                  {getVisibleTabs().map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className="px-3 py-3 label-medium relative transition-colors whitespace-nowrap"
+                      style={{color: activeTab === tab ? '#1a1c16' : '#44483b'}}
+                    >
+                      {getTabLabel(tab)}
+                      {activeTab === tab && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="px-6 py-4">
+                {selectedQuestionData.answer && activeTab === 'avvik' && (
+                  <DeviationListView 
+                    deviations={selectedQuestionData.deviations}
+                    onUpdate={(deviations) => onUpdateQuestionData?.(selectedQuestionId, { deviations })}
+                    showTrengerUtfylling={true}
+                  />
+                )}
+
+                {activeTab === 'egenvurderinger' && (
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <p className="label-small text-muted-foreground m-0">Svarvalg</p>
+                      <p className="body-medium text-foreground m-0">Ja</p>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <p className="label-small text-muted-foreground m-0">Svartekst</p>
+                      <p className="body-medium text-foreground m-0">
+                        {selectedQuestionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}
+                      </p>
+                    </div>
+                    
+                    {selectedQuestionData.attachedDocuments && selectedQuestionData.attachedDocuments.length > 0 && (
+                      <div className="flex flex-col gap-2 pt-2">
+                        <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
+                        <div className="flex flex-col gap-2">
+                          {selectedQuestionData.attachedDocuments.map((doc, index) => (
+                            <AttachedDocumentCard
+                              key={index}
+                              documentName={doc}
+                              onRemove={() => handleRemoveDocument(index)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <DocumentsMenu 
+                      isOpen={showDocumentsMenu} 
+                      onToggle={() => setShowDocumentsMenu(!showDocumentsMenu)}
+                      attachedDocuments={selectedQuestionData.attachedDocuments || []}
+                      onAttachDocuments={(documents) => onUpdateQuestionData?.(selectedQuestionId, { attachedDocuments: documents })}
+                      onNavigateToDocument={onNavigateToDocument}
+                    />
+                  </div>
+                )}
+
+                {activeTab === 'notat' && (
+                  <NotatView 
+                    questionId={selectedQuestionId}
+                    questionData={selectedQuestionData}
+                    onUpdateQuestionData={onUpdateQuestionData}
+                  />
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="pb-8">
+              <p className="body-large text-muted-foreground px-6 py-4">
+                Locked state: Deadline, responsible, and closure info will display here
+              </p>
+            </div>
+          )}
+        </BottomSheet>
+      )}
     </div>
   );
 }

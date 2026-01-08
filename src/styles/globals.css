@@ -71,6 +71,7 @@
   --card-foreground: #1A1C16;
   --popover: #EEEEE4;
   --popover-foreground: #1A1C16;
+  --surface-container-low: #F5F5EB;
   
   /* Muted colors */
   --muted: #EEEEE4;
@@ -270,10 +271,15 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-surface-container-low: var(--surface-container-low);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-container: var(--primary-container);
+  --color-primary-container-foreground: var(--primary-container-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-container: var(--secondary-container);
+  --color-secondary-container-foreground: var(--secondary-container-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
@@ -455,102 +461,14 @@ html {
   line-height: 1.5;
 }
 
-/* Custom scrollbar styles - hide by default, show on hover */
-.scrollable-sidebar {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
+.headline-medium {
+  font-family: var(--font-family-quatro);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
 }
 
-.scrollable-sidebar:hover {
-  scrollbar-color: rgba(196, 200, 183, 0.5) transparent;
-}
-
-.scrollable-sidebar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.scrollable-sidebar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollable-sidebar::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-}
-
-.scrollable-sidebar:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(196, 200, 183, 0.5);
-}
-
-.scrollable-sidebar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(196, 200, 183, 0.8);
-}
-
-/* Hidden scrollbar that shows on scroll for content areas */
-.scrollable-content {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-.scrollable-content:hover,
-.scrollable-content:active {
-  scrollbar-color: rgba(196, 200, 183, 0.5) transparent;
-}
-
-.scrollable-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollable-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollable-content::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border-radius: 3px;
-  transition: background-color 0.3s ease;
-}
-
-.scrollable-content:hover::-webkit-scrollbar-thumb,
-.scrollable-content:active::-webkit-scrollbar-thumb {
-  background-color: rgba(196, 200, 183, 0.5);
-}
-
-/* Documents menu scrollbar - hide by default, show on scroll */
-.documents-menu-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-}
-
-.documents-menu-scroll:hover {
-  scrollbar-color: rgba(196, 200, 183, 0.5) transparent;
-}
-
-.documents-menu-scroll::-webkit-scrollbar {
-  width: 8px;
-}
-
-.documents-menu-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.documents-menu-scroll::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-}
-
-.documents-menu-scroll:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(196, 200, 183, 0.5);
-}
-
-.documents-menu-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(196, 200, 183, 0.8);
-}
-
-/* Global scrollbar hiding - hide by default */
+/* Custom scrollbar styles - hide by default */
 * {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
@@ -560,45 +478,16 @@ html {
   display: none; /* Chrome, Safari, and Opera */
 }
 
-/* Show scrollbar on hover for scrollable elements */
-.overflow-auto:hover,
-.overflow-y-auto:hover,
-.overflow-x-auto:hover {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(196, 200, 183, 0.5) transparent;
+/* All scrollbars completely hidden - use OverlayScrollContainer for custom overlay scrollbars */
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.overflow-auto:hover::-webkit-scrollbar,
-.overflow-y-auto:hover::-webkit-scrollbar,
-.overflow-x-auto:hover::-webkit-scrollbar {
-  display: block;
-  width: 8px;
-  height: 8px;
-}
-
-.overflow-auto:hover::-webkit-scrollbar-track,
-.overflow-y-auto:hover::-webkit-scrollbar-track,
-.overflow-x-auto:hover::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.overflow-auto:hover::-webkit-scrollbar-thumb,
-.overflow-y-auto:hover::-webkit-scrollbar-thumb,
-.overflow-x-auto:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(196, 200, 183, 0.5);
-  border-radius: 4px;
-}
-
-.overflow-auto:hover::-webkit-scrollbar-thumb:hover,
-.overflow-y-auto:hover::-webkit-scrollbar-thumb:hover,
-.overflow-x-auto:hover::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(196, 200, 183, 0.8);
-}
-
-/* Body medium typography class */
-.body-medium {
-  font-family: var(--font-family-manrope);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-normal);
-  line-height: 1.5;
+.overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
 }

@@ -47,7 +47,7 @@ export function ThemeDemo() {
         </div>
 
         <div className="space-y-2">
-          <button className="bg-primary text-primary-foreground px-6 py-4 rounded-[var(--radius-button)] label-medium hover:opacity-90 transition-opacity">
+          <button className="bg-primary text-primary-foreground px-6 py-2.5 h-10 rounded-[var(--radius-button)] label-medium hover:bg-primary/90 transition-colors">
             Primary Button
           </button>
           
@@ -207,23 +207,23 @@ export function ThemeDemo() {
         <h2 className="text-foreground">Button Variants</h2>
         
         <div className="flex flex-wrap gap-3">
-          <button className="bg-primary text-primary-foreground px-6 py-4 rounded-[var(--radius-button)] label-medium hover:opacity-90 transition-opacity">
+          <button className="bg-primary text-primary-foreground px-6 py-3.5 h-14 rounded-[var(--radius-button)] label-medium hover:bg-primary/90 transition-colors">
             Filled Primary
           </button>
           
-          <button className="bg-secondary text-secondary-foreground px-6 py-4 rounded-[var(--radius-button)] label-medium hover:opacity-90 transition-opacity">
+          <button className="bg-secondary text-secondary-foreground px-6 py-3.5 h-14 rounded-[var(--radius-button)] label-medium hover:bg-secondary/90 transition-colors">
             Filled Secondary
           </button>
           
-          <button className="border-2 border-primary text-primary bg-transparent px-6 py-4 rounded-[var(--radius-button)] label-medium hover:bg-primary-container transition-colors">
+          <button className="border-2 border-primary text-primary bg-transparent px-6 py-3.5 h-14 rounded-[var(--radius-button)] label-medium hover:bg-primary-container transition-colors">
             Outlined Primary
           </button>
           
-          <button className="text-primary bg-transparent px-6 py-4 rounded-[var(--radius-button)] label-medium hover:bg-muted transition-colors">
+          <button className="text-primary bg-transparent px-6 py-3.5 h-14 rounded-[var(--radius-button)] label-medium hover:bg-muted transition-colors">
             Text Primary
           </button>
           
-          <button className="bg-muted text-muted-foreground px-6 py-4 rounded-[var(--radius-button)] label-medium cursor-not-allowed opacity-60">
+          <button className="bg-muted text-muted-foreground px-6 py-3.5 h-14 rounded-[var(--radius-button)] label-medium cursor-not-allowed opacity-60">
             Disabled
           </button>
         </div>
@@ -268,7 +268,7 @@ export function ThemeDemo() {
             <p className="body-medium text-muted-foreground mb-4">
               Card description with muted text for secondary information.
             </p>
-            <button className="bg-primary text-primary-foreground px-4 py-2 rounded-[var(--radius-button)] label-medium hover:opacity-90">
+            <button className="bg-primary text-primary-foreground px-6 py-3.5 h-14 rounded-[var(--radius-button)] label-medium hover:bg-primary/90 transition-colors">
               Action
             </button>
           </div>
@@ -278,7 +278,7 @@ export function ThemeDemo() {
             <p className="body-medium text-primary-container-foreground/80 mb-4">
               A card with primary container background.
             </p>
-            <button className="bg-primary text-primary-foreground px-4 py-2 rounded-[var(--radius-button)] label-medium hover:opacity-90">
+            <button className="bg-primary text-primary-foreground px-6 py-3.5 h-14 rounded-[var(--radius-button)] label-medium hover:bg-primary/90 transition-colors">
               Action
             </button>
           </div>

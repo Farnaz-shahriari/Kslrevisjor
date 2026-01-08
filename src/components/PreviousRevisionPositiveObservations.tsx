@@ -27,15 +27,15 @@ export function PreviousRevisionPositiveObservations({ positiveObservations }: P
       {/* Table */}
       <div className="flex-1 overflow-auto border-r border-[var(--border)] relative bg-background">
         <table className="w-full">
-          <thead className="bg-background sticky top-0 z-10">
+          <thead className="bg-surface-container-low sticky top-0 z-10">
             <tr className="border-b border-[var(--border)]">
-              <th className="px-4 py-2 text-left">
+              <th className="px-4 py-2 text-left bg-surface-container-low">
                 <div className="flex items-center gap-2">
                   <Search className="w-6 h-6 text-foreground" />
                   <span className="label-medium text-foreground">Sjekklistepunkt</span>
                 </div>
               </th>
-              <th className="px-4 py-2 text-left">
+              <th className="px-4 py-2 text-left bg-surface-container-low">
                 <div className="flex items-center gap-2">
                   <span className="label-medium text-foreground">Positiv observasjon</span>
                 </div>
@@ -101,10 +101,10 @@ export function PreviousRevisionPositiveObservations({ positiveObservations }: P
                 </button>
                 <div className="flex-1"></div>
                 <div className="flex gap-2">
-                  <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted">
+                  <button className="w-14 h-14 flex items-center justify-center rounded-full hover:bg-muted">
                     <Volume2 className="w-6 h-6 text-foreground" />
                   </button>
-                  <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted">
+                  <button className="w-14 h-14 flex items-center justify-center rounded-full hover:bg-muted">
                     <HelpCircle className="w-6 h-6 text-foreground" />
                   </button>
                 </div>

@@ -89,40 +89,13 @@ export function ExpandableInput({ label, placeholder = '', onSave, value: propVa
   // Empty state
   if (mode === 'empty') {
     return (
-      <div className="box-border content-stretch flex flex-col gap-[8px] items-center justify-center min-h-[64px] overflow-visible pb-0 pt-[8px] px-0 relative shrink-0 w-full max-w-[600px]">
+      <div className="box-border content-stretch flex flex-col gap-2 items-center justify-center min-h-[64px] overflow-visible pb-0 pt-2 px-0 relative shrink-0 w-full max-w-[600px]">
         <div className="relative shrink-0 w-full">
-          <div className="flex flex-row items-center size-full">
-            <div className="box-border content-stretch flex gap-[16px] items-center p-[8px] relative w-full">
-              {/* Leading Plus icon button */}
-              <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]">
-                <button 
-                  onClick={handleAdd}
-                  className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
-                >
-                  <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full">
-                    <div className="relative shrink-0 size-[24px]">
-                      <div className="absolute inset-[20.833%]">
-                        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                          <path d={svgPaths.p2ccb20} fill="#44483B" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              </div>
-              {/* Text content - clickable to activate edit mode */}
-              <button
-                onClick={handleAdd}
-                className="basis-0 content-stretch flex flex-col font-['Manrope:Regular',sans-serif] font-normal grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
-              >
-                <div className="flex flex-col justify-center leading-[0] relative shrink-0 text-[#1a1c16] text-[16px] tracking-[0.5px] w-full">
-                  <p className="leading-[24px] m-0">{label}</p>
-                </div>
-                <p className="leading-[20px] relative shrink-0 text-[#44483b] text-[14px] tracking-[0.25px] w-full m-0">{required ? 'Påkrevd' : 'Valgfri'}</p>
-              </button>
-              {/* Trenger utfylling chip - only show if required */}
-              {required && (
-                <div className="bg-[#f4f4ea] box-border flex items-center justify-center overflow-clip relative rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_1px_3px_1px_rgba(0,0,0,0.15)] shrink-0">
+          <div className="flex flex-col size-full">
+            {/* Trenger utfylling chip - Show above on small screens */}
+            {required && (
+              <div className="max-[400px]:flex max-[400px]:justify-start max-[400px]:mb-2 hidden">
+                <div className="bg-[var(--primary-container)] box-border flex items-center justify-center overflow-clip relative rounded-[var(--radius)] shadow-[var(--elevation-sm)] shrink-0">
                   <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
                     <div className="relative shrink-0 w-[18px] h-[18px]">
                       <div className="absolute inset-[8.333%]">
@@ -136,6 +109,58 @@ export function ExpandableInput({ label, placeholder = '', onSave, value: propVa
                     </span>
                   </div>
                 </div>
+              </div>
+            )}
+            
+            {/* Main input row */}
+            <div className="box-border content-stretch flex gap-4 items-center p-2 relative w-full">
+              {/* Leading Plus icon button */}
+              <div className="content-stretch flex items-center justify-center relative shrink-0 size-12">
+                <button 
+                  onClick={handleAdd}
+                  className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
+                >
+                  <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full">
+                    <div className="relative shrink-0 size-6">
+                      <div className="absolute inset-[20.833%]">
+                        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
+                          <path d={svgPaths.p2ccb20} fill="#44483B" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              
+              {/* Text content - clickable to activate edit mode */}
+              <button
+                onClick={handleAdd}
+                className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
+              >
+                <div className="flex flex-col justify-center leading-[0] relative shrink-0 w-full">
+                  <p className="body-large text-foreground leading-6 m-0">{label}</p>
+                </div>
+                <p className="body-medium text-muted-foreground leading-5 m-0">{required ? 'Påkrevd' : 'Valgfri'}</p>
+              </button>
+              
+              {/* Trenger utfylling chip - Show inline on larger screens */}
+              {required && (
+                <div className="max-[400px]:hidden">
+                  <div className="bg-[var(--primary-container)] box-border flex items-center justify-center overflow-clip relative rounded-[var(--radius)] shadow-[var(--elevation-sm)] shrink-0">
+                    <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
+                      <div className="relative shrink-0 w-[18px] h-[18px]">
+                        <div className="absolute inset-[8.333%]">
+                          <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
+                            <path d={svgPathsChip.p1c3b4f80} fill="#BA1A1A" />
+                          </svg>
+                        </div>
+                      </div>
+                      <span className="label-medium text-foreground whitespace-nowrap">
+                        Trenger utfylling
+                      </span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -147,18 +172,18 @@ export function ExpandableInput({ label, placeholder = '', onSave, value: propVa
   // Edit state
   if (mode === 'edit') {
     return (
-      <div className="box-border content-stretch flex flex-col gap-[8px] items-center justify-center min-h-[64px] overflow-visible pb-0 pt-[8px] px-0 relative shrink-0 w-full max-w-[600px]">
+      <div className="box-border content-stretch flex flex-col gap-2 items-center justify-center min-h-[64px] overflow-visible pb-0 pt-2 px-0 relative shrink-0 w-full max-w-[600px]">
         <div className="relative shrink-0 w-full">
           <div className="flex flex-row items-center size-full">
-            <div className="box-border content-stretch flex gap-[16px] items-start p-[8px] relative w-full">
+            <div className="box-border content-stretch flex gap-4 items-start p-2 relative w-full">
               {/* Leading Check/Save icon button */}
-              <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]">
+              <div className="content-stretch flex items-center justify-center relative shrink-0 size-12">
                 <button 
                   onClick={handleCheckClick}
-                  className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
+                  className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
                 >
-                  <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full">
-                    <div className="relative shrink-0 size-[24px]">
+                  <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full">
+                    <div className="relative shrink-0 size-6">
                       <div className="absolute inset-[16.667%]">
                         <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
                           <path d="M16.667 5L7.5 14.167L3.333 10" stroke="#44483B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -170,8 +195,8 @@ export function ExpandableInput({ label, placeholder = '', onSave, value: propVa
               </div>
               {/* Input field */}
               <div className="basis-0 grow relative">
-                <label className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#44483b] text-[12px] tracking-[0.5px] mb-1">
-                  <p className="leading-[16px] m-0">{label}</p>
+                <label className="label-small text-muted-foreground mb-1">
+                  <p className="m-0">{label}</p>
                 </label>
                 <input
                   ref={inputRef}
@@ -181,7 +206,7 @@ export function ExpandableInput({ label, placeholder = '', onSave, value: propVa
                   onKeyDown={handleKeyDown}
                   onBlur={handleBlur}
                   placeholder={placeholder || label}
-                  className="w-full px-3 py-2 border-2 border-[#4a671e] rounded-[8px] text-[#1a1c16] text-[16px] leading-[24px] font-['Manrope:Regular',sans-serif] focus:outline-none focus:border-[#4a671e]"
+                  className="w-full px-3 py-2 border-2 border-primary rounded-[var(--radius)] body-large text-foreground focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
@@ -193,18 +218,18 @@ export function ExpandableInput({ label, placeholder = '', onSave, value: propVa
 
   // View state
   return (
-    <div className="box-border content-stretch flex flex-col gap-[8px] items-center justify-center min-h-[64px] overflow-visible pb-0 pt-[8px] px-0 relative shrink-0 w-full max-w-[600px]">
+    <div className="box-border content-stretch flex flex-col gap-2 items-center justify-center min-h-[64px] overflow-visible pb-0 pt-2 px-0 relative shrink-0 w-full max-w-[600px]">
       <div className="relative shrink-0 w-full">
         <div className="flex flex-row items-center size-full">
-          <div className="box-border content-stretch flex gap-[16px] items-start p-[8px] relative w-full">
+          <div className="box-border content-stretch flex gap-4 items-start p-2 relative w-full">
             {/* Leading Edit icon button */}
-            <div className="content-stretch flex items-center justify-center relative shrink-0 size-[48px]">
+            <div className="content-stretch flex items-center justify-center relative shrink-0 size-12">
               <button 
                 onClick={handleEdit}
-                className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[100px] shrink-0 w-[40px] hover:bg-[#eff1e7] transition-colors"
+                className="content-stretch flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
               >
-                <div className="content-stretch flex h-[40px] items-center justify-center relative shrink-0 w-full">
-                  <div className="relative shrink-0 size-[24px]">
+                <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full">
+                  <div className="relative shrink-0 size-6">
                     <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
                       <path d={svgPathsEdit.p25003780} fill="#44483B" />
                     </svg>
@@ -217,11 +242,11 @@ export function ExpandableInput({ label, placeholder = '', onSave, value: propVa
               onClick={handleEdit}
               className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 text-left cursor-pointer"
             >
-              <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] relative shrink-0 text-[#44483b] text-[12px] tracking-[0.5px] w-full">
-                <p className="leading-[16px] m-0">{label}</p>
+              <div className="label-small text-muted-foreground w-full">
+                <p className="m-0">{label}</p>
               </div>
-              <div className="flex flex-col font-['Manrope:Regular',sans-serif] font-normal justify-center relative shrink-0 text-[#1a1c16] text-[16px] w-full">
-                <p className="leading-[24px] m-0">{value}</p>
+              <div className="body-large text-foreground w-full">
+                <p className="m-0">{value}</p>
               </div>
             </button>
           </div>

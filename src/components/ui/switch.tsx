@@ -13,7 +13,15 @@ function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-switch-background focus-visible:border-ring focus-visible:ring-ring/50 dark:data-[state=unchecked]:bg-input/80 inline-flex h-[1.15rem] w-8 shrink-0 items-center rounded-full border border-transparent transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        // Material Design 3 Switch - 52×32px container
+        "relative inline-flex h-8 w-[52px] shrink-0 cursor-pointer rounded-full transition-all",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        // Unchecked state: #E3E3D9 background with #74796A border, padding: 2px 8px
+        "data-[state=unchecked]:bg-[#E3E3D9] data-[state=unchecked]:border-2 data-[state=unchecked]:border-[#74796A] data-[state=unchecked]:px-2 data-[state=unchecked]:py-0.5 data-[state=unchecked]:justify-start",
+        // Checked state: #4A671E (primary) background, no border, padding: 2px 4px, justify-end
+        "data-[state=checked]:bg-[var(--primary)] data-[state=checked]:border-0 data-[state=checked]:px-1 data-[state=checked]:py-0.5 data-[state=checked]:justify-end",
+        "items-center",
         className,
       )}
       {...props}
@@ -21,7 +29,16 @@ function Switch({
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
         className={cn(
-          "bg-card dark:data-[state=unchecked]:bg-card-foreground dark:data-[state=checked]:bg-primary-foreground pointer-events-none block size-4 rounded-full ring-0 transition-transform data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0",
+          // Material Design 3 Handle
+          "pointer-events-none block rounded-full transition-all",
+          // Unchecked state: 16×16px handle in #74796A
+          "data-[state=unchecked]:h-4 data-[state=unchecked]:w-4",
+          "data-[state=unchecked]:bg-[#74796A]",
+          "data-[state=unchecked]:translate-x-0",
+          // Checked state: 24×24px handle in white
+          "data-[state=checked]:h-6 data-[state=checked]:w-6",
+          "data-[state=checked]:bg-white",
+          "data-[state=checked]:translate-x-0",
         )}
       />
     </SwitchPrimitive.Root>

@@ -1,15 +1,26 @@
+import { LargeExtendedFAB } from './components/LargeExtendedFAB';
+import { ProducerTopBar } from './components/ProducerTopBar';
+import { ProducerRegisterRevisjonPage } from './components/ProducerRegisterRevisjonPage';
 import { useState } from 'react';
 import { NavigationRail } from './components/NavigationRail';
 import { TopBar, TopBarTab } from './components/TopBar';
-import { LeftSidebar } from './components/LeftSidebar';
-import { QuestionView } from './components/QuestionView';
-import { RightSidebar } from './components/RightSidebar';
 import { DocumentOverview } from './components/DocumentOverview';
 import { WriteReportPage } from './components/WriteReportPage';
 import { RevisjonsgrunnlagPage } from './components/RevisjonsgrunnlagPage';
+import { PlanleggRevisjonPage } from './components/PlanleggRevisjonPage';
+import ByttRollePage from './components/ByttRollePage';
+import { ProducerNavigationRail, ProducerNavTab } from './components/ProducerNavigationRail';
+import { ProducerHomePage } from './components/ProducerHomePage';
+import { SpesialitetChecklistPage } from './components/SpesialitetChecklistPage';
+import { AksepterteRevisjonerPage } from './components/AksepterteRevisjonerPage';
+import { RegisterRevisjonPage } from './components/RegisterRevisjonPage';
+import { PrivateNotesPanel } from './components/PrivateNotesPanel';
+import { PrivateNotesPanelDockable } from './components/PrivateNotesPanelDockable';
+import { FloatingActionButton } from './components/FloatingActionButton';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
-type TabType = 'forside' | 'tildelteRevisjoner' | 'aksepterteRevisjoner' | 'avviksoversikt' | 'fakturagrunnlag' | 'revisjonshistorikk';
+type TabType = 'forside' | 'tildelteRevisjoner' | 'aksepterteRevisjoner' | 'avviksoversikt' | 'fakturagrunnlag' | 'revisjonshistorikk' | 'byttRolle' | 'producer';
+type UserRole = 'revisor' | 'producer' | null;
 
 export interface QuestionData {
   answer?: AnswerType;
@@ -22,8 +33,23 @@ export interface QuestionData {
   attachedDocuments?: string[];
 }
 
+export interface SavedNote {
+  id: string;
+  text: string;
+  timestamp: Date;
+  questionId?: string;
+  questionTitle?: string;
+  isDeviation: boolean;
+  deviationSeverity?: 'lite-avvik' | 'avvik' | 'stor-avvik';
+  deviationMangel?: string;
+  deviationBevis?: string;
+  deviationKrav?: string;
+}
+
 export default function App() {
-  const [currentQuestionId, setCurrentQuestionId] = useState('1.1.1');
+  // Check if desktop (≥1400px) - only auto-select on desktop, not mobile
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1400;
+  const [currentQuestionId, setCurrentQuestionId] = useState(isDesktop ? '1.1.1' : '');
   const [questionData, setQuestionData] = useState<Record<string, QuestionData>>({
     // Group 1.1 - Only 1 positive observation and 1 improvement point
     '1.1.1': { 
@@ -216,7 +242,9 @@ export default function App() {
       answer: 'ikke-relevant'
     }
   });
-  const [activeMainTab, setActiveMainTab] = useState<TabType>('aksepterteRevisjoner');
+  const [currentRole, setCurrentRole] = useState<UserRole>(null);
+  const [activeMainTab, setActiveMainTab] = useState<TabType>('byttRolle');
+  const [activeProducerTab, setActiveProducerTab] = useState<ProducerNavTab>('hjem');
   const [selectedDocumentIndex, setSelectedDocumentIndex] = useState<number | null>(null);
   const [deviationsLocked, setDeviationsLocked] = useState(false);
   const [activeTopBarTab, setActiveTopBarTab] = useState<TopBarTab>('registrer');
@@ -224,6 +252,91 @@ export default function App() {
   // State for managing which questions are in Register Revisjon
   const [manuallyAddedQuestions, setManuallyAddedQuestions] = useState<Set<string>>(new Set());
   const [manuallyRemovedQuestions, setManuallyRemovedQuestions] = useState<Set<string>>(new Set());
+
+  // State for private notes panel
+  const [isPrivateNotesPanelOpen, setIsPrivateNotesPanelOpen] = useState(false);
+  
+  // State for saved notes - with example notes
+  const [savedNotes, setSavedNotes] = useState<SavedNote[]>([
+    {
+      id: 'note-example-1',
+      text: 'Gjødsellager kontrollert i dag. Observerte at alle beholdere er tydelig merket med innhold og advarselsetiketter. Avstanden til nærmeste vannkilde målt til 28 meter, noe som er godt innenfor sikkerhetskrav.',
+      timestamp: new Date('2024-12-17T10:30:00'),
+      questionId: '1.3.7',
+      questionTitle: 'Lagres gjødsel og plantevernmidler på betryggende måte?',
+      isDeviation: false,
+    },
+    {
+      id: 'note-example-2',
+      text: 'Manglende dokumentasjon på kalibrering av sprøyteutstyr. Siste kalibrering ikke dokumentert, og bonden kunne ikke vise frem kvittering.',
+      timestamp: new Date('2024-12-16T14:15:00'),
+      questionId: '1.9.1',
+      questionTitle: 'Er sprøyteutstyr kalibrert regelmessig?',
+      isDeviation: true,
+      deviationSeverity: 'avvik',
+    },
+    {
+      id: 'note-example-3',
+      text: 'Generell observasjon om gode rutiner for dokumenthåndtering. Alle papirer er systematisk organisert i egne permer. Bonden har også startet med digital backup i skyen. Anbefaler at dette fortsetter.',
+      timestamp: new Date('2024-12-15T09:45:00'),
+      isDeviation: false,
+    },
+    {
+      id: 'note-example-4',
+      text: 'KRITISK: Funnet utdaterte plantevernmidler i produksjonslokale sammen med gyldige produkter. Tre beholdere med utgått dato ikke markert. Dette utgjør stor risiko for feilbruk.',
+      timestamp: new Date('2024-12-14T16:20:00'),
+      questionId: '1.3.6',
+      questionTitle: 'Oppbevares kun plantevernmidler med gyldig holdbarhet?',
+      isDeviation: true,
+      deviationSeverity: 'stor-avvik',
+    },
+    {
+      id: 'note-example-5',
+      text: 'Mindre avvik på generelt renhold i vaskehallen for sprøyteutstyr. Støv og rusk på gulv og noen flater. Ikke kritisk, men bør forbedres.',
+      timestamp: new Date('2024-12-13T11:00:00'),
+      questionId: '1.9.2',
+      questionTitle: 'Vaskes og rengjøres sprøyteutstyr etter bruk?',
+      isDeviation: true,
+      deviationSeverity: 'lite-avvik',
+    },
+    {
+      id: 'note-example-6',
+      text: 'Bonden viste frem imponerende god oversikt over gjødslingsplan. Alle skifte er kartlagt med jordprøver fra inneværende år. Planen er detaljert og viser god kunnskap om gjødslingsbehov.',
+      timestamp: new Date('2024-12-12T13:20:00'),
+      questionId: '1.2.1',
+      questionTitle: 'Foreligger det en gjødslingsplan basert på jordanalyser?',
+      isDeviation: false,
+    },
+    {
+      id: 'note-example-7',
+      text: 'Notert at registrering av fôrinnkjøp kunne vært mer detaljert med tanke på sporbarhet. Anbefaler bruk av digitalt system fremfor håndskrevne notater i framtiden.',
+      timestamp: new Date('2024-12-11T10:15:00'),
+      questionId: '1.1.1',
+      questionTitle: 'Har du oversikt over alle driftsmidler du har kjøpt, og alle produkter du har solgt?',
+      isDeviation: false,
+    },
+  ]);
+
+  const handleSaveNote = (note: SavedNote) => {
+    setSavedNotes(prev => {
+      // Check if note already exists
+      const existingIndex = prev.findIndex(n => n.id === note.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing note
+        const updated = [...prev];
+        updated[existingIndex] = note;
+        return updated;
+      } else {
+        // Add new note to beginning
+        return [note, ...prev];
+      }
+    });
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    setSavedNotes(prev => prev.filter(n => n.id !== noteId));
+  };
 
   const handleAnswerQuestion = (questionId: string, answer: AnswerType) => {
     // Prevent changing to "nei" when deviations are locked
@@ -306,6 +419,8 @@ export default function App() {
 
   const renderAksepterteRevisjonerContent = () => {
     switch (activeTopBarTab) {
+      case 'planlegg':
+        return <PlanleggRevisjonPage />;
       case 'rapport':
         return (
           <WriteReportPage 
@@ -332,65 +447,178 @@ export default function App() {
       case 'registrer':
       default:
         return (
-          <>
-            <LeftSidebar 
-              currentQuestionId={currentQuestionId}
-              onQuestionSelect={setCurrentQuestionId}
-              answeredQuestions={answeredQuestions}
-              questionsWithDeviations={questionsWithDeviations}
-              manuallyAddedQuestions={manuallyAddedQuestions}
-              manuallyRemovedQuestions={manuallyRemovedQuestions}
-            />
-            <QuestionView 
-              questionId={currentQuestionId}
-              questionData={questionData[currentQuestionId] || {}}
-              onAnswer={handleAnswerQuestion}
-              onUpdateData={handleUpdateQuestionData}
-              onNavigate={setCurrentQuestionId}
-              onNavigateToDocument={handleNavigateToDocument}
-              deviationsLocked={deviationsLocked}
-            />
-            <RightSidebar questionId={currentQuestionId} />
-          </>
+          <RegisterRevisjonPage
+            currentQuestionId={currentQuestionId}
+            onQuestionSelect={setCurrentQuestionId}
+            questionData={questionData}
+            onAnswer={handleAnswerQuestion}
+            onUpdateData={handleUpdateQuestionData}
+            answeredQuestions={answeredQuestions}
+            questionsWithDeviations={questionsWithDeviations}
+            manuallyAddedQuestions={manuallyAddedQuestions}
+            manuallyRemovedQuestions={manuallyRemovedQuestions}
+            onNavigateToDocument={handleNavigateToDocument}
+            deviationsLocked={deviationsLocked}
+          />
         );
     }
   };
 
+  const handleRoleSelect = (roleId: number) => {
+    // Role 2 is "KETIL NORDSETH - Ansatt" (Producer/Farmer)
+    if (roleId === 2) {
+      setCurrentRole('producer');
+      setActiveMainTab('producer');
+      setActiveProducerTab('spesialitet'); // Changed from 'hjem' to go directly to Spesialitet
+    }
+    // Role 3 is "KETIL NORDSETH - Revisor"
+    else if (roleId === 3) {
+      setCurrentRole('revisor');
+      setActiveMainTab('aksepterteRevisjoner'); // Go directly to revision page
+      setActiveTopBarTab('planlegg'); // Open Planlegg revisjon tab by default
+    }
+  };
+
   return (
-    <div className="h-screen flex overflow-hidden">
-      <NavigationRail activeTab={activeMainTab} onTabChange={setActiveMainTab} />
-      <div className="flex flex-1 overflow-hidden flex-col">
-        {/* Only show TopBar when in aksepterteRevisjoner (the main revision workflow) */}
-        {activeMainTab === 'aksepterteRevisjoner' && (
-          <TopBar
-            farmName="Haugseter Gård"
-            activeTab={activeTopBarTab}
-            onTabChange={handleTopBarTabChange}
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* Show Bytt Rolle page without navigation rail */}
+      {activeMainTab === 'byttRolle' ? (
+        <ByttRollePage onRoleSelect={handleRoleSelect} />
+      ) : currentRole === 'producer' ? (
+        /* Producer Interface */
+        <div className="flex flex-1 overflow-hidden max-[1400px]:flex-col">
+          <ProducerNavigationRail 
+            activeTab={activeProducerTab} 
+            onTabChange={setActiveProducerTab}
+            onChangeRole={() => {
+              setCurrentRole(null);
+              setActiveMainTab('byttRolle');
+            }}
           />
-        )}
-        
-        <div className="flex flex-1 overflow-hidden">
-          {activeMainTab === 'aksepterteRevisjoner' ? (
-            renderAksepterteRevisjonerContent()
-          ) : activeMainTab === 'revisjonshistorikk' ? (
-            <WriteReportPage 
-              onBack={() => setActiveMainTab('aksepterteRevisjoner')}
-              questionData={questionData}
-              onAnswerQuestion={handleAnswerQuestion}
-              onUpdateQuestionData={handleUpdateQuestionData}
-              onNavigateToDocument={handleNavigateToDocument}
-              onLockDeviations={handleLockDeviations}
-              deviationsLocked={deviationsLocked}
-            />
-          ) : activeMainTab === 'fakturagrunnlag' ? (
-            <DocumentOverview initialSelectedIndex={selectedDocumentIndex} />
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              <p className="body-large">Denne siden er under utvikling</p>
+          <div className="flex flex-1 overflow-hidden flex-col">
+            <div className="flex flex-1 overflow-hidden">
+              {activeProducerTab === 'hjem' ? (
+                <ProducerHomePage 
+                  onNavigateToChecklist={() => setActiveProducerTab('lokalmat')}
+                />
+              ) : activeProducerTab === 'lokalmat' ? (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  <p className="body-large">Lokalmat - kommer snart</p>
+                </div>
+              ) : activeProducerTab === 'spesialitet' ? (
+                <SpesialitetChecklistPage />
+              ) : activeProducerTab === 'nytNorge' ? (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  <p className="body-large">Nyt Norge - kommer snart</p>
+                </div>
+              ) : activeProducerTab === 'foretaksopplysninger' ? (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  <p className="body-large">Foretaksopplysninger - kommer snart</p>
+                </div>
+              ) : activeProducerTab === 'avvikOgNotater' ? (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  <p className="body-large">Avvik og notater - kommer snart</p>
+                </div>
+              ) : activeProducerTab === 'rapporter' ? (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  <p className="body-large">Rapporter - kommer snart</p>
+                </div>
+              ) : activeProducerTab === 'opplastdeFiler' ? (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  <p className="body-large">Opplastede filer - kommer snart</p>
+                </div>
+              ) : null}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Revisor Interface */
+        <div className="flex flex-1 overflow-hidden max-[1400px]:flex-col">
+          <NavigationRail activeTab={activeMainTab} onTabChange={setActiveMainTab} />
+          
+          {/* Main content area and notes panel wrapper */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Content area - Contains TopBar and pages */}
+            <div className="flex flex-1 overflow-hidden flex-col">
+              {/* Only show TopBar when in aksepterteRevisjoner (the main revision workflow) */}
+              {activeMainTab === 'aksepterteRevisjoner' && (
+                <TopBar
+                  farmName="Haugseter Gård"
+                  activeTab={activeTopBarTab}
+                  onTabChange={handleTopBarTabChange}
+                  onBack={() => setActiveMainTab('tildelteRevisjoner')}
+                  showNotesButton={true}
+                  isNotesPanelOpen={isPrivateNotesPanelOpen}
+                  onToggleNotes={() => setIsPrivateNotesPanelOpen(!isPrivateNotesPanelOpen)}
+                />
+              )}
+              
+              {/* Main pages content */}
+              <div className="flex flex-1 overflow-hidden">
+                {activeMainTab === 'tildelteRevisjoner' ? (
+                  <AksepterteRevisjonerPage 
+                    onRevisionClick={() => setActiveMainTab('aksepterteRevisjoner')}
+                  />
+                ) : activeMainTab === 'aksepterteRevisjoner' ? (
+                  renderAksepterteRevisjonerContent()
+                ) : activeMainTab === 'revisjonshistorikk' ? (
+                  <WriteReportPage 
+                    onBack={() => setActiveMainTab('aksepterteRevisjoner')}
+                    questionData={questionData}
+                    onAnswerQuestion={handleAnswerQuestion}
+                    onUpdateQuestionData={handleUpdateQuestionData}
+                    onNavigateToDocument={handleNavigateToDocument}
+                    onLockDeviations={handleLockDeviations}
+                    deviationsLocked={deviationsLocked}
+                  />
+                ) : activeMainTab === 'fakturagrunnlag' ? (
+                  <DocumentOverview initialSelectedIndex={selectedDocumentIndex} />
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                    <p className="body-large">Denne siden er under utvikling</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Private Notes Panel for mobile - Bottom sheet */}
+              <div className="min-[1400px]:hidden">
+                <PrivateNotesPanel 
+                  isOpen={isPrivateNotesPanelOpen} 
+                  onClose={() => setIsPrivateNotesPanelOpen(false)} 
+                  onUpdateQuestionData={handleUpdateQuestionData}
+                  getQuestionData={(questionId: string) => questionData[questionId]}
+                  savedNotes={savedNotes}
+                  onSaveNote={handleSaveNote}
+                  onDeleteNote={handleDeleteNote}
+                />
+              </div>
+
+              {/* Large Extended FAB - Only show when on aksepterteRevisjoner tab */}
+              {activeMainTab === 'aksepterteRevisjoner' && !isPrivateNotesPanelOpen && (
+                <LargeExtendedFAB 
+                  onClick={() => setIsPrivateNotesPanelOpen(true)}
+                  label="Egne notater"
+                />
+              )}
+            </div>
+
+            {/* Notes Panel - Desktop - Docked at application level (beside entire content) */}
+            {isPrivateNotesPanelOpen && activeMainTab === 'aksepterteRevisjoner' && (
+              <div className="max-[1399px]:hidden w-[440px] shrink-0">
+                <PrivateNotesPanelDockable 
+                  isOpen={isPrivateNotesPanelOpen} 
+                  onClose={() => setIsPrivateNotesPanelOpen(false)} 
+                  onUpdateQuestionData={handleUpdateQuestionData}
+                  getQuestionData={(questionId: string) => questionData[questionId]}
+                  savedNotes={savedNotes}
+                  onSaveNote={handleSaveNote}
+                  onDeleteNote={handleDeleteNote}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
