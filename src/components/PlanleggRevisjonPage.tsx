@@ -323,6 +323,11 @@ export function PlanleggRevisjonPage() {
                 <span className="body-large text-foreground">{revisionStartTime} til {revisionEndTime}</span>
               </div>
 
+              <div className="flex flex-col gap-1 px-4 py-2">
+                <span className="label-small text-muted-foreground">Andre revisorer på oppdraget</span>
+                <span className="body-large text-foreground">Geir Jakobsen, Medrevisor (Status: Akseptert)</span>
+              </div>
+
               <div className="flex flex-col gap-2 pt-2">
                 <Button 
                   variant="secondary" 

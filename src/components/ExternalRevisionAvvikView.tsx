@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
 import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
+import { getQuestionById } from '../data/questions';
+import { KravVeilederSection } from './KravVeilederSection';
 import { BottomSheet } from './ui/bottom-sheet';
 
 type SeverityType = 'stort-avvik' | 'avvik' | 'lite-avvik';
@@ -121,142 +123,154 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
   };
 
   // Detail content component (reused in both desktop panel and mobile bottom sheet)
-  const DetailContent = ({ deviation }: { deviation: ExternalRevisionDeviation }) => (
-    <>
-      {/* Question Header */}
-      <div className="px-6 py-4 border-b border-[var(--border)] sticky top-0 bg-background z-10">
-        <h3 className="body-large text-foreground mb-3">
-          {deviation.questionNumber} {deviation.questionText}
-        </h3>
-        
-        {/* Severity Badge */}
-        {getSeverityBadge(deviation.severity)}
-      </div>
+  const DetailContent = ({ deviation }: { deviation: ExternalRevisionDeviation }) => {
+    // Get the full question data from questionsData using questionNumber
+    const questionInfo = getQuestionById(deviation.questionNumber);
+    
+    return (
+      <>
+        {/* Question Header */}
+        <div className="px-6 py-4 border-b border-[var(--border)]">
+          <h3 className="body-large text-foreground mb-3">
+            {deviation.questionNumber} {deviation.questionText}
+          </h3>
+          
+          {/* Krav & Veileder Section */}
+          {questionInfo && (
+            <div className="mb-3">
+              <KravVeilederSection question={questionInfo} />
+            </div>
+          )}
+          
+          {/* Severity Badge */}
+          {getSeverityBadge(deviation.severity)}
+        </div>
 
-      {/* Lukking av avvik Section */}
-      <div className="px-6 py-4 border-b border-[var(--border)] bg-[#f9faf6]">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary shrink-0">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 18 14">
-              <path d="M5.59 10.58L1.42 6.41L0 7.82L5.59 13.41L17.59 1.41L16.18 0L5.59 10.58Z" fill="white"/>
-            </svg>
-          </div>
-          <div className="flex-1">
-            <p className="label-medium text-muted-foreground mb-0.5">1. mars 2025</p>
-            <p className="body-medium text-foreground m-0">Lukking av avvik bekreftet.</p>
+        {/* Lukking av avvik Section */}
+        <div className="px-6 py-4 border-b border-[var(--border)] bg-[#f9faf6]">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary shrink-0">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 18 14">
+                <path d="M5.59 10.58L1.42 6.41L0 7.82L5.59 13.41L17.59 1.41L16.18 0L5.59 10.58Z" fill="white"/>
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="label-medium text-muted-foreground mb-0.5">1. mars 2025</p>
+              <p className="body-medium text-foreground m-0">Lukking av avvik bekreftet.</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Ansvarlig Section */}
-      <div className="px-6 py-4 border-b border-[var(--border)]">
-        <span className="body-medium text-foreground block mb-2">Ansvarlig</span>
-        {deviation.responsible && (
-          <p className="body-medium text-foreground m-0">{deviation.responsible}</p>
+        {/* Ansvarlig Section */}
+        <div className="px-6 py-4 border-b border-[var(--border)]">
+          <span className="body-medium text-foreground block mb-2">Ansvarlig</span>
+          {deviation.responsible && (
+            <p className="body-medium text-foreground m-0">{deviation.responsible}</p>
+          )}
+        </div>
+
+        {/* Tidsfrist Section */}
+        <div className="px-6 py-4 border-b border-[var(--border)]">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded bg-muted">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <p className="label-medium text-muted-foreground m-0">Tidsfrist</p>
+              <p className="body-medium text-foreground m-0">{deviation.deadline || 'Ikke satt'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bekreftelse av tiltak Section */}
+        <div className="px-6 py-4 border-b border-[var(--border)]">
+          <span className="body-medium text-foreground mb-3 block">Bekreftelse av tiltak</span>
+          
+          <div className="space-y-2 opacity-60 pointer-events-none">
+            <div className={`flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] ${
+              deviation.confirmationMethod === 'dokumentasjon' ? 'bg-muted' : ''
+            }`}>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                deviation.confirmationMethod === 'dokumentasjon'
+                  ? 'border-primary bg-primary'
+                  : 'border-muted-foreground'
+              }`}>
+                {deviation.confirmationMethod === 'dokumentasjon' && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />
+                )}
+              </div>
+              <span className="body-medium text-foreground">Dokumentasjon</span>
+            </div>
+            
+            <div className={`flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] ${
+              deviation.confirmationMethod === 'digitalt-besok' ? 'bg-muted' : ''
+            }`}>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                deviation.confirmationMethod === 'digitalt-besok'
+                  ? 'border-primary bg-primary'
+                  : 'border-muted-foreground'
+              }`}>
+                {deviation.confirmationMethod === 'digitalt-besok' && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />
+                )}
+              </div>
+              <span className="body-medium text-foreground">Digitalt besøk</span>
+            </div>
+            
+            <div className={`flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] ${
+              deviation.confirmationMethod === 'fysisk-besok' ? 'bg-muted' : ''
+            }`}>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                deviation.confirmationMethod === 'fysisk-besok'
+                  ? 'border-primary bg-primary'
+                  : 'border-muted-foreground'
+              }`}>
+                {deviation.confirmationMethod === 'fysisk-besok' && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />
+                )}
+              </div>
+              <span className="body-medium text-foreground">Fysisk besøk</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Rapportert avvik Section */}
+        {deviation.reportedDeviation && (
+          <div className="px-6 py-4 border-b border-[var(--border)]">
+            <p className="label-medium text-muted-foreground mb-2">Rapportert avvik</p>
+            <p className="body-medium text-foreground m-0">{deviation.reportedDeviation}</p>
+            <p className="body-medium text-muted-foreground italic mt-1">Kan ikke endres nå.</p>
+          </div>
         )}
-      </div>
 
-      {/* Tidsfrist Section */}
-      <div className="px-6 py-4 border-b border-[var(--border)]">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded bg-muted">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z" />
-            </svg>
+        {/* Mangel Section */}
+        {deviation.deficiency && (
+          <div className="px-6 py-4 border-b border-[var(--border)]">
+            <p className="label-medium text-muted-foreground mb-2">Mangel</p>
+            <p className="body-medium text-foreground m-0">{deviation.deficiency}</p>
           </div>
-          <div className="flex-1">
-            <p className="label-medium text-muted-foreground m-0">Tidsfrist</p>
-            <p className="body-medium text-foreground m-0">{deviation.deadline || 'Ikke satt'}</p>
+        )}
+
+        {/* Bevis Section */}
+        {deviation.evidence && (
+          <div className="px-6 py-4 border-b border-[var(--border)]">
+            <p className="label-medium text-muted-foreground mb-2">Bevis</p>
+            <p className="body-medium text-foreground m-0">{deviation.evidence}</p>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Bekreftelse av tiltak Section */}
-      <div className="px-6 py-4 border-b border-[var(--border)]">
-        <span className="body-medium text-foreground mb-3 block">Bekreftelse av tiltak</span>
-        
-        <div className="space-y-2 opacity-60 pointer-events-none">
-          <div className={`flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] ${
-            deviation.confirmationMethod === 'dokumentasjon' ? 'bg-muted' : ''
-          }`}>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-              deviation.confirmationMethod === 'dokumentasjon'
-                ? 'border-primary bg-primary'
-                : 'border-muted-foreground'
-            }`}>
-              {deviation.confirmationMethod === 'dokumentasjon' && (
-                <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />
-              )}
-            </div>
-            <span className="body-medium text-foreground">Dokumentasjon</span>
+        {/* Krav Section */}
+        {deviation.requirement && (
+          <div className="px-6 py-4">
+            <p className="label-medium text-muted-foreground mb-2">Krav</p>
+            <p className="body-medium text-foreground m-0">{deviation.requirement}</p>
           </div>
-          
-          <div className={`flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] ${
-            deviation.confirmationMethod === 'digitalt-besok' ? 'bg-muted' : ''
-          }`}>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-              deviation.confirmationMethod === 'digitalt-besok'
-                ? 'border-primary bg-primary'
-                : 'border-muted-foreground'
-            }`}>
-              {deviation.confirmationMethod === 'digitalt-besok' && (
-                <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />
-              )}
-            </div>
-            <span className="body-medium text-foreground">Digitalt besøk</span>
-          </div>
-          
-          <div className={`flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] ${
-            deviation.confirmationMethod === 'fysisk-besok' ? 'bg-muted' : ''
-          }`}>
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-              deviation.confirmationMethod === 'fysisk-besok'
-                ? 'border-primary bg-primary'
-                : 'border-muted-foreground'
-            }`}>
-              {deviation.confirmationMethod === 'fysisk-besok' && (
-                <div className="w-2.5 h-2.5 rounded-full bg-primary-foreground" />
-              )}
-            </div>
-            <span className="body-medium text-foreground">Fysisk besøk</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Rapportert avvik Section */}
-      {deviation.reportedDeviation && (
-        <div className="px-6 py-4 border-b border-[var(--border)]">
-          <p className="label-medium text-muted-foreground mb-2">Rapportert avvik</p>
-          <p className="body-medium text-foreground m-0">{deviation.reportedDeviation}</p>
-          <p className="body-medium text-muted-foreground italic mt-1">Kan ikke endres nå.</p>
-        </div>
-      )}
-
-      {/* Mangel Section */}
-      {deviation.deficiency && (
-        <div className="px-6 py-4 border-b border-[var(--border)]">
-          <p className="label-medium text-muted-foreground mb-2">Mangel</p>
-          <p className="body-medium text-foreground m-0">{deviation.deficiency}</p>
-        </div>
-      )}
-
-      {/* Bevis Section */}
-      {deviation.evidence && (
-        <div className="px-6 py-4 border-b border-[var(--border)]">
-          <p className="label-medium text-muted-foreground mb-2">Bevis</p>
-          <p className="body-medium text-foreground m-0">{deviation.evidence}</p>
-        </div>
-      )}
-
-      {/* Krav Section */}
-      {deviation.requirement && (
-        <div className="px-6 py-4">
-          <p className="label-medium text-muted-foreground mb-2">Krav</p>
-          <p className="body-medium text-foreground m-0">{deviation.requirement}</p>
-        </div>
-      )}
-    </>
-  );
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="flex h-full w-full overflow-hidden">

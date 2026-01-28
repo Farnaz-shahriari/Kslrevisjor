@@ -3,6 +3,7 @@ import { imgVector6 } from '../imports/svg-djl4p';
 import { imgVector } from '../imports/svg-unedn';
 import svgPaths from '../imports/svg-e1u4yqsnoc';
 import logoSvgPaths from '../imports/svg-pn3j7cyndy';
+import kslLogoExpanded from 'figma:asset/0322202eb2e41df4deecc92938a86f291c0c7b50.png';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from './ui/sheet';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
@@ -54,56 +55,11 @@ function KSLLogo({ collapsed }: { collapsed: boolean }) {
   // Full logo for expanded state - using Logo-106-7260 with max height 64px
   return (
     <div className="flex items-center justify-center w-full h-full">
-      <div className="relative" style={{ width: '106px', height: '64px' }}>
-        <svg className="block w-full h-full" fill="none" preserveAspectRatio="xMinYMin meet" viewBox="0 0 173.293 104">
-          {/* Top part - KSL graphic logo */}
-          <g>
-            <path d={logoSvgPaths.pc59adc0} fill="#79B61D" />
-            <path d={logoSvgPaths.pb353100} fill="#79B61D" />
-            <path d={logoSvgPaths.p38a1df00} fill="white" />
-            <g>
-              <path d={logoSvgPaths.p1f855e00} fill="#177312" />
-              <path d={logoSvgPaths.pfd51100} fill="#008F00" />
-              <path d={logoSvgPaths.p3a663072} fill="#79B61D" />
-              <path d={logoSvgPaths.p38968d00} fill="#AFD377" />
-            </g>
-            <g>
-              <path d={logoSvgPaths.pdc27900} fill="#79B61D" />
-            </g>
-          </g>
-          {/* Bottom part - Kvalitetssystem text */}
-          <g>
-            <g>
-              <path d={logoSvgPaths.p6ce0c80} fill="black" />
-              <path d={logoSvgPaths.p3714de70} fill="black" />
-              <path d={logoSvgPaths.p1f6d1000} fill="black" />
-              <path d={logoSvgPaths.p30cda200} fill="black" />
-              <path d={logoSvgPaths.p2de2ab40} fill="black" />
-              <path d={logoSvgPaths.p6277170} fill="black" />
-              <path d={logoSvgPaths.p6b6a670} fill="black" />
-              <path d={logoSvgPaths.p2f29cd00} fill="black" />
-              <path d={logoSvgPaths.p3b8dad00} fill="black" />
-              <path d={logoSvgPaths.p1171c00} fill="black" />
-              <path d={logoSvgPaths.p2f2cb380} fill="black" />
-              <path d={logoSvgPaths.p2206be00} fill="black" />
-              <path d={logoSvgPaths.p38461c00} fill="black" />
-              <path d={logoSvgPaths.p246bf900} fill="black" />
-              <path d={logoSvgPaths.p1b7451f0} fill="black" />
-              <path d={logoSvgPaths.p202c0f40} fill="black" />
-              <path d={logoSvgPaths.p12a36a00} fill="black" />
-              <path d={logoSvgPaths.p2eb4d500} fill="black" />
-              <path d={logoSvgPaths.p271fc640} fill="black" />
-              <path d={logoSvgPaths.p30cc85e0} fill="black" />
-              <path d={logoSvgPaths.p203ff100} fill="black" />
-              <path d={logoSvgPaths.p192a4f00} fill="black" />
-              <path d={logoSvgPaths.pe8ac500} fill="black" />
-            </g>
-            <path d={logoSvgPaths.p4e31200} fill="black" />
-            <path d={logoSvgPaths.p2fd93200} fill="black" />
-            <path d={logoSvgPaths.p3d9831f0} fill="black" />
-          </g>
-        </svg>
-      </div>
+      <img 
+        src={kslLogoExpanded} 
+        alt="KSL Kvalitetssystem Landbruk" 
+        className="h-16 w-auto object-contain"
+      />
     </div>
   );
 }
@@ -384,7 +340,7 @@ export function ProducerNavigationRail({ activeTab, onTabChange, onChangeRole }:
         {/* User Profile Item */}
         <button
           className="flex items-center gap-3 h-14 rounded-[var(--radius)] hover:bg-muted transition-colors w-full text-foreground"
-          aria-label="Min profil"
+          aria-label="Produsentprofil"
           style={{
             paddingLeft: isExpanded ? '16px' : '0',
             paddingRight: isExpanded ? '24px' : '0',
@@ -393,7 +349,7 @@ export function ProducerNavigationRail({ activeTab, onTabChange, onChangeRole }:
         >
           <UserIcon className="shrink-0" />
           {isExpanded && (
-            <span className="label-large whitespace-nowrap">Min profil</span>
+            <span className="label-large whitespace-nowrap">Produsentprofil</span>
           )}
         </button>
 

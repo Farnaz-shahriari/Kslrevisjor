@@ -8,14 +8,13 @@ import { DocumentsMenu } from './DocumentsMenu';
 import { StatusChip } from './StatusChip';
 import { BottomSheet } from './ui/bottom-sheet';
 import { Button } from './ui/button';
+import { DatePicker } from './ui/date-picker';
+import { KravVeilederSection } from './KravVeilederSection';
 import svgPaths from '../imports/svg-8axi0x1eud';
 import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
 import svgPathsNew from '../imports/svg-87gmswxs21';
 import svgPathsUpload from '../imports/svg-927sr0kqkx';
-import { Calendar } from './ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import { formatNorwegianDate } from '../utils/dateFormat';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 
@@ -69,6 +68,8 @@ interface ClosureInfo {
   responsible?: string;
   confirmationMethod?: ConfirmationMethod;
   comment?: string;
+  recommendedDeadline?: string; // Anbefalt tidsfrist - always shown with outline
+  maxDeadline?: string; // Maximum allowed deadline
 }
 
 export function AvvikshandteringPage({ 
@@ -111,7 +112,6 @@ export function AvvikshandteringPage({
   // Editing states
   const [editingResponsible, setEditingResponsible] = useState<string | null>(null);
   const [tempResponsible, setTempResponsible] = useState('');
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [editingMangel, setEditingMangel] = useState<string | null>(null);
   const [tempMangel, setTempMangel] = useState('');
   const [editingBevis, setEditingBevis] = useState<string | null>(null);
@@ -206,6 +206,40 @@ export function AvvikshandteringPage({
       setSelectedQuestionId(answers[0].id);
     }
   }, [answers.length, selectedQuestionId]);
+
+  // Initialize recommended and max deadlines for each deviation
+  useEffect(() => {
+    if (answers.length === 0) return;
+    
+    setClosureData(prev => {
+      const newClosureData = { ...prev };
+      let hasChanges = false;
+      
+      answers.forEach(answer => {
+        if (!prev[answer.id]?.recommendedDeadline) {
+          // Generate random recommended deadline between 14-45 days from now
+          const daysToAdd = Math.floor(Math.random() * 31) + 14; // 14-45 days
+          const recommendedDate = new Date();
+          recommendedDate.setDate(recommendedDate.getDate() + daysToAdd);
+          
+          // Max deadline is 30 days after recommended deadline
+          const maxDate = new Date(recommendedDate);
+          maxDate.setDate(maxDate.getDate() + 30);
+          
+          newClosureData[answer.id] = {
+            ...prev[answer.id],
+            recommendedDeadline: recommendedDate.toISOString(),
+            maxDeadline: maxDate.toISOString(),
+            // Set initial deadline to recommended deadline
+            deadline: prev[answer.id]?.deadline || recommendedDate.toISOString()
+          };
+          hasChanges = true;
+        }
+      });
+      
+      return hasChanges ? newClosureData : prev;
+    });
+  }, [answers]); // Removed setClosureData from dependencies - setter functions are stable
 
   // Update active tab when locked state changes
   useEffect(() => {
@@ -625,6 +659,13 @@ export function AvvikshandteringPage({
                     {selectedQuestion.questionText}
                   </h4>
 
+                  {/* Krav & Veileder Section */}
+                  {selectedQuestionInfo && (
+                    <div className="mt-3">
+                      <KravVeilederSection question={selectedQuestionInfo} />
+                    </div>
+                  )}
+
                   {/* Severity Badge */}
                   {selectedQuestion.severity && (
                     <div className={`flex items-center gap-4 px-4 py-2 rounded-[var(--radius-md)] mt-2 min-h-[56px] ${getSeverityColor(selectedQuestion.severity)}`}>
@@ -729,42 +770,21 @@ export function AvvikshandteringPage({
                   <div className="border-t border-[var(--border)] my-2" />
 
                   {/* Tidsfrist Section */}
-                  <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                    <PopoverTrigger asChild>
-                      <button className="w-full min-h-[64px] pt-2 pb-0">
-                        <div className="flex gap-4 items-center px-2">
-                          <CalendarIcon className="shrink-0 w-6 h-6 text-muted-foreground" />
-                          <div className="flex-1 text-left min-w-0">
-                            <p className="label-medium text-muted-foreground">
-                              Tidsfrist
-                            </p>
-                            <p className="body-large">
-                              {selectedClosureInfo.deadline 
-                                ? `${format(new Date(selectedClosureInfo.deadline), 'd. MMMM yyyy', { locale: nb })} (anbefalt)`
-                                : '4. mars 2026 (anbefalt)'
-                              }
-                            </p>
-                          </div>
-                          <div className="shrink-0 w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted transition-colors">
-                            <Edit2 className="w-5 h-5 text-muted-foreground" />
-                          </div>
-                        </div>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={selectedClosureInfo.deadline ? new Date(selectedClosureInfo.deadline) : undefined}
-                        onSelect={(date) => {
-                          if (date && selectedQuestionId) {
-                            updateClosureInfo(selectedQuestionId, { deadline: date.toISOString() });
-                            setIsDatePickerOpen(false);
-                          }
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <div className="px-2 py-4">
+                    <DatePicker
+                      label="Tidsfrist"
+                      value={selectedClosureInfo.deadline ? new Date(selectedClosureInfo.deadline) : null}
+                      onChange={(date) => {
+                        if (date && selectedQuestionId) {
+                          updateClosureInfo(selectedQuestionId, { deadline: date.toISOString() });
+                        }
+                      }}
+                      placeholder="DD/MM/ÅÅÅÅ"
+                      required
+                      recommendedDate={selectedClosureInfo.recommendedDeadline ? new Date(selectedClosureInfo.recommendedDeadline) : null}
+                      maxDate={selectedClosureInfo.maxDeadline ? new Date(selectedClosureInfo.maxDeadline) : null}
+                    />
+                  </div>
 
                   <div className="border-t border-[var(--border)] my-2" />
 
@@ -1154,13 +1174,9 @@ export function AvvikshandteringPage({
                     {selectedQuestion.questionText}
                   </h3>
                   
-                  {selectedQuestionInfo.requiresDocumentation && (
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg label-medium">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 16">
-                        <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" />
-                      </svg>
-                      Dokumentasjon kreves
-                    </div>
+                  {/* Krav & Veileder Section */}
+                  {selectedQuestionInfo && (
+                    <KravVeilederSection question={selectedQuestionInfo} />
                   )}
                 </div>
 
@@ -1291,13 +1307,9 @@ export function AvvikshandteringPage({
                   {selectedQuestion.questionText}
                 </h3>
                 
-                {selectedQuestionInfo.requiresDocumentation && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg label-medium">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 16">
-                      <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" />
-                    </svg>
-                    Dokumentasjon kreves
-                  </div>
+                {/* Krav & Veileder Section */}
+                {selectedQuestionInfo && (
+                  <KravVeilederSection question={selectedQuestionInfo} />
                 )}
               </div>
 
@@ -1399,9 +1411,82 @@ export function AvvikshandteringPage({
             </>
           ) : (
             <div className="pb-8">
-              <p className="body-large text-muted-foreground px-6 py-4">
-                Locked state: Deadline, responsible, and closure info will display here
-              </p>
+              {/* Locked State for Mobile Bottom Sheet */}
+              <div className="px-6 py-4">
+                <h3 className="body-large text-foreground mb-3">
+                  {selectedQuestion.questionText}
+                </h3>
+                
+                {/* Krav & Veileder Section */}
+                {selectedQuestionInfo && (
+                  <KravVeilederSection question={selectedQuestionInfo} />
+                )}
+
+                {/* Severity Badge */}
+                {selectedQuestion.severity && (
+                  <div className={`flex items-center gap-4 px-4 py-2 rounded-[var(--radius-md)] mt-4 min-h-[56px] ${getSeverityColor(selectedQuestion.severity)}`}>
+                    <div className="shrink-0 w-6 h-6 flex items-center justify-center">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" overflow="visible">
+                        <path d={svgPaths.p6027970} fill="currentColor" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
+                      <p className="label-medium">
+                        Beregnet alvorlighetsgrad
+                      </p>
+                      <p className="body-large">
+                        {getSeverityLabel(selectedQuestion.severity)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 w-6 h-6 flex items-center justify-center">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" overflow="visible">
+                        <g transform="scale(1.2)">
+                          <path d={svgPaths.p19ecbc00} fill="currentColor" />
+                        </g>
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Closure Information */}
+              <div className="px-6">
+                <div className="border-t border-[var(--border)] my-2" />
+                
+                <div className="py-2">
+                  {selectedClosureInfo.responsible && (
+                    <>
+                      <p className="label-medium text-muted-foreground mb-1">Ansvarlig</p>
+                      <p className="body-large mb-4">{selectedClosureInfo.responsible}</p>
+                    </>
+                  )}
+
+                  {selectedClosureInfo.deadline && (
+                    <>
+                      <p className="label-medium text-muted-foreground mb-1">Tidsfrist</p>
+                      <p className="body-large mb-4">{formatNorwegianDate(new Date(selectedClosureInfo.deadline))}</p>
+                    </>
+                  )}
+
+                  {selectedClosureInfo.confirmationMethod && (
+                    <>
+                      <p className="label-medium text-muted-foreground mb-1">Bekreftelse av tiltak</p>
+                      <p className="body-large mb-4">
+                        {selectedClosureInfo.confirmationMethod === 'dokumentasjon' && 'Dokumentasjon'}
+                        {selectedClosureInfo.confirmationMethod === 'digitalt-besok' && 'Digitalt besøk'}
+                        {selectedClosureInfo.confirmationMethod === 'fysisk-besok' && 'Fysisk besøk'}
+                      </p>
+                    </>
+                  )}
+
+                  {selectedClosureInfo.comment && (
+                    <>
+                      <p className="label-medium text-muted-foreground mb-1">Kommentar til foretaket</p>
+                      <p className="body-large">{selectedClosureInfo.comment}</p>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </BottomSheet>

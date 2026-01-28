@@ -11,6 +11,10 @@ interface BottomSheetProps {
    * Default: 85 (85% of viewport height)
    */
   maxHeight?: number;
+  /**
+   * Optional footer content (typically action buttons)
+   */
+  footer?: ReactNode;
 }
 
 /**
@@ -39,7 +43,8 @@ export function BottomSheet({
   onClose,
   children,
   title,
-  maxHeight = 85
+  maxHeight = 85,
+  footer
 }: BottomSheetProps) {
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -104,10 +109,26 @@ export function BottomSheet({
           </div>
         )}
 
-        {/* Content */}
-        <div className="overflow-y-auto" style={{ maxHeight: title ? `calc(${maxHeight}vh - 100px)` : `calc(${maxHeight}vh - 40px)` }}>
+        {/* Content - Scrollable area between header and footer */}
+        <div 
+          className="overflow-y-auto" 
+          style={{ 
+            maxHeight: footer 
+              ? `calc(${maxHeight}vh - ${title ? '220px' : '160px'})` 
+              : title 
+                ? `calc(${maxHeight}vh - 100px)` 
+                : `calc(${maxHeight}vh - 40px)` 
+          }}
+        >
           {children}
         </div>
+
+        {/* Footer - Fixed at bottom */}
+        {footer && (
+          <div className="px-6 py-4 border-t border-[var(--border)] bg-background">
+            {footer}
+          </div>
+        )}
       </div>
     </>
   );

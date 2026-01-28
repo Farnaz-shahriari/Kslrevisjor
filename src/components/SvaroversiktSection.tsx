@@ -9,6 +9,7 @@ import { AttachedDocumentCard } from './AttachedDocumentCard';
 import { Snackbar } from './Snackbar';
 import { BottomSheet } from './ui/bottom-sheet';
 import { Button } from './ui/button';
+import { KravVeilederSection } from './KravVeilederSection';
 import svgPathsChip from '../imports/svg-cne2b5etox';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
@@ -723,19 +724,14 @@ export function SvaroversiktSection({
             />
             <div className="overflow-auto flex-1">
               {/* Question Header */}
-              <div className="px-6 py-4 border-b border-border sticky top-0 bg-background z-10">
+              <div className="px-6 py-4 border-b border-border">
                 <h3 className="body-large text-foreground mb-3">
                   {selectedQuestion.questionText}
                 </h3>
                 
-                {/* Documentation Required Chip */}
-                {selectedQuestionInfo.requiresDocumentation && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg label-medium">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 16">
-                      <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" />
-                    </svg>
-                    Dokumentasjon kreves
-                  </div>
+                {/* Krav & Veileder Section */}
+                {selectedQuestionInfo && (
+                  <KravVeilederSection question={selectedQuestionInfo} />
                 )}
               </div>
 
@@ -883,6 +879,13 @@ export function SvaroversiktSection({
           maxHeight={90}
         >
           <div className="px-6 py-4">
+            {/* Krav & Veileder Section */}
+            {selectedQuestionInfo && (
+              <div className="mb-4">
+                <KravVeilederSection question={selectedQuestionInfo} />
+              </div>
+            )}
+
             {/* Answer Options */}
             <div className="mb-4">
               <h4 className="label-medium text-foreground mb-3">Velg svar</h4>

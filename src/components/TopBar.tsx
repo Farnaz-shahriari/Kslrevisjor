@@ -1,7 +1,7 @@
 import { ArrowLeft, StickyNote } from 'lucide-react';
 import { Button } from './ui/button';
 
-type TopBarTab = 'planlegg' | 'revisjonsgrunnlag' | 'dokumentoversikt' | 'registrer' | 'rapport';
+type TopBarTab = 'planlegg' | 'revisjonsgrunnlag' | 'dokumentoversikt' | 'registrer' | 'rapport' | 'avvik';
 
 interface TopBarProps {
   farmName: string;
@@ -11,6 +11,7 @@ interface TopBarProps {
   showNotesButton?: boolean;
   isNotesPanelOpen?: boolean;
   onToggleNotes?: () => void;
+  reportLocked?: boolean; // New prop to control Avvik tab visibility
 }
 
 export function TopBar({ 
@@ -20,7 +21,8 @@ export function TopBar({
   onBack,
   showNotesButton = false,
   isNotesPanelOpen = false,
-  onToggleNotes
+  onToggleNotes,
+  reportLocked = false
 }: TopBarProps) {
   const tabs = [
     { id: 'planlegg' as TopBarTab, label: 'Planlegg revisjon', disabled: false },
@@ -28,6 +30,8 @@ export function TopBar({
     { id: 'dokumentoversikt' as TopBarTab, label: 'Dokument oversikt' },
     { id: 'registrer' as TopBarTab, label: 'Registrer revisjon' },
     { id: 'rapport' as TopBarTab, label: 'Skriv rapport' },
+    // Only show Avvik tab when report is locked
+    ...(reportLocked ? [{ id: 'avvik' as TopBarTab, label: 'Avvik' }] : []),
   ];
 
   return (

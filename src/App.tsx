@@ -1,25 +1,27 @@
-import { LargeExtendedFAB } from './components/LargeExtendedFAB';
-import { ProducerTopBar } from './components/ProducerTopBar';
-import { ProducerRegisterRevisjonPage } from './components/ProducerRegisterRevisjonPage';
 import { useState } from 'react';
 import { NavigationRail } from './components/NavigationRail';
 import { TopBar, TopBarTab } from './components/TopBar';
-import { DocumentOverview } from './components/DocumentOverview';
-import { WriteReportPage } from './components/WriteReportPage';
+import { RegisterRevisjonPage } from './components/RegisterRevisjonPage';
 import { RevisjonsgrunnlagPage } from './components/RevisjonsgrunnlagPage';
-import { PlanleggRevisjonPage } from './components/PlanleggRevisjonPage';
+import { WriteReportPage } from './components/WriteReportPage';
+import { ReportAvvikPage } from './components/ReportAvvikPage';
+import { DocumentOverview } from './components/DocumentOverview';
 import ByttRollePage from './components/ByttRollePage';
 import { ProducerNavigationRail, ProducerNavTab } from './components/ProducerNavigationRail';
 import { ProducerHomePage } from './components/ProducerHomePage';
 import { SpesialitetChecklistPage } from './components/SpesialitetChecklistPage';
-import { AksepterteRevisjonerPage } from './components/AksepterteRevisjonerPage';
-import { RegisterRevisjonPage } from './components/RegisterRevisjonPage';
+import { AvvikoversiktPage } from './components/AvvikoversiktPage';
+import { ProfilePage } from './components/ProfilePage';
 import { PrivateNotesPanel } from './components/PrivateNotesPanel';
-import { PrivateNotesPanelDockable } from './components/PrivateNotesPanelDockable';
-import { FloatingActionButton } from './components/FloatingActionButton';
+import { PlanleggRevisjonPage } from './components/PlanleggRevisjonPage';
+import { TildelteRevisjonerPage } from './components/TildelteRevisjonerPage';
+import { AksepterteRevisjonerPage } from './components/AksepterteRevisjonerPage';
+import ForsidePage from './components/ForsidePage';
+import { FakturagrunnlagPage } from './components/FakturagrunnlagPage';
+import { RevisjonshistorikkPage } from './components/RevisjonshistorikkPage';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
-type TabType = 'forside' | 'tildelteRevisjoner' | 'aksepterteRevisjoner' | 'avviksoversikt' | 'fakturagrunnlag' | 'revisjonshistorikk' | 'byttRolle' | 'producer';
+type TabType = 'forside' | 'tildelteRevisjoner' | 'aksepterteRevisjoner' | 'avviksoversikt' | 'fakturagrunnlag' | 'revisjonshistorikk' | 'byttRolle' | 'producer' | 'minProfil';
 type UserRole = 'revisor' | 'producer' | null;
 
 export interface QuestionData {
@@ -247,7 +249,11 @@ export default function App() {
   const [activeProducerTab, setActiveProducerTab] = useState<ProducerNavTab>('hjem');
   const [selectedDocumentIndex, setSelectedDocumentIndex] = useState<number | null>(null);
   const [deviationsLocked, setDeviationsLocked] = useState(false);
-  const [activeTopBarTab, setActiveTopBarTab] = useState<TopBarTab>('registrer');
+  const [activeTopBarTab, setActiveTopBarTab] = useState<TopBarTab>('revisjonsgrunnlag');
+  const [reportLocked, setReportLocked] = useState(false);
+  
+  // State for tracking if we're viewing a specific revision detail or the list
+  const [viewingRevisionDetail, setViewingRevisionDetail] = useState(false);
   
   // State for managing which questions are in Register Revisjon
   const [manuallyAddedQuestions, setManuallyAddedQuestions] = useState<Set<string>>(new Set());
@@ -255,6 +261,9 @@ export default function App() {
 
   // State for private notes panel
   const [isPrivateNotesPanelOpen, setIsPrivateNotesPanelOpen] = useState(false);
+  
+  // State for Aksepterte Revisjoner filter (venter-pa-planlegging)
+  const [aksepterteRevisjonerFilter, setAksepterteRevisjonerFilter] = useState<string[]>([]);
   
   // State for saved notes - with example notes
   const [savedNotes, setSavedNotes] = useState<SavedNote[]>([
@@ -384,6 +393,12 @@ export default function App() {
     setDeviationsLocked(true);
   };
 
+  const handleLockReport = () => {
+    setReportLocked(true);
+    // Automatically switch to the Avvik tab when report is locked
+    setActiveTopBarTab('avvik');
+  };
+
   const handleTopBarTabChange = (tab: TopBarTab) => {
     setActiveTopBarTab(tab);
   };
@@ -431,8 +446,12 @@ export default function App() {
             onNavigateToDocument={handleNavigateToDocument}
             onLockDeviations={handleLockDeviations}
             deviationsLocked={deviationsLocked}
+            onLockReport={handleLockReport}
+            reportLocked={reportLocked}
           />
         );
+      case 'avvik':
+        return <ReportAvvikPage />;
       case 'dokumentoversikt':
         return <DocumentOverview initialSelectedIndex={selectedDocumentIndex} />;
       case 'revisjonsgrunnlag':
@@ -474,8 +493,7 @@ export default function App() {
     // Role 3 is "KETIL NORDSETH - Revisor"
     else if (roleId === 3) {
       setCurrentRole('revisor');
-      setActiveMainTab('aksepterteRevisjoner'); // Go directly to revision page
-      setActiveTopBarTab('planlegg'); // Open Planlegg revisjon tab by default
+      setActiveMainTab('forside'); // Go directly to Forside page
     }
   };
 
@@ -527,6 +545,8 @@ export default function App() {
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
                   <p className="body-large">Opplastede filer - kommer snart</p>
                 </div>
+              ) : activeProducerTab === 'minProfil' ? (
+                <ProfilePage />
               ) : null}
             </div>
           </div>
@@ -541,38 +561,51 @@ export default function App() {
             {/* Content area - Contains TopBar and pages */}
             <div className="flex flex-1 overflow-hidden flex-col">
               {/* Only show TopBar when in aksepterteRevisjoner (the main revision workflow) */}
-              {activeMainTab === 'aksepterteRevisjoner' && (
+              {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && (
                 <TopBar
                   farmName="Haugseter Gård"
                   activeTab={activeTopBarTab}
                   onTabChange={handleTopBarTabChange}
-                  onBack={() => setActiveMainTab('tildelteRevisjoner')}
+                  onBack={() => setViewingRevisionDetail(false)}
                   showNotesButton={true}
                   isNotesPanelOpen={isPrivateNotesPanelOpen}
                   onToggleNotes={() => setIsPrivateNotesPanelOpen(!isPrivateNotesPanelOpen)}
+                  reportLocked={reportLocked}
                 />
               )}
               
               {/* Main pages content */}
               <div className="flex flex-1 overflow-hidden">
-                {activeMainTab === 'tildelteRevisjoner' ? (
-                  <AksepterteRevisjonerPage 
+                {activeMainTab === 'forside' ? (
+                  <ForsidePage 
+                    onNavigateToTildelteRevisjoner={() => setActiveMainTab('tildelteRevisjoner')}
+                    onNavigateToVenterPaPlanlegging={() => {
+                      setAksepterteRevisjonerFilter(['venter-pa-planlegging']);
+                      setActiveMainTab('aksepterteRevisjoner');
+                    }}
+                  />
+                ) : activeMainTab === 'tildelteRevisjoner' ? (
+                  <TildelteRevisjonerPage 
                     onRevisionClick={() => setActiveMainTab('aksepterteRevisjoner')}
                   />
                 ) : activeMainTab === 'aksepterteRevisjoner' ? (
-                  renderAksepterteRevisjonerContent()
+                  viewingRevisionDetail ? (
+                    renderAksepterteRevisjonerContent()
+                  ) : (
+                    <AksepterteRevisjonerPage 
+                      onRevisionClick={() => setViewingRevisionDetail(true)}
+                      initialFilter={aksepterteRevisjonerFilter}
+                      onFilterChange={setAksepterteRevisjonerFilter}
+                    />
+                  )
                 ) : activeMainTab === 'revisjonshistorikk' ? (
-                  <WriteReportPage 
-                    onBack={() => setActiveMainTab('aksepterteRevisjoner')}
-                    questionData={questionData}
-                    onAnswerQuestion={handleAnswerQuestion}
-                    onUpdateQuestionData={handleUpdateQuestionData}
-                    onNavigateToDocument={handleNavigateToDocument}
-                    onLockDeviations={handleLockDeviations}
-                    deviationsLocked={deviationsLocked}
-                  />
+                  <RevisjonshistorikkPage />
                 ) : activeMainTab === 'fakturagrunnlag' ? (
-                  <DocumentOverview initialSelectedIndex={selectedDocumentIndex} />
+                  <FakturagrunnlagPage />
+                ) : activeMainTab === 'avviksoversikt' ? (
+                  <AvvikoversiktPage />
+                ) : activeMainTab === 'minProfil' ? (
+                  <ProfilePage />
                 ) : (
                   <div className="flex-1 flex items-center justify-center text-muted-foreground">
                     <p className="body-large">Denne siden er under utvikling</p>
@@ -593,29 +626,12 @@ export default function App() {
                 />
               </div>
 
-              {/* Large Extended FAB - Only show when on aksepterteRevisjoner tab */}
-              {activeMainTab === 'aksepterteRevisjoner' && !isPrivateNotesPanelOpen && (
-                <LargeExtendedFAB 
-                  onClick={() => setIsPrivateNotesPanelOpen(true)}
-                  label="Egne notater"
-                />
-              )}
+              {/* Large Extended FAB - NOT shown on aksepterteRevisjoner (notes are per-revisjon) */}
+              {/* Removed FAB for aksepterteRevisjoner - notes are now inside each revisjon card */}
             </div>
 
             {/* Notes Panel - Desktop - Docked at application level (beside entire content) */}
-            {isPrivateNotesPanelOpen && activeMainTab === 'aksepterteRevisjoner' && (
-              <div className="max-[1399px]:hidden w-[440px] shrink-0">
-                <PrivateNotesPanelDockable 
-                  isOpen={isPrivateNotesPanelOpen} 
-                  onClose={() => setIsPrivateNotesPanelOpen(false)} 
-                  onUpdateQuestionData={handleUpdateQuestionData}
-                  getQuestionData={(questionId: string) => questionData[questionId]}
-                  savedNotes={savedNotes}
-                  onSaveNote={handleSaveNote}
-                  onDeleteNote={handleDeleteNote}
-                />
-              </div>
-            )}
+            {/* Removed notes panel for aksepterteRevisjoner - notes are now inside each revisjon card */}
           </div>
         </div>
       )}

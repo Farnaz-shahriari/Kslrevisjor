@@ -32,6 +32,8 @@ interface WriteReportPageProps {
   onNavigateToDocument?: (documentIndex: number) => void;
   onLockDeviations?: () => void;
   deviationsLocked?: boolean;
+  onLockReport?: () => void; // New callback to lock the report
+  reportLocked?: boolean; // New prop to track if report is locked
 }
 
 export function WriteReportPage({ 
@@ -41,7 +43,9 @@ export function WriteReportPage({
   onUpdateQuestionData,
   onNavigateToDocument,
   onLockDeviations,
-  deviationsLocked 
+  deviationsLocked,
+  onLockReport,
+  reportLocked = false
 }: WriteReportPageProps) {
   // Check if desktop (≥1400px) - only auto-select on desktop, not mobile
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1400;
@@ -374,9 +378,14 @@ export function WriteReportPage({
                 <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
                   <div className="content-stretch flex items-center justify-center relative shrink-0" data-name="Button">
                     <button
-                      disabled={!isReportComplete()}
+                      disabled={!isReportComplete() || reportLocked}
+                      onClick={() => {
+                        if (isReportComplete() && !reportLocked && onLockReport) {
+                          onLockReport();
+                        }
+                      }}
                       className={`content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 transition-all ${
-                        isReportComplete() 
+                        isReportComplete() && !reportLocked
                           ? 'bg-[#4a671e] hover:bg-[#3d5618] cursor-pointer shadow-sm' 
                           : 'bg-[rgba(26,28,22,0.12)] cursor-not-allowed'
                       }`}
@@ -393,14 +402,19 @@ export function WriteReportPage({
                           </div>
                         </div>
                         <div className="body-large text-white">
-                          <p className="m-0 whitespace-pre">Lås rapport</p>
+                          <p className="m-0 whitespace-pre">{reportLocked ? 'Rapport låst' : 'Lås rapport'}</p>
                         </div>
                       </div>
                     </button>
                   </div>
-                  {!isReportComplete() && (
+                  {!isReportComplete() && !reportLocked && (
                     <div className="body-medium text-muted-foreground">
                       <p className="m-0">Rapporten inneholder ufullstendige deler</p>
+                    </div>
+                  )}
+                  {reportLocked && (
+                    <div className="body-medium text-primary">
+                      <p className="m-0">Rapporten er låst. Se avvik under fanen "Avvik"</p>
                     </div>
                   )}
                 </div>
@@ -470,9 +484,14 @@ export function WriteReportPage({
               <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
                 <div className="content-stretch flex items-center justify-center relative shrink-0" data-name="Button">
                   <button
-                    disabled={!isReportComplete()}
+                    disabled={!isReportComplete() || reportLocked}
+                    onClick={() => {
+                      if (isReportComplete() && !reportLocked && onLockReport) {
+                        onLockReport();
+                      }
+                    }}
                     className={`content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 transition-all ${
-                      isReportComplete() 
+                      isReportComplete() && !reportLocked
                         ? 'bg-[#4a671e] hover:bg-[#3d5618] cursor-pointer shadow-sm' 
                         : 'bg-[rgba(26,28,22,0.12)] cursor-not-allowed'
                     }`}
@@ -489,14 +508,19 @@ export function WriteReportPage({
                         </div>
                       </div>
                       <div className="body-large text-white">
-                        <p className="m-0 whitespace-pre">Lås rapport</p>
+                        <p className="m-0 whitespace-pre">{reportLocked ? 'Rapport låst' : 'Lås rapport'}</p>
                       </div>
                     </div>
                   </button>
                 </div>
-                {!isReportComplete() && (
+                {!isReportComplete() && !reportLocked && (
                   <div className="body-medium text-muted-foreground">
                     <p className="m-0">Rapporten inneholder ufullstendige deler</p>
+                  </div>
+                )}
+                {reportLocked && (
+                  <div className="body-medium text-primary">
+                    <p className="m-0">Rapporten er låst. Se avvik under fanen "Avvik"</p>
                   </div>
                 )}
               </div>
@@ -1189,8 +1213,8 @@ function OmForetaketInput({ value, onChange }: { value: string; onChange: (value
                 <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
                   <div className="relative shrink-0 size-6" data-name="Icon">
                     <div className="absolute inset-[20.833%]" data-name="icon">
-                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                        <path d="M7 0V14M0 7H14" stroke="#44483B" strokeWidth="2" fill="none" />
+                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
+                        <path d="M8 2V14M2 8H14" stroke="#44483B" strokeWidth="2" fill="none" />
                       </svg>
                     </div>
                   </div>
@@ -1427,8 +1451,8 @@ function PreviousRevisionInput({ value, onChange }: { value: string; onChange: (
                 <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
                   <div className="relative shrink-0 size-6" data-name="Icon">
                     <div className="absolute inset-[20.833%]" data-name="icon">
-                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                        <path d="M7 0V14M0 7H14" stroke="#44483B" strokeWidth="2" fill="none" />
+                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
+                        <path d="M8 2V14M2 8H14" stroke="#44483B" strokeWidth="2" fill="none" />
                       </svg>
                     </div>
                   </div>

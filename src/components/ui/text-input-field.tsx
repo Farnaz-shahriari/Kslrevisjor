@@ -175,8 +175,8 @@ export function TextInputField({
               onClick={handleIconClick}
               className="content-stretch cursor-pointer flex flex-col items-center justify-center overflow-clip relative rounded-[var(--radius-button)] shrink-0 w-10 hover:bg-[var(--primary-container)] transition-colors"
             >
-              <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full">
-                <div className="relative shrink-0 size-6">
+              <div className="content-stretch flex h-10 items-center justify-center relative shrink-0 w-full" data-name="State-layer">
+                <div className="relative shrink-0 size-6" data-name="Icon">
                   {value ? (
                     // Edit icon when there's a value
                     <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
@@ -185,8 +185,8 @@ export function TextInputField({
                   ) : (
                     // Plus icon when empty
                     <div className="absolute inset-[20.833%]">
-                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 14 14">
-                        <path d="M7 0V14M0 7H14" stroke="#44483B" strokeWidth="2" fill="none" />
+                      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
+                        <path d="M8 2V14M2 8H14" stroke="#44483B" strokeWidth="2" fill="none" />
                       </svg>
                     </div>
                   )}

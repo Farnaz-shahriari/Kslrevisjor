@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Search, Lightbulb, SmilePlus, Upload, ChevronDown, Volume2, HelpCircle } from 'lucide-react';
 import { BottomSheet } from './ui/bottom-sheet';
+import { getQuestionById } from '../data/questions';
+import { KravVeilederSection } from './KravVeilederSection';
 
 interface ImprovementPoint {
   id: string;
@@ -27,6 +29,9 @@ function ImprovementPointDetail({
   activeTab: 'observasjoner' | 'egenvurderinger' | 'notat';
   onTabChange: (tab: 'observasjoner' | 'egenvurderinger' | 'notat') => void;
 }) {
+  // Get the full question data using questionNumber
+  const questionInfo = getQuestionById(point.questionNumber);
+
   return (
     <div className="flex flex-col gap-2 px-4 py-4 w-full">
       {/* Question Number */}
@@ -54,14 +59,12 @@ function ImprovementPointDetail({
       {/* Question Text */}
       <p className="label-large text-foreground">{point.questionText}</p>
 
-      {/* Krav og Veileder Box */}
-      <div className="bg-[#fafaf0] flex flex-col gap-2 px-0 py-2 rounded-[var(--radius)] border border-[#c4c8b7] w-full">
-        {/* Krav Section */}
-        <button className="flex gap-4 h-10 items-center px-6 w-full hover:bg-muted/30 transition-colors">
-          <ChevronDown className="w-6 h-6 text-foreground" />
-          <span className="body-large text-foreground flex-1 text-left">Krav</span>
-        </button>
-      </div>
+      {/* Krav & Veileder Section */}
+      {questionInfo && (
+        <div className="mb-3">
+          <KravVeilederSection question={questionInfo} />
+        </div>
+      )}
 
       {/* Answer Alternatives (Read-only with Ja selected) */}
       <div className="flex flex-col gap-0 w-full opacity-50 cursor-not-allowed">

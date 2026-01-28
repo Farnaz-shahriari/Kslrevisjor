@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import svgPaths from '../imports/svg-o536ea8qon';
+import { DatePicker } from './ui/date-picker';
 
 interface ProducerDeviationViewProps {
   deviationText?: string;
@@ -15,72 +15,47 @@ export function ProducerDeviationView({
   onDelete 
 }: ProducerDeviationViewProps) {
   const [text, setText] = useState(deviationText);
-  const [deadline, setDeadline] = useState(deviationDeadline);
+  const [deadline, setDeadline] = useState<Date | null>(
+    deviationDeadline ? new Date(deviationDeadline) : null
+  );
 
   const handleSave = () => {
     if (text.trim() && deadline) {
-      onUpdate?.({ deviationText: text, deviationDeadline: deadline });
+      onUpdate?.({ deviationText: text, deviationDeadline: deadline.toISOString() });
     }
   };
 
   const handleDelete = () => {
     setText('');
-    setDeadline('');
+    setDeadline(null);
     onDelete?.();
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-2xl">
+    <div className="flex flex-col gap-6 w-full max-w-2xl">
       {/* Eget avvik field */}
-      <div className="box-border content-stretch flex flex-col gap-2 items-center justify-center min-h-[64px] pb-0 pt-2 px-0 relative shrink-0 w-full">
-        <div className="relative shrink-0 w-full">
-          <div className="box-border content-stretch flex gap-4 items-start p-2 relative w-full">
-            <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0">
-              <div className="flex flex-col justify-center relative shrink-0 w-full">
-                <p className="label-small text-muted-foreground m-0">Eget avvik*</p>
-              </div>
-              <div className="flex flex-col justify-center relative shrink-0 w-full">
-                <input
-                  type="text"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Beskrivelse av avvik"
-                  className="w-full bg-transparent border-none body-large text-foreground focus:outline-none p-0"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="flex flex-col gap-2">
+        <label className="label-medium text-foreground">Eget avvik*</label>
+        <input
+          type="text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Beskrivelse av avvik"
+          className="w-full h-14 px-4 border-2 border-border hover:border-foreground focus:border-primary rounded-lg bg-background body-large text-foreground placeholder:text-muted-foreground focus:outline-none transition-colors"
+        />
       </div>
 
-      {/* Frist field with calendar icon */}
-      <div className="box-border content-stretch flex flex-col gap-2 items-center justify-center min-h-[64px] pb-0 pt-2 px-0 relative shrink-0 w-full">
-        <div className="relative shrink-0 w-full">
-          <div className="box-border content-stretch flex gap-4 items-start p-2 relative w-full">
-            <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0">
-              <div className="flex flex-col justify-center relative shrink-0 w-full">
-                <p className="label-small text-muted-foreground m-0">Frist*</p>
-              </div>
-              <div className="flex items-center gap-2 relative shrink-0 w-full">
-                <input
-                  type="date"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full bg-transparent border-none body-large text-foreground focus:outline-none p-0"
-                />
-                <div className="shrink-0 size-6">
-                  <svg className="block size-full" fill="none" viewBox="0 0 20 20">
-                    <path d={svgPaths.p2b8e9700} fill="var(--foreground)" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Frist field with DatePicker */}
+      <DatePicker
+        label="Frist"
+        value={deadline}
+        onChange={(date) => setDeadline(date)}
+        placeholder="DD/MM/ÅÅÅÅ"
+        required
+      />
 
       {/* Action buttons */}
-      <div className="flex items-center gap-4 justify-between w-full">
+      <div className="flex items-center gap-4 justify-between w-full pt-2">
         {/* Delete button - tertiary/text style */}
         <button
           onClick={handleDelete}

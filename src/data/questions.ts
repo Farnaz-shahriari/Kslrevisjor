@@ -48,7 +48,17 @@ export const questionsData: MainCategory[] = [
             hasDeviation: false,
             isAnswered: false,
             answerText: 'Ja, jeg fører oversikt i Excel-ark hvor alle innkjøp av fôr, gjødsel og plantevernmidler er registrert med dato og leverandør. For salg av produkter har jeg kvitteringer fra Tine og Nortura som viser alle melke- og kjøttleveranser gjennom året.',
-            requiresDocumentation: true
+            requiresDocumentation: true,
+            veilederRevisorText: 'Kontroller at dokumentasjonen inkluderer:\n- Alle innkjøp av driftsmidler (fôr, gjødsel, plantevernmidler)\n- Leverandørkvitteringer eller fakturaer\n- Salgsoppgjør fra varemottak (meieri, slakteri)\n- Datoer og mengder må være tydelig dokumentert\n\nVurder om oversikten er fullstendig for hele perioden.',
+            veilederText: 'Du må kunne vise oversikt over:\n- Hva du har kjøpt inn til gården (fôr, gjødsel, frø, plantevernmidler)\n- Hva du har solgt fra gården (melk, kjøtt, korn, andre produkter)\n- Kvitteringer og fakturaer som bekrefter kjøp og salg\n\nDette er viktig for å dokumentere sporbarhet i produksjonen.',
+            kravLinks: [
+              {
+                category: 'KSL Sporbarhet',
+                title: 'Krav 1.1 - Dokumentasjon av sporbarhet',
+                description: 'Virksomheten skal kunne dokumentere kjøp og salg av produkter',
+                link: 'https://www.ksl.no/regelverk/sporbarhet'
+              }
+            ]
           },
           {
             id: '1.1.2',
@@ -56,7 +66,16 @@ export const questionsData: MainCategory[] = [
             hasDocument: false,
             hasDeviation: false,
             isAnswered: false,
-            answerText: 'Vi har en skriftlig beredskapsplan som ligger i kontoret med telefonnumre til Mattilsynet, Tine og våre faste kontakter. Planen beskriver hvordan vi skal varsle ved mistanke om helseskadelige produkter, og alle ansatte er informert om prosedyren.'
+            answerText: 'Vi har en skriftlig beredskapsplan som ligger i kontoret med telefonnumre til Mattilsynet, Tine og våre faste kontakter. Planen beskriver hvordan vi skal varsle ved mistanke om helseskadelige produkter, og alle ansatte er informert om prosedyren.',
+            veilederRevisorText: 'Sjekk at beredskapsplanen inneholder:\n- Kontaktinformasjon til Mattilsynet\n- Kontaktinformasjon til varemottakere\n- Beskrivelse av varslingsprosedyrer\n- Rutiner for tilbakekalling\n\nPlan må være kjent for alle som arbeider på gården.',
+            veilederText: 'Du må ha en skriftlig plan som beskriver:\n- Hvordan du varsler Mattilsynet hvis noe går galt\n- Hvordan du varsler de som har kjøpt produktene dine\n- Hvordan du kan kalle tilbake produkter hvis det er nødvendig\n\nHusk å ha viktige telefonnumre lett tilgjengelig.',
+            kravLinks: [
+              {
+                category: 'KSL Beredskap',
+                title: 'Krav 1.2 - Beredskapsplan',
+                description: 'Virksomheten skal ha en plan for håndtering av helseskadelige produkter'
+              }
+            ]
           },
           {
             id: '1.1.3',
@@ -64,7 +83,16 @@ export const questionsData: MainCategory[] = [
             hasDocument: false,
             hasDeviation: false,
             isAnswered: false,
-            answerText: 'Alle dokumenter er samlet i en perm i kontoret, organisert etter år. Her ligger melkekvalitetsrapporter fra meieriet, jordanalyser fra Eurofins, og all korrespondanse med Mattilsynet. Eldste dokumenter går 5 år tilbake.'
+            answerText: 'Alle dokumenter er samlet i en perm i kontoret, organisert etter år. Her ligger melkekvalitetsrapporter fra meieriet, jordanalyser fra Eurofins, og all korrespondanse med Mattilsynet. Eldste dokumenter går 5 år tilbake.',
+            veilederRevisorText: 'Kontroller at arkivet inneholder:\n- Analyseresultater (melk, jord, vann, etc.)\n- Vedtak fra Mattilsynet og andre myndigheter\n- Tilbakemeldinger fra varemottakere\n- Dokumenter må være oppbevart minst 5 år\n\nSjekk at dokumentene er organisert og lett tilgjengelige.',
+            veilederText: 'Du skal oppbevare dokumentasjon fra:\n- Analyser av melk, jord, vann\n- Vedtak og tilsyn fra Mattilsynet\n- Tilbakemeldinger fra meieriet eller slakteriet\n\nDokumentene må oppbevares i minst 5 år og være lett å finne frem.',
+            kravLinks: [
+              {
+                category: 'KSL Dokumentasjon',
+                title: 'Krav 1.3 - Arkivering av dokumentasjon',
+                description: 'Dokumentasjon skal oppbevares i minimum 5 år'
+              }
+            ]
           },
           {
             id: '1.1.4',
@@ -72,7 +100,16 @@ export const questionsData: MainCategory[] = [
             hasDocument: false,
             hasDeviation: false,
             isAnswered: false,
-            answerText: 'Melkeanlegget ble kontrollert av Tine i mars i år. Sprøyteutstyr ble funksjonstestet av godkjent verksted i april 2024. Dokumentasjon på begge kontroller ligger tilgjengelig.'
+            answerText: 'Melkeanlegget ble kontrollert av Tine i mars i år. Sprøyteutstyr ble funksjonstestet av godkjent verksted i april 2024. Dokumentasjon på begge kontroller ligger tilgjengelig.',
+            veilederRevisorText: 'Verifiser at følgende utstyr er kontrollert:\n- Melkeanlegg (årlig kontroll)\n- Sprøyteutstyr (påkrevd funksjonstest)\n- Annet sertifiseringspliktig utstyr\n\nDokumentasjon på kontroller må være tilgjengelig.',
+            veilederText: 'Utstyr som må kontrolleres regelmessig:\n- Melkeanlegg: Kontroll hvert år\n- Sprøyteutstyr: Funksjonstest etter forskrift\n- Annet utstyr som krever sertifisering\n\nBehold dokumentasjonen fra kontrollene.',
+            kravLinks: [
+              {
+                category: 'KSL Utstyr',
+                title: 'Krav 1.4 - Kontroll av utstyr',
+                description: 'Utstyr skal kontrolleres og sertifiseres etter forskrifter'
+              }
+            ]
           }
         ]
       },
@@ -140,7 +177,16 @@ export const questionsData: MainCategory[] = [
             hasDocument: false,
             hasDeviation: false,
             isAnswered: false,
-            answerText: 'Gjødsellager ble inspisert 10. mars 2025. Ingen lekkasjer eller sprekker ble funnet. Vi kontrollerer nivået hver måned og sjekker visuelt for tegn til slitasje. Siste omfattende vedlikehold var i 2022.'
+            answerText: 'Gjødsellager ble inspisert 10. mars 2025. Ingen lekkasjer eller sprekker ble funnet. Vi kontrollerer nivået hver måned og sjekker visuelt for tegn til slitasje. Siste omfattende vedlikehold var i 2022.',
+            veilederRevisorText: 'Kontroller at bonden:\n- Har inspisert gjødsellageret siste 12 måneder\n- Har dokumentert inspeksjonen (dato, funn, tiltak)\n- Sjekker regelmessig for lekkasjer og sprekker\n- Utfører nødvendig vedlikehold\n\nVurder om gjødsellageret er i forsvarlig stand.',
+            veilederText: 'Du må kontrollere gjødsellageret minst én gang i året:\n- Sjekk for lekkasjer og sprekker\n- Kontroller at nivåmålere fungerer\n- Se etter tegn til korrosjon eller slitasje\n- Dokumenter datoen for inspeksjonen og eventuelle funn\n\nUtfør nødvendig vedlikehold for å unngå utslipp.',
+            kravLinks: [
+              {
+                category: 'Lovkrav',
+                title: 'Forskrift om gjødselvarer mv. av organisk opphav',
+                description: 'Krav til vedlikehold og kontroll av gjødsellager'
+              }
+            ]
           },
           {
             id: '1.3.6',
