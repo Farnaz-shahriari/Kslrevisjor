@@ -842,7 +842,7 @@ function Section1HomeHeading() {
   return (
     <div className="bg-background h-[160px] relative shrink-0 w-full" data-name="Profile Details">
       <div className="flex flex-row items-center size-full">
-        <div className="content-stretch flex gap-[32px] items-center px-10 py-[16px] relative size-full">
+        <div className="content-stretch flex gap-[32px] items-center px-10 py-4 relative size-full">
           {/* Information - Left side */}
           <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px px-0 py-[8px] relative shrink-0">
             {/* User greeting */}
