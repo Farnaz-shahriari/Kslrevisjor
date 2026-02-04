@@ -6,9 +6,10 @@ import { BottomSheet } from './ui/bottom-sheet';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { formatNorwegianDate, formatNorwegianDateTime } from '../utils/dateFormat';
+import { RevisjonCard } from './RevisjonCard';
 import imgMap from "figma:asset/c0527853f7bdf08aa49e67977a1c1456feddc02b.png";
 
-type TabType = 'kontaktinformasjon' | 'ordninger' | 'brev' | 'varemottakere' | 'logg';
+type TabType = 'revisjoner-samme-sted' | 'kontaktinformasjon' | 'ordninger' | 'brev' | 'varemottakere' | 'logg';
 
 interface ContactInfo {
   område: string;
@@ -39,7 +40,7 @@ interface LogEntry {
 }
 
 export function PlanleggRevisjonPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('kontaktinformasjon');
+  const [activeTab, setActiveTab] = useState<TabType>('revisjoner-samme-sted');
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   
   // Ordninger filter state
@@ -226,11 +227,46 @@ export function PlanleggRevisjonPage() {
   ];
 
   const tabs = [
+    { id: 'revisjoner-samme-sted' as TabType, label: 'Revisjoner samme sted' },
     { id: 'kontaktinformasjon' as TabType, label: 'Kontaktinformasjon' },
     { id: 'ordninger' as TabType, label: 'Foretakets ordninger' },
     { id: 'brev' as TabType, label: 'Brev og varsler tir foretaket' },
     { id: 'varemottakere' as TabType, label: 'Varemottakere' },
     { id: 'logg' as TabType, label: 'Logg' },
+  ];
+
+  // Mock revisjon data for "Revisjoner samme sted" tab
+  const revisjonerSammeSted = [
+    {
+      id: 'rev-1',
+      foretakName: 'Haugseter Gård',
+      visitDate: new Date(2025, 11, 5), // Fredag 5. desember 2025
+      visitTime: '10:00 - 12:00',
+      revisjonData: {
+        ordning: 'Nyt Norge',
+        revisjonsfrist: '31/12/2025',
+        produksjon: ['Storfe', 'Melk'],
+        kommune: 'Kristiansand',
+        address: 'HOLTEVEIEN 138, 4639 Kristiansand s',
+        isPriority: false,
+        hasPlannedDate: true
+      }
+    },
+    {
+      id: 'rev-2',
+      foretakName: 'Lia Gårdsbruk AS',
+      visitDate: new Date(2025, 11, 5), // Fredag 5. desember 2025
+      visitTime: '13:00 - 15:00',
+      revisjonData: {
+        ordning: 'KSL',
+        revisjonsfrist: '31/12/2025',
+        produksjon: ['Sau', 'Geit'],
+        kommune: 'Kristiansand',
+        address: 'HOLTEVEIEN 138, 4639 Kristiansand s',
+        isPriority: false,
+        hasPlannedDate: true
+      }
+    }
   ];
 
   return (
@@ -253,8 +289,21 @@ export function PlanleggRevisjonPage() {
         {/* Farm Info Card - Middle Section - Fixed width and height on desktop with scroll */}
         <div className="w-full min-[1024px]:w-[360px] min-[1024px]:h-[480px] flex flex-col gap-4 p-3 shrink-0 min-[1024px]:overflow-y-auto">
           {/* Farm Name */}
-          <div className="px-1">
+          <div className="px-1 flex flex-col gap-2">
             <h2 className="title-medium text-foreground">Haugseter Gård</h2>
+            {/* KSL Ordning Chip */}
+            <div 
+              className="h-[32px] relative rounded-[8px] shrink-0 w-fit"
+              style={{ backgroundColor: '#4A671E' }}
+            >
+              <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                  <div className="label-medium" style={{ color: '#FFFFFF' }}>
+                    <p>KSL</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Address */}
@@ -604,6 +653,29 @@ export function PlanleggRevisjonPage() {
 
         {/* Tab Content */}
         <div className="flex-1 max-[1023px]:flex-none overflow-auto min-[1024px]:min-h-0">
+          {activeTab === 'revisjoner-samme-sted' && (
+            <div className="flex flex-col gap-4 p-6">
+              {/* Heading */}
+              <h3 className="label-medium text-muted-foreground">
+                Må avtales revidert samme dato
+              </h3>
+              
+              {/* Revisjon Cards */}
+              <div className="flex flex-col gap-4">
+                {revisjonerSammeSted.map((revisjon) => (
+                  <RevisjonCard
+                    key={revisjon.id}
+                    revisjon={revisjon}
+                    onCardClick={() => {
+                      console.log('Opening revision:', revisjon.id);
+                      // Handle navigation to revision detail
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {activeTab === 'kontaktinformasjon' && (
             <div className="flex-1 overflow-auto relative">
               {/* Contact Info Table */}

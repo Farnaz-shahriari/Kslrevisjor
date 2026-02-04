@@ -56,6 +56,7 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
   const [selectedRevisjon, setSelectedRevisjon] = useState<TildeltRevisjon | null>(null);
   const [cardPosition, setCardPosition] = useState<{ top: number; left: number } | null>(null);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
+  const [loadingError, setLoadingError] = useState(false);
 
   // Function to update card position based on map state
   const updateCardPosition = (revisjon: TildeltRevisjon | null) => {
@@ -74,7 +75,7 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
     });
   };
 
-  // Load Leaflet CSS and JS
+  // Load Leaflet library from CDN
   useEffect(() => {
     // Load Leaflet CSS
     const link = document.createElement('link');
@@ -82,6 +83,12 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
     link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
     link.crossOrigin = '';
+    
+    // Handle CSS load errors silently
+    link.onerror = () => {
+      console.warn('Failed to load Leaflet CSS - map styling may be affected');
+    };
+    
     document.head.appendChild(link);
 
     // Load Leaflet JS
@@ -92,11 +99,24 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
     script.onload = () => {
       setLeafletLoaded(true);
     };
+    
+    // Handle script load errors
+    script.onerror = () => {
+      console.error('Failed to load Leaflet library - map will not be available');
+      setLeafletLoaded(false);
+      setLoadingError(true);
+    };
+    
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(link);
-      document.head.removeChild(script);
+      // Only remove if they exist in the DOM
+      if (link.parentNode) {
+        document.head.removeChild(link);
+      }
+      if (script.parentNode) {
+        document.head.removeChild(script);
+      }
     };
   }, []);
 
@@ -129,10 +149,17 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
     }).setView([centerLat, centerLng], 7);
 
     // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
       maxZoom: 19,
-    }).addTo(map);
+      errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+    });
+    
+    tileLayer.on('tileerror', (error: any) => {
+      console.warn('Failed to load map tile:', error);
+    });
+    
+    tileLayer.addTo(map);
 
     mapRef.current = map;
 
@@ -228,14 +255,26 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
     markerGroups.forEach((group) => {
       const isCluster = group.revisjoner.length > 1 && currentZoom < 6;
 
+      // Determine theme class based on ordning
+      const getThemeClass = (ordning: string): string => {
+        const ordningLower = ordning.toLowerCase();
+        if (ordningLower.includes('lokalmat')) return 'theme-lokalmat';
+        if (ordningLower.includes('nyt norge')) return 'theme-nyt-norge';
+        if (ordningLower.includes('spesialitet')) return 'theme-spesialitet';
+        return 'theme-ksl'; // Default to KSL
+      };
+
       let iconHtml = '';
       
       if (isCluster) {
-        // Cluster marker - show count
+        // For clusters, use the first revisjon's ordning to determine theme
+        const themeClass = getThemeClass(group.revisjoner[0].revisjonData.ordning);
+        
+        // Cluster marker - show count with theme-specific colors
         iconHtml = `
-          <div class="flex items-center justify-center" style="width: 56px; height: 56px;">
-            <div style="position: relative; width: 56px; height: 56px; background: var(--primary-container); border-radius: 50%; box-shadow: 0px 8px 12px 6px rgba(0,0,0,0.15), 0px 4px 4px 0px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
-              <span class="title-large" style="color: var(--primary-container-foreground);">${group.revisjoner.length}</span>
+          <div class="${themeClass} flex items-center justify-center" style="width: 56px; height: 56px;">
+            <div style="position: relative; width: 56px; height: 56px; background: var(--primary); border-radius: 50%; box-shadow: 0px 8px 12px 6px rgba(0,0,0,0.15), 0px 4px 4px 0px rgba(0,0,0,0.3); display: flex; align-items: center; justify-center;">
+              <span class="title-large" style="color: var(--primary-foreground);">${group.revisjoner.length}</span>
             </div>
           </div>
         `;
@@ -243,15 +282,16 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
         // Single marker - show label with T icon + name
         const revisjon = group.revisjoner[0];
         const isSelected = selectedRevisjon?.id === revisjon.id;
+        const themeClass = getThemeClass(revisjon.revisjonData.ordning);
         
         iconHtml = `
-          <div class="flex items-center gap-2 h-10 px-2 pr-5 rounded-lg" style="background: ${isSelected ? 'var(--secondary-container)' : 'var(--card)'}; border: 1px solid var(--border); box-shadow: 0px 10px 15px 7px rgba(0,0,0,0.15), 0px 5px 5px 0px rgba(0,0,0,0.3); white-space: nowrap;">
-            <div style="position: relative; width: 22px; height: 22px; flex-shrink: 0;">
+          <div class="${themeClass} flex items-center gap-2 h-10 px-2 pr-5 rounded-lg" style="background: ${isSelected ? 'var(--secondary-container)' : 'var(--primary)'}; border: 1px solid var(--border); box-shadow: 0px 10px 15px 7px rgba(0,0,0,0.15), 0px 5px 5px 0px rgba(0,0,0,0.3); white-space: nowrap;">
+            <div class="theme-ksl" style="position: relative; width: 22px; height: 22px; flex-shrink: 0;">
               <div style="position: absolute; inset: 0; background: var(--primary-container); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                <span class="label-medium" style="color: var(--primary-container-foreground); font-size: 16px; line-height: 24px;">T</span>
+                <span class="label-medium" style="color: var(--primary-container-foreground); font-size: 14px; line-height: 1;">T</span>
               </div>
             </div>
-            <span class="label-medium" style="color: ${isSelected ? 'var(--secondary-container-foreground)' : 'var(--foreground)'};">${revisjon.foretakName}</span>
+            <span class="label-medium" style="color: ${isSelected ? 'var(--secondary-container-foreground)' : 'var(--primary-foreground)'};">${revisjon.foretakName}</span>
           </div>
         `;
       }
@@ -527,6 +567,16 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
         <div className="absolute inset-0 flex items-center justify-center bg-muted">
           <div className="flex flex-col items-center gap-4">
             <div className="title-large text-foreground">Laster kart...</div>
+          </div>
+        </div>
+      )}
+
+      {/* Error state */}
+      {loadingError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted">
+          <div className="flex flex-col items-center gap-4">
+            <div className="title-large text-foreground">Kunne ikke laste kartet</div>
+            <div className="body-medium text-foreground">Vennligst sjekk internettforbindelsen din og last inn siden på nytt.</div>
           </div>
         </div>
       )}

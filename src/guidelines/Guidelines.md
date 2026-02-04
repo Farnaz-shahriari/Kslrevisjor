@@ -887,3 +887,290 @@ The RadioButton component is used throughout the application in:
   - Confirmation method selection
 
 All instances must use the centralized RadioButton component to ensure consistency.
+
+## Mobile-Responsive Table Pattern
+
+**CRITICAL: Tables must adapt to mobile screens while maintaining traditional multi-column layouts on desktop**
+
+### The Problem
+
+Large tables with multiple columns work well on desktop but become unreadable on mobile devices. Instead of horizontal scrolling or compressed columns, tables should adapt to show content in a mobile-friendly format.
+
+### The Solution
+
+**Desktop (≥768px):** 
+- Traditional multi-column table layout
+- All columns visible with proper headers
+- Standard table structure with `<thead>` and `<tbody>`
+
+**Mobile (<768px):**
+- Condensed single-column layout
+- Each row displays in two lines:
+  - **Line 1**: Small elements (chips, badges, short text) inline with `gap-1` spacing
+  - **Line 2**: Longer content (descriptions, checklist questions)
+
+### Implementation Pattern
+
+Use responsive utilities to show/hide columns and restructure content for mobile:
+
+```tsx
+{/* Desktop Table - Traditional multi-column layout */}
+<table className="w-full">
+  <thead className="bg-surface-container-low sticky top-0 z-10">
+    <tr className="border-b border-[var(--border)]">
+      {/* Show all columns on desktop */}
+      <th className="px-6 py-3 text-left max-[768px]:hidden">
+        <span className="label-medium">Alvorlighetsgrad</span>
+      </th>
+      <th className="px-6 py-3 text-left max-[768px]:hidden">
+        <span className="label-medium">Foretak</span>
+      </th>
+      <th className="px-6 py-3 text-left">
+        {/* Single column header for mobile */}
+        <span className="label-medium max-[768px]:hidden">Sjekklistespørsmål</span>
+        <span className="label-medium min-[768px]:hidden">Avvik</span>
+      </th>
+      <th className="px-6 py-3 text-left max-[768px]:hidden">
+        <span className="label-medium">Status</span>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {items.map((item) => (
+      <tr key={item.id} className="border-b border-[var(--border)] hover:bg-muted cursor-pointer">
+        {/* Desktop: Multiple columns */}
+        <td className="px-6 py-4 max-[768px]:hidden">
+          <SeverityBadge severity={item.severity} />
+        </td>
+        <td className="px-6 py-4 max-[768px]:hidden">
+          <span className="body-medium">{item.producer}</span>
+        </td>
+        
+        {/* Mobile & Desktop: Responsive column */}
+        <td className="px-6 py-4">
+          {/* Desktop: Show only question text */}
+          <span className="body-medium max-[768px]:hidden">
+            {item.question}
+          </span>
+          
+          {/* Mobile: Show condensed two-line format */}
+          <div className="flex flex-col gap-2 min-[768px]:hidden">
+            {/* Line 1: Small elements with gap-1 */}
+            <div className="flex flex-row items-center gap-1 flex-wrap">
+              <SeverityBadge severity={item.severity} />
+              <StatusBadge status={item.status} />
+              <span className="label-small text-muted-foreground">
+                {item.producer}
+              </span>
+            </div>
+            
+            {/* Line 2: Long text */}
+            <span className="body-medium text-foreground">
+              {item.question}
+            </span>
+          </div>
+        </td>
+        
+        <td className="px-6 py-4 max-[768px]:hidden">
+          <StatusBadge status={item.status} />
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+```
+
+### Key Responsive Classes
+
+**Hide on mobile, show on desktop:**
+- `max-[768px]:hidden` - Hides element on screens < 768px
+- Use this for desktop-only columns
+
+**Hide on desktop, show on mobile:**
+- `min-[768px]:hidden` - Hides element on screens ≥ 768px
+- Use this for mobile-only condensed content
+
+**Example:**
+```tsx
+{/* Desktop only */}
+<td className="px-6 py-4 max-[768px]:hidden">
+  <SeverityBadge severity={item.severity} />
+</td>
+
+{/* Mobile only */}
+<div className="flex flex-col gap-2 min-[768px]:hidden">
+  <div className="flex flex-row items-center gap-1">
+    <SeverityBadge severity={item.severity} />
+    <StatusBadge status={item.status} />
+  </div>
+  <span className="body-medium">{item.description}</span>
+</div>
+```
+
+### Mobile Content Structure
+
+When showing the mobile version (two-line format):
+
+**Line 1 - Small Elements (inline with gap-1):**
+- Severity badges
+- Status chips
+- Producer/company name (if short)
+- Dates (if short)
+- Any other badge/chip components
+
+**Line 2 - Long Text:**
+- Checklist question/description
+- Long text content
+- Comments
+- Any multi-line content
+
+**Structure:**
+```tsx
+<div className="flex flex-col gap-2">
+  {/* Line 1: Chips and short text */}
+  <div className="flex flex-row items-center gap-1 flex-wrap">
+    {/* Small elements here */}
+  </div>
+  
+  {/* Line 2: Long text */}
+  <span className="body-medium">
+    {/* Long content here */}
+  </span>
+</div>
+```
+
+### Breakpoint
+
+- **Mobile**: < 768px
+- **Desktop**: ≥ 768px
+
+Use `768px` as the breakpoint because it provides enough space for traditional table layouts.
+
+### ✅ Correct Implementation
+
+```tsx
+{/* Example: Avvik table */}
+<table className="w-full">
+  <thead className="bg-surface-container-low sticky top-0 z-10">
+    <tr className="border-b border-[var(--border)]">
+      <th className="px-6 py-3 text-left max-[768px]:hidden">
+        <span className="label-medium">Alvorlighetsgrad</span>
+      </th>
+      <th className="px-6 py-3 text-left max-[768px]:hidden">
+        <span className="label-medium">Foretak</span>
+      </th>
+      <th className="px-6 py-3 text-left">
+        <span className="label-medium max-[768px]:hidden">Sjekklistespørsmål</span>
+        <span className="label-medium min-[768px]:hidden">Avvik</span>
+      </th>
+      <th className="px-6 py-3 text-left max-[768px]:hidden">
+        <span className="label-medium">Status</span>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    {deviations.map((deviation) => (
+      <tr key={deviation.id} className="border-b hover:bg-muted cursor-pointer">
+        {/* Desktop: Severity column */}
+        <td className="px-6 py-4 max-[768px]:hidden">
+          <SeverityBadge severity={deviation.severity} />
+        </td>
+        
+        {/* Desktop: Producer column */}
+        <td className="px-6 py-4 max-[768px]:hidden">
+          <span className="body-medium">{deviation.producer}</span>
+        </td>
+        
+        {/* Responsive column - shows different content on mobile vs desktop */}
+        <td className="px-6 py-4">
+          {/* Desktop: Question only */}
+          <span className="body-medium max-[768px]:hidden">
+            {deviation.questionNumber} {deviation.questionText}
+          </span>
+          
+          {/* Mobile: Condensed format */}
+          <div className="flex flex-col gap-2 min-[768px]:hidden">
+            <div className="flex flex-row items-center gap-1 flex-wrap">
+              <SeverityBadge severity={deviation.severity} />
+              <StatusBadge status={deviation.status} />
+              <span className="label-small text-muted-foreground">
+                {deviation.producer}
+              </span>
+            </div>
+            <span className="body-medium">
+              {deviation.questionNumber} {deviation.questionText}
+            </span>
+          </div>
+        </td>
+        
+        {/* Desktop: Status column */}
+        <td className="px-6 py-4 max-[768px]:hidden">
+          <StatusBadge status={deviation.status} />
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
+```
+
+### ❌ Wrong Implementation
+
+```tsx
+{/* ❌ WRONG: Changes table structure for all screen sizes */}
+<td className="px-6 py-4">
+  <div className="flex flex-col gap-2">
+    <div className="flex flex-row items-center gap-1">
+      <SeverityBadge />
+      <StatusBadge />
+    </div>
+    <span>{text}</span>
+  </div>
+</td>
+
+{/* ✅ CORRECT: Only uses condensed format on mobile */}
+<td className="px-6 py-4">
+  <span className="max-[768px]:hidden">{text}</span>
+  <div className="flex flex-col gap-2 min-[768px]:hidden">
+    <div className="flex flex-row items-center gap-1">
+      <SeverityBadge />
+      <StatusBadge />
+    </div>
+    <span>{text}</span>
+  </div>
+</td>
+```
+
+### Application-Wide Usage
+
+Apply this pattern to these tables:
+
+**Revisor:**
+- **AvvikoversiktPage** - All deviation tabs (Åpne avvik, Til handling nå, etc.)
+- **WriteReportPage - Tidligere revisjon** - External revision deviation tables (ExternalRevisionAvvikView)
+- **WriteReportPage - Avvikshåndtering** - Deviation handling table
+
+**Producer:**
+- **ProducerDeviationView** - Producer deviation tables
+- **ExternalRevisionAvvikView** - External revision tables
+
+### Consistency Rules
+
+- ✅ **ALWAYS** keep traditional multi-column table on desktop (≥768px)
+- ✅ **ALWAYS** use responsive utilities (`max-[768px]:hidden`, `min-[768px]:hidden`)
+- ✅ **ALWAYS** use `gap-1` (4px) between chips/badges on mobile
+- ✅ **ALWAYS** use `gap-2` (8px) between lines on mobile
+- ✅ **ALWAYS** place small elements (chips/badges) on line 1
+- ✅ **ALWAYS** place long text on line 2
+- ❌ **NEVER** change desktop table structure - keep all columns visible
+- ❌ **NEVER** apply mobile format to desktop screens
+- ❌ **NEVER** use single-column layout on desktop
+
+### User Experience Benefits
+
+1. **Desktop unchanged**: Maintains traditional table layout with all information visible
+2. **Mobile optimized**: Content stacks naturally for easy reading on small screens
+3. **Consistent interaction**: Same click/tap behavior across devices
+4. **Scannable**: Chips on top make it easy to identify items at a glance
+5. **No horizontal scroll**: All content fits within mobile viewport
+
+ Some of the base components you are using may have styling(eg. gap/typography) baked in as defaults.

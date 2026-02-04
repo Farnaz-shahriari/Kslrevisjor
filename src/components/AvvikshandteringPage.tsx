@@ -1,20 +1,17 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Check, ChevronDown, ChevronLeft, Search, AlertTriangle, Calendar as CalendarIcon, User, CheckCircle2, Circle, Edit2, Plus } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Check, ChevronDown, Search, AlertTriangle, Calendar as CalendarIcon, User, CheckCircle2, Circle, Edit2, Plus } from 'lucide-react';
 import { questionsData, getQuestionById } from '../data/questions';
 import { DeviationListView } from './DeviationListView';
 import { NotatView } from './NotatView';
 import { AttachedDocumentCard } from './AttachedDocumentCard';
 import { DocumentsMenu } from './DocumentsMenu';
 import { StatusChip } from './StatusChip';
-import { BottomSheet } from './ui/bottom-sheet';
-import { Button } from './ui/button';
-import { DatePicker } from './ui/date-picker';
-import { KravVeilederSection } from './KravVeilederSection';
 import svgPaths from '../imports/svg-8axi0x1eud';
 import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
-import svgPathsNew from '../imports/svg-87gmswxs21';
-import svgPathsUpload from '../imports/svg-927sr0kqkx';
-import { formatNorwegianDate } from '../utils/dateFormat';
+import { Calendar } from './ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { format } from 'date-fns';
+import { nb } from 'date-fns/locale';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Label } from './ui/label';
 
@@ -42,16 +39,6 @@ interface AvvikshandteringPageProps {
   onLockDeviations?: () => void;
   onCompletionChange?: (isComplete: boolean) => void;
   onNavigateToSvaroversikt?: () => void;
-  // Navigation props
-  onPrevious?: () => void;
-  onNext?: () => void;
-  // Persistent state props
-  hasAgreed?: boolean;
-  onHasAgreedChange?: (value: boolean) => void;
-  isLocked?: boolean;
-  onIsLockedChange?: (value: boolean) => void;
-  closureData?: Record<string, ClosureInfo>;
-  onClosureDataChange?: (data: Record<string, ClosureInfo>) => void;
 }
 
 interface QuestionAnswer {
@@ -68,8 +55,6 @@ interface ClosureInfo {
   responsible?: string;
   confirmationMethod?: ConfirmationMethod;
   comment?: string;
-  recommendedDeadline?: string; // Anbefalt tidsfrist - always shown with outline
-  maxDeadline?: string; // Maximum allowed deadline
 }
 
 export function AvvikshandteringPage({ 
@@ -79,39 +64,24 @@ export function AvvikshandteringPage({
   onNavigateToDocument,
   onLockDeviations,
   onCompletionChange,
-  onNavigateToSvaroversikt,
-  onPrevious,
-  onNext,
-  hasAgreed: externalHasAgreed,
-  onHasAgreedChange,
-  isLocked: externalIsLocked,
-  onIsLockedChange,
-  closureData: externalClosureData,
-  onClosureDataChange
+  onNavigateToSvaroversikt
 }: AvvikshandteringPageProps) {
-  // Use external state if provided, otherwise use local state
-  const [localHasAgreed, setLocalHasAgreed] = useState(false);
-  const [localIsLocked, setLocalIsLocked] = useState(false);
-  const [localClosureData, setLocalClosureData] = useState<Record<string, ClosureInfo>>({});
-  
-  const hasAgreed = externalHasAgreed !== undefined ? externalHasAgreed : localHasAgreed;
-  const setHasAgreed = onHasAgreedChange || setLocalHasAgreed;
-  const isLocked = externalIsLocked !== undefined ? externalIsLocked : localIsLocked;
-  const setIsLocked = onIsLockedChange || setLocalIsLocked;
-  const closureData = externalClosureData !== undefined ? externalClosureData : localClosureData;
-  const setClosureData = onClosureDataChange || setLocalClosureData;
-  
+  const [hasAgreed, setHasAgreed] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('avvik');
   const [showDocumentsMenu, setShowDocumentsMenu] = useState(false);
   const [panelWidth, setPanelWidth] = useState(520);
   const [isResizing, setIsResizing] = useState(false);
   const [showResizeHandle, setShowResizeHandle] = useState(false);
-  const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+  
+  // Store closure information for each deviation
+  const [closureData, setClosureData] = useState<Record<string, ClosureInfo>>({});
   
   // Editing states
   const [editingResponsible, setEditingResponsible] = useState<string | null>(null);
   const [tempResponsible, setTempResponsible] = useState('');
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [editingMangel, setEditingMangel] = useState<string | null>(null);
   const [tempMangel, setTempMangel] = useState('');
   const [editingBevis, setEditingBevis] = useState<string | null>(null);
@@ -121,17 +91,6 @@ export function AvvikshandteringPage({
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [tempComment, setTempComment] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const commentTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const mangelTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const kravTextareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Auto-resize textarea to fit content
-  const adjustTextareaHeight = (textarea: HTMLTextAreaElement | null) => {
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${textarea.scrollHeight}px`;
-    }
-  };
 
   // Calculate severity based on question
   const calculateSeverity = (questionId: string, groupId: string): SeverityType => {
@@ -151,8 +110,8 @@ export function AvvikshandteringPage({
     return 'lite-avvik';
   };
 
-  // Generate answers from questionData - only "nei" answers (memoized)
-  const answers = useMemo<QuestionAnswer[]>(() => {
+  // Generate answers from questionData - only "nei" answers
+  const [answers, setAnswers] = useState<QuestionAnswer[]>(() => {
     const neiQuestions: QuestionAnswer[] = [];
     
     questionsData.forEach(category => {
@@ -182,10 +141,10 @@ export function AvvikshandteringPage({
     });
     
     return neiQuestions;
-  }, [questionData]);
+  });
 
-  // Calculate unanswered questions count (memoized)
-  const unansweredCount = useMemo(() => {
+  // Calculate unanswered questions count
+  const unansweredCount = (() => {
     let count = 0;
     questionsData.forEach(category => {
       category.questionGroups.forEach(group => {
@@ -198,7 +157,7 @@ export function AvvikshandteringPage({
       });
     });
     return count;
-  }, [questionData]);
+  })();
 
   // Set first question as selected by default
   useEffect(() => {
@@ -206,40 +165,6 @@ export function AvvikshandteringPage({
       setSelectedQuestionId(answers[0].id);
     }
   }, [answers.length, selectedQuestionId]);
-
-  // Initialize recommended and max deadlines for each deviation
-  useEffect(() => {
-    if (answers.length === 0) return;
-    
-    setClosureData(prev => {
-      const newClosureData = { ...prev };
-      let hasChanges = false;
-      
-      answers.forEach(answer => {
-        if (!prev[answer.id]?.recommendedDeadline) {
-          // Generate random recommended deadline between 14-45 days from now
-          const daysToAdd = Math.floor(Math.random() * 31) + 14; // 14-45 days
-          const recommendedDate = new Date();
-          recommendedDate.setDate(recommendedDate.getDate() + daysToAdd);
-          
-          // Max deadline is 30 days after recommended deadline
-          const maxDate = new Date(recommendedDate);
-          maxDate.setDate(maxDate.getDate() + 30);
-          
-          newClosureData[answer.id] = {
-            ...prev[answer.id],
-            recommendedDeadline: recommendedDate.toISOString(),
-            maxDeadline: maxDate.toISOString(),
-            // Set initial deadline to recommended deadline
-            deadline: prev[answer.id]?.deadline || recommendedDate.toISOString()
-          };
-          hasChanges = true;
-        }
-      });
-      
-      return hasChanges ? newClosureData : prev;
-    });
-  }, [answers]); // Removed setClosureData from dependencies - setter functions are stable
 
   // Update active tab when locked state changes
   useEffect(() => {
@@ -296,7 +221,10 @@ export function AvvikshandteringPage({
     if (selectedQuestionId && onAnswerQuestion) {
       const answerType = newAnswer === 'Ja' ? 'ja' : newAnswer === 'Nei' ? 'nei' : 'ikke-relevant';
       onAnswerQuestion(selectedQuestionId, answerType);
-      // Note: answers will automatically update via useMemo when questionData changes
+      
+      setAnswers(prev => prev.map(a => 
+        a.id === selectedQuestionId ? { ...a, answer: 'Nei' } : a
+      ));
     }
   };
 
@@ -326,7 +254,7 @@ export function AvvikshandteringPage({
     }));
   };
 
-  const isAvvikComplete = useCallback((questionId: string): boolean => {
+  const isAvvikComplete = (questionId: string): boolean => {
     const info = closureData[questionId];
     const deviationData = questionData[questionId]?.deviations?.[0];
     
@@ -338,33 +266,19 @@ export function AvvikshandteringPage({
     const hasConfirmationMethod = !!info?.confirmationMethod;
     
     return hasMangel && hasBevis && hasKrav && hasResponsible && hasConfirmationMethod;
-  }, [closureData, questionData]);
+  };
 
-  const allAvviksComplete = useMemo((): boolean => {
+  const allAvviksComplete = (): boolean => {
     return answers.every(answer => isAvvikComplete(answer.id));
-  }, [answers, isAvvikComplete]);
+  };
 
-  // Track if component has mounted to avoid calling onCompletionChange during initial render
-  const hasMountedRef = useRef(false);
-  const previousCompletionRef = useRef<boolean | null>(null);
-  
   // Notify parent when completion status changes
   useEffect(() => {
-    // Skip the first render to avoid setState during render warning
-    if (!hasMountedRef.current) {
-      hasMountedRef.current = true;
-      return;
-    }
-    
     if (onCompletionChange) {
-      const isComplete = isLocked && allAvviksComplete;
-      // Only call if the value has actually changed
-      if (previousCompletionRef.current !== isComplete) {
-        previousCompletionRef.current = isComplete;
-        onCompletionChange(isComplete);
-      }
+      const isComplete = isLocked && allAvviksComplete();
+      onCompletionChange(isComplete);
     }
-  }, [isLocked, allAvviksComplete, onCompletionChange]);
+  }, [isLocked, closureData, answers.length, onCompletionChange]);
 
   const getVisibleTabs = (): TabType[] => {
     if (isLocked) {
@@ -416,29 +330,8 @@ export function AvvikshandteringPage({
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header Section */}
-      <div className="px-10 pt-3 pb-6 border-b border-border">
-        {/* Title with Navigation Buttons */}
-        <div className="flex items-center justify-between mb-4 max-[1400px]:block">
-          <h2 className="title-large max-[1400px]:mb-2">Avvikshåndtering</h2>
-          
-          {/* Navigation buttons - always enabled */}
-          <div className="flex items-center gap-4 max-[1400px]:hidden">
-            <Button
-              variant="tertiary"
-              onClick={onPrevious}
-            >
-              Forrige
-            </Button>
-            <Button
-              variant={(isLocked && allAvviksComplete) ? "primary" : "tertiary"}
-              onClick={onNext}
-              className="flex items-center gap-2"
-            >
-              <span>Neste</span>
-              <ChevronLeft className="w-5 h-5 rotate-180" />
-            </Button>
-          </div>
-        </div>
+      <div className="px-10 py-3 border-b border-border">
+        <h2 className="title-large mb-4">Avvikshåndtering</h2>
 
         {!isLocked && (
           <>
@@ -514,7 +407,7 @@ export function AvvikshandteringPage({
                 Alvorlighetsgrad er beregnet. Sett frist, ansvarlig og bekreftelsesmetode for hvert avvik
               </span>
             </div>
-            {allAvviksComplete && (
+            {allAvviksComplete() && (
               <div className="flex items-center gap-2 px-4 py-2 bg-[#d5e6c3] rounded-lg">
                 <CheckCircle2 className="w-5 h-5 text-[#4a671e]" />
                 <span className="body-medium text-[#1a1c16]">
@@ -531,29 +424,34 @@ export function AvvikshandteringPage({
         {/* Table */}
         <div className="flex-1 overflow-auto border-r border-border">
           <table className="w-full">
-            <thead className="bg-surface-container-low sticky top-0 z-10">
+            <thead className="bg-background sticky top-0 z-10">
               <tr className="border-b border-border">
                 {isLocked && (
-                  <th className="w-48 px-4 py-2 text-left bg-surface-container-low">
+                  <th className="w-24 px-4 py-2 text-left">
+                    <span className="label-medium text-foreground">Status</span>
+                  </th>
+                )}
+                {isLocked && (
+                  <th className="w-48 px-4 py-2 text-left">
                     <span className="label-medium text-foreground">Gradering</span>
                   </th>
                 )}
                 {!isLocked && (
-                  <th className="w-46 px-10 py-2 text-left bg-surface-container-low">
+                  <th className="w-46 px-10 py-2 text-left">
                     <div className="flex items-center gap-2">
                       <ChevronDown className="w-6 h-6 text-foreground" />
                       <span className="label-medium text-foreground">Svar</span>
                     </div>
                   </th>
                 )}
-                <th className="px-4 py-2 text-left bg-surface-container-low">
+                <th className="px-4 py-2 text-left">
                   <div className="flex items-center gap-2">
                     <Search className="w-6 h-6 text-foreground" />
                     <span className="label-medium text-foreground">Sjekklistespørsmål</span>
                   </div>
                 </th>
                 {isLocked && (
-                  <th className="w-56 px-4 py-2 text-left bg-surface-container-low">
+                  <th className="w-56 px-4 py-2 text-left">
                     <span className="label-medium text-foreground">Status</span>
                   </th>
                 )}
@@ -563,17 +461,33 @@ export function AvvikshandteringPage({
               {answers.map((answer) => (
                 <tr
                   key={answer.id}
-                  onClick={() => {
-                    setSelectedQuestionId(answer.id);
-                    // Open bottom sheet on mobile/tablet
-                    setIsBottomSheetOpen(true);
-                  }}
+                  onClick={() => setSelectedQuestionId(answer.id)}
                   className={`cursor-pointer border-b border-border transition-colors ${
                     selectedQuestionId === answer.id
                       ? 'bg-accent'
                       : 'hover:bg-muted'
                   }`}
                 >
+                  {isLocked && (
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-center">
+                        {isAvvikComplete(answer.id) ? (
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z" fill="var(--muted-foreground)" />
+                          </svg>
+                        ) : (
+                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                            <g>
+                              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20Z" fill="var(--muted-foreground)" />
+                              <path d="M7 13.5C7.82843 13.5 8.5 12.8284 8.5 12C8.5 11.1716 7.82843 10.5 7 10.5C6.17157 10.5 5.5 11.1716 5.5 12C5.5 12.8284 6.17157 13.5 7 13.5Z" fill="var(--muted-foreground)" />
+                              <path d="M12 13.5C12.8284 13.5 13.5 12.8284 13.5 12C13.5 11.1716 12.8284 10.5 12 10.5C11.1716 10.5 10.5 11.1716 10.5 12C10.5 12.8284 11.1716 13.5 12 13.5Z" fill="var(--muted-foreground)" />
+                              <path d="M17 13.5C17.8284 13.5 18.5 12.8284 18.5 12C18.5 11.1716 17.8284 10.5 17 10.5C16.1716 10.5 15.5 11.1716 15.5 12C15.5 12.8284 16.1716 13.5 17 13.5Z" fill="var(--muted-foreground)" />
+                            </g>
+                          </svg>
+                        )}
+                      </div>
+                    </td>
+                  )}
                   {isLocked && answer.severity && (
                     <td className="px-4 py-3">
                       <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${getSeverityColor(answer.severity)}`}>
@@ -615,10 +529,10 @@ export function AvvikshandteringPage({
           </table>
         </div>
 
-        {/* Detail Panel - Desktop only */}
+        {/* Detail Panel */}
         {selectedQuestion && selectedQuestionInfo && (
           <div 
-            className="bg-background relative flex flex-col max-[1400px]:hidden"
+            className="overflow-y-auto bg-background relative"
             style={{ width: `${panelWidth}px` }}
             onMouseEnter={() => setShowResizeHandle(true)}
             onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
@@ -636,166 +550,207 @@ export function AvvikshandteringPage({
               }}
             />
             {isLocked ? (
-              /* Locked State - New Figma Design */
-              <div className="flex flex-col flex-1 overflow-hidden">
-                {/* Fixed Header */}
-                <div className="px-6 py-4 shrink-0">
-                  {/* Question Header */}
-                  <div className="flex gap-2 items-center justify-between mb-2">
-                    <h3 className="heading-4">
-                      {selectedQuestionInfo.id}
-                    </h3>
-                    <button className="p-2">
-                      <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+              /* Locked State - Figma Design */
+              <div className="px-6 py-4">
+                {/* Question Number with External Link */}
+                <div className="flex gap-2 items-center justify-between mb-2">
+                  <h3 className="font-['Quatro:Regular',sans-serif] text-[22px] leading-[28px] text-[#1a1c16]">
+                    {selectedQuestionInfo.id}
+                  </h3>
+                  <button className="p-2">
+                    <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                      <g transform="scale(1.3333)">
+                        <path d={svgPaths.pd76fd80} fill="#1A1C16" />
+                      </g>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Question Text */}
+                <h4 className="font-['Quatro:Regular',sans-serif] text-[22px] leading-[28px] text-[#1a1c16] mb-4">
+                  {selectedQuestion.questionText}
+                </h4>
+
+                {/* Severity Badge */}
+                {selectedQuestion.severity && (
+                  <div className={`flex items-center gap-4 p-4 rounded-lg mb-4 ${getSeverityColor(selectedQuestion.severity)}`}>
+                    <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                      <g transform="scale(1.09)">
+                        <path d={svgPaths.p6027970} fill="currentColor" />
+                      </g>
+                    </svg>
+                    <div className="flex-1">
+                      <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px]">
+                        Beregnet alvorlighetsgrad
+                      </p>
+                      <p className="font-['Manrope:Medium',sans-serif] text-[16px] leading-[24px]">
+                        {getSeverityLabel(selectedQuestion.severity)}
+                      </p>
+                    </div>
+                    <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                      <g transform="scale(1.2)">
+                        <path d={svgPaths.p19ecbc00} fill="currentColor" />
+                      </g>
+                    </svg>
+                  </div>
+                )}
+
+                <div className="border-t border-[#C4C8B7] my-4" />
+
+                {/* Mangel */}
+                <button className="w-full flex items-start gap-4 p-2 hover:bg-muted rounded-lg mb-2">
+                  <div className="flex-1">
+                    <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b] text-left">
+                      Mangel
+                    </p>
+                    <p className="font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16] text-left">
+                      {selectedQuestionData.deviations?.[0]?.description || 'Ingen dokumentasjon fremvist for truckkontroll.'}
+                    </p>
+                  </div>
+                  <svg className="w-5 h-5 mt-1 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
+                    <g transform="scale(1.3333)">
+                      <path d={svgPaths.p25003780} fill="#44483B" />
+                    </g>
+                  </svg>
+                </button>
+
+                {/* Tidsfrist */}
+                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button 
+                      className="w-full flex items-center gap-4 p-2 hover:bg-muted rounded-lg mb-2"
+                    >
+                      <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                        <g transform="scale(1.2)">
+                          <path d={svgPaths.p302c2680} fill="#44483B" />
+                        </g>
+                      </svg>
+                      <div className="flex-1 text-left">
+                        <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b]">
+                          Tidsfrist for lukking av avvik
+                        </p>
+                        <p className="font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16]">
+                          {selectedClosureInfo.deadline 
+                            ? `${format(new Date(selectedClosureInfo.deadline), 'd. MMMM yyyy', { locale: nb })} (anbefalt)`
+                            : '4. mars 2026 (anbefalt)'
+                          }
+                        </p>
+                      </div>
+                      <svg className="w-5 h-5 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
                         <g transform="scale(1.3333)">
-                          <path d={svgPaths.pd76fd80} fill="#1A1C16" />
+                          <path d={svgPaths.p25003780} fill="#44483B" />
                         </g>
                       </svg>
                     </button>
-                  </div>
-
-                  {/* Question Text */}
-                  <h4 className="heading-4">
-                    {selectedQuestion.questionText}
-                  </h4>
-
-                  {/* Krav & Veileder Section */}
-                  {selectedQuestionInfo && (
-                    <div className="mt-3">
-                      <KravVeilederSection question={selectedQuestionInfo} />
-                    </div>
-                  )}
-
-                  {/* Severity Badge */}
-                  {selectedQuestion.severity && (
-                    <div className={`flex items-center gap-4 px-4 py-2 rounded-[var(--radius-md)] mt-2 min-h-[56px] ${getSeverityColor(selectedQuestion.severity)}`}>
-                      <div className="shrink-0 w-6 h-6 flex items-center justify-center">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" overflow="visible">
-                          <path d={svgPaths.p6027970} fill="currentColor" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
-                        <p className="label-medium">
-                          Beregnet alvorlighetsgrad
-                        </p>
-                        <p className="body-large">
-                          {getSeverityLabel(selectedQuestion.severity)}
-                        </p>
-                      </div>
-                      <div className="shrink-0 w-6 h-6 flex items-center justify-center">
-                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" overflow="visible">
-                          <g transform="scale(1.2)">
-                            <path d={svgPaths.p19ecbc00} fill="currentColor" />
-                          </g>
-                        </svg>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto px-6 pb-8">
-                  <div className="border-t border-[var(--border)] my-2" />
-
-                  {/* Ansvarlig Section */}
-                  {editingResponsible === selectedQuestionId ? (
-                    <div className="min-h-[64px] pt-2 pb-0 px-2">
-                      <p className="body-large mb-2">
-                        Ansvarlig
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={tempResponsible}
-                          onChange={(e) => setTempResponsible(e.target.value)}
-                          onBlur={() => {
-                            if (tempResponsible.trim() && selectedQuestionId) {
-                              updateClosureInfo(selectedQuestionId, { responsible: tempResponsible.trim() });
-                            }
-                            setEditingResponsible(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && tempResponsible.trim() && selectedQuestionId) {
-                              updateClosureInfo(selectedQuestionId, { responsible: tempResponsible.trim() });
-                              setEditingResponsible(null);
-                            }
-                          }}
-                          placeholder="Skriv navn..."
-                          className="flex-1 px-3 py-2 border border-border rounded-lg body-large focus:outline-none focus:ring-2 focus:ring-primary"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={() => {
-                        setEditingResponsible(selectedQuestionId);
-                        setTempResponsible(selectedClosureInfo.responsible || '');
-                      }}
-                      className="w-full pt-2 pb-0"
-                    >
-                      <div className="flex gap-4 items-start px-2">
-                        {!selectedClosureInfo.responsible && (
-                          <Plus className="shrink-0 w-6 h-6 text-muted-foreground" />
-                        )}
-                        <div className="flex-1 min-w-0 text-left">
-                          {selectedClosureInfo.responsible ? (
-                            <>
-                              <p className="label-medium text-muted-foreground">
-                                Ansvarlig
-                              </p>
-                              <p className="body-large">
-                                {selectedClosureInfo.responsible}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="body-large">
-                              Ansvarlig
-                            </p>
-                          )}
-                        </div>
-                        {selectedClosureInfo.responsible ? (
-                          <div className="shrink-0 w-12 h-12 flex items-center justify-center">
-                            <div className="w-7 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors">
-                              <Edit2 className="w-5 h-5 text-muted-foreground" />
-                            </div>
-                          </div>
-                        ) : (
-                          <StatusChip isComplete={false} />
-                        )}
-                      </div>
-                    </button>
-                  )}
-
-                  <div className="border-t border-[var(--border)] my-2" />
-
-                  {/* Tidsfrist Section */}
-                  <div className="px-2 py-4">
-                    <DatePicker
-                      label="Tidsfrist"
-                      value={selectedClosureInfo.deadline ? new Date(selectedClosureInfo.deadline) : null}
-                      onChange={(date) => {
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedClosureInfo.deadline ? new Date(selectedClosureInfo.deadline) : undefined}
+                      onSelect={(date) => {
                         if (date && selectedQuestionId) {
                           updateClosureInfo(selectedQuestionId, { deadline: date.toISOString() });
+                          setIsDatePickerOpen(false);
                         }
                       }}
-                      placeholder="DD/MM/ÅÅÅÅ"
-                      required
-                      recommendedDate={selectedClosureInfo.recommendedDeadline ? new Date(selectedClosureInfo.recommendedDeadline) : null}
-                      maxDate={selectedClosureInfo.maxDeadline ? new Date(selectedClosureInfo.maxDeadline) : null}
+                      initialFocus
                     />
-                  </div>
+                  </PopoverContent>
+                </Popover>
 
-                  <div className="border-t border-[var(--border)] my-2" />
-
-                  {/* Bekreftelse av tiltak Section */}
-                  <div className="px-2 py-2">
-                    <div className="flex gap-2 items-center justify-between mb-4">
-                      <h5 className="body-large">
-                        Bekreftelse av tiltak
-                      </h5>
-                      <StatusChip isComplete={!!selectedClosureInfo.confirmationMethod} />
+                {/* Ansvarlig */}
+                {editingResponsible === selectedQuestionId ? (
+                  <div className="w-full flex items-center gap-4 p-2 mb-4">
+                    <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                      <g transform="scale(1.2)">
+                        <path d={svgPaths.p22a29c0} fill="#44483B" />
+                      </g>
+                    </svg>
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={tempResponsible}
+                        onChange={(e) => setTempResponsible(e.target.value)}
+                        placeholder="Skriv navn..."
+                        className="w-full px-3 py-2 border border-border rounded-lg font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16] focus:outline-none focus:ring-2 focus:ring-primary"
+                        autoFocus
+                      />
                     </div>
+                    <button
+                      onClick={() => {
+                        if (tempResponsible.trim() && selectedQuestionId) {
+                          updateClosureInfo(selectedQuestionId, { responsible: tempResponsible.trim() });
+                          setEditingResponsible(null);
+                          setTempResponsible('');
+                        }
+                      }}
+                      className="p-2 hover:bg-muted rounded-lg"
+                    >
+                      <Check className="w-5 h-5 text-primary" />
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => {
+                      setEditingResponsible(selectedQuestionId);
+                      setTempResponsible(selectedClosureInfo.responsible || '');
+                    }}
+                    className="w-full flex items-center gap-4 p-2 hover:bg-muted rounded-lg mb-4"
+                  >
+                    <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                      <g transform="scale(1.2)">
+                        <path d={svgPaths.p22a29c0} fill="#44483B" />
+                      </g>
+                    </svg>
+                    <div className="flex-1 text-left">
+                      <p className="font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16]">
+                        Ansvarlig for lukking:
+                      </p>
+                      <p className="font-['Manrope:Regular',sans-serif] text-[14px] leading-[20px] text-[#44483b]">
+                        {selectedClosureInfo.responsible || 'Påkrevd'}
+                      </p>
+                    </div>
+                    <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                      <g transform="scale(1.714)">
+                        <path d={svgPaths.p2ccb20} fill="#44483B" />
+                      </g>
+                    </svg>
+                  </button>
+                )}
+
+                {/* Tabs */}
+                <div className="flex border-b border-[#E3E3D9] mb-4">
+                  <button
+                    onClick={() => setActiveTab('lukking')}
+                    className="px-4 py-3 font-['Manrope:Medium',sans-serif] text-[14px] leading-[20px] relative"
+                    style={{ color: activeTab === 'lukking' ? '#1a1c16' : '#44483b' }}
+                  >
+                    Lukking av avvik
+                    {activeTab === 'lukking' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4a671e]" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('avvik')}
+                    className="px-4 py-3 font-['Manrope:Medium',sans-serif] text-[14px] leading-[20px] relative"
+                    style={{ color: activeTab === 'avvik' ? '#1a1c16' : '#44483b' }}
+                  >
+                    Mer om avvik og sjekkelistekrav
+                    {activeTab === 'avvik' && (
+                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4a671e]" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'lukking' && (
+                  <div className="bg-[#eeeee4] border border-[#c4c8b7] rounded-xl p-6">
+                    <h5 className="font-['Manrope:Medium',sans-serif] text-[16px] leading-[24px] text-[#1a1c16] mb-1">
+                      Hvordan bekreftes tiltaket?
+                    </h5>
+                    <p className="font-['Manrope:Regular',sans-serif] text-[14px] leading-[20px] text-[#44483b] mb-4">
+                      Alvorlighetsgraden styrer hvilke bekreftelsesvalg du ser.
+                    </p>
 
                     {/* Radio Options */}
                     {(() => {
@@ -804,21 +759,22 @@ export function AvvikshandteringPage({
                         ? ['dokumentasjon']
                         : ['dokumentasjon', 'digitalt-besok', 'fysisk-besok'];
                       
+                      // Auto-select dokumentasjon for lite avvik if not already set
                       if (isLiteAvvik && !selectedClosureInfo.confirmationMethod) {
                         updateClosureInfo(selectedQuestionId, { confirmationMethod: 'dokumentasjon' });
                       }
                       
                       return (
-                        <div className="space-y-0">
+                        <div className="space-y-2">
                           {availableMethods.map((method) => {
                             const isSelected = selectedClosureInfo.confirmationMethod === method;
                             return (
                               <button
                                 key={method}
                                 onClick={() => updateClosureInfo(selectedQuestionId, { confirmationMethod: method })}
-                                className="w-full flex items-center gap-3 px-0 py-2 hover:bg-muted/50 rounded-[var(--radius)] transition-colors min-h-[40px]"
+                                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted/50 rounded-[var(--radius)] transition-colors"
                               >
-                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                                   isSelected
                                     ? 'border-primary bg-primary'
                                     : 'border-foreground'
@@ -827,8 +783,8 @@ export function AvvikshandteringPage({
                                     <div className="w-2.5 h-2.5 rounded-full bg-white" />
                                   )}
                                 </div>
-                                <span className={`body-large ${
-                                  isSelected ? 'text-primary' : 'text-foreground'
+                                <span className={`font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] ${
+                                  isSelected ? 'text-primary' : 'text-[#1a1c16]'
                                 }`}>
                                   {method === 'dokumentasjon' && 'Dokumentasjon'}
                                   {method === 'digitalt-besok' && 'Digitalt besøk'}
@@ -841,11 +797,9 @@ export function AvvikshandteringPage({
                       );
                     })()}
 
-                    <div className="border-t border-[var(--border)] my-2" />
-
                     {/* Kommentar */}
                     {editingComment === selectedQuestionId ? (
-                      <div className="w-full">
+                      <div className="w-full mt-4">
                         <div className="flex items-start gap-2">
                           <svg className="w-6 h-6 shrink-0 mt-2" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
                             <g transform="scale(1.2)">
@@ -854,22 +808,16 @@ export function AvvikshandteringPage({
                           </svg>
                           <div className="flex-1">
                             <textarea
-                              ref={commentTextareaRef}
                               value={tempComment}
-                              onChange={(e) => {
-                                setTempComment(e.target.value);
-                                adjustTextareaHeight(commentTextareaRef.current);
-                              }}
+                              onChange={(e) => setTempComment(e.target.value)}
                               onBlur={() => {
                                 updateClosureInfo(selectedQuestionId, { comment: tempComment });
                                 setEditingComment(null);
                               }}
-                              onFocus={() => adjustTextareaHeight(commentTextareaRef.current)}
                               autoFocus
-                              className="w-full p-2 border border-border rounded-[var(--radius)] body-large resize-none overflow-hidden"
-                              rows={1}
+                              className="w-full p-2 border border-border rounded-[var(--radius)] font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16] resize-none"
+                              rows={3}
                               placeholder="Legg til kommentar..."
-                              style={{ minHeight: '48px' }}
                             />
                           </div>
                         </div>
@@ -880,7 +828,7 @@ export function AvvikshandteringPage({
                           setEditingComment(selectedQuestionId);
                           setTempComment(selectedClosureInfo.comment || '');
                         }}
-                        className="w-full flex items-center gap-3 px-0 py-2 hover:bg-muted/50 rounded-lg min-h-[48px]"
+                        className="w-full flex items-center gap-4 p-2 hover:bg-muted/50 rounded-lg mt-4"
                       >
                         <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
                           <g transform="scale(1.2)">
@@ -888,59 +836,51 @@ export function AvvikshandteringPage({
                           </g>
                         </svg>
                         <div className="flex-1 text-left">
-                          <p className="body-large">
-                            Kommentar til foretaket
+                          <p className="font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16]">
+                            Kommentar
                           </p>
-                          {selectedClosureInfo.comment ? (
-                            <p className="body-medium text-muted-foreground">
-                              {selectedClosureInfo.comment}
-                            </p>
-                          ) : (
-                            <p className="body-medium text-muted-foreground">
-                              valgfri
-                            </p>
-                          )}
+                          <p className="font-['Manrope:Regular',sans-serif] text-[14px] leading-[20px] text-[#44483b]">
+                            {selectedClosureInfo.comment || 'valgfri'}
+                          </p>
                         </div>
-                        <Plus className="shrink-0 w-6 h-6 text-muted-foreground" />
+                        <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                          <g transform="scale(1.714)">
+                            <path d={svgPaths.p2ccb20} fill="#44483B" />
+                          </g>
+                        </svg>
                       </button>
                     )}
                   </div>
+                )}
 
-                  <div className="border-t border-[var(--border)] my-2" />
-
-                  {/* Rapportert avvik - Read Only */}
-                  {selectedQuestionData.deviations && selectedQuestionData.deviations.length > 0 && (() => {
-                    const deviation = selectedQuestionData.deviations[0];
-                    return (
-                      <>
-                        <div className="min-h-[80px] py-2 px-2">
-                          <p className="label-medium text-muted-foreground mb-1">
-                            Rapportert avvik
-                          </p>
-                          <p className="body-large mb-1">
-                            {getSeverityLabel(deviation.severity)} fra kravet.
-                          </p>
-                          <p className="body-medium text-muted-foreground">
-                            Kan ikke endres nå
-                          </p>
+                {activeTab === 'avvik' && selectedQuestionData.deviations && selectedQuestionData.deviations.length > 0 && (() => {
+                  const deviation = selectedQuestionData.deviations[0];
+                  return (
+                    <div className="w-full space-y-4">
+                      {/* Rapportert avvik */}
+                      <div className="flex flex-col gap-2 py-2">
+                        <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b]">
+                          Rapportert avvik
+                        </p>
+                        <div className={`inline-flex self-start items-center gap-2 px-3 py-1.5 rounded-lg ${getSeverityColor(deviation.severity)}`}>
+                          <AlertTriangle className="w-4 h-4" />
+                          <span className="label-medium">
+                            {getSeverityLabel(deviation.severity)}
+                          </span>
                         </div>
+                      </div>
 
-                        <div className="border-t border-[var(--border)] my-2" />
-
-                        {/* Mangel Section */}
+                      {/* Mangel */}
+                      <div className="border-t border-[#c4c8b7] pt-4">
                         {editingMangel === selectedQuestionId ? (
-                          <div className="min-h-[64px] pt-2 pb-0 px-2">
-                            <p className="label-medium text-muted-foreground mb-2">
-                              Mangel
-                            </p>
-                            <div className="flex items-start gap-2">
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1">
+                              <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b] mb-2">
+                                Mangel
+                              </p>
                               <textarea
-                                ref={mangelTextareaRef}
                                 value={tempMangel}
-                                onChange={(e) => {
-                                  setTempMangel(e.target.value);
-                                  adjustTextareaHeight(mangelTextareaRef.current);
-                                }}
+                                onChange={(e) => setTempMangel(e.target.value)}
                                 onBlur={() => {
                                   if (onUpdateQuestionData) {
                                     const updatedDeviations = [...selectedQuestionData.deviations];
@@ -949,69 +889,90 @@ export function AvvikshandteringPage({
                                   }
                                   setEditingMangel(null);
                                 }}
-                                onFocus={() => adjustTextareaHeight(mangelTextareaRef.current)}
                                 autoFocus
-                                className="flex-1 p-2 border border-border rounded-[var(--radius)] body-large resize-none overflow-hidden"
-                                rows={1}
-                                style={{ minHeight: '48px' }}
+                                className="w-full p-2 border border-border rounded-[var(--radius)] font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16] resize-none"
+                                rows={2}
                               />
                             </div>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => {
-                              setEditingMangel(selectedQuestionId);
-                              setTempMangel(deviation.mangel || deviation.description || '');
-                            }}
-                            className="w-full pt-2 pb-0"
-                          >
-                            <div className="flex gap-4 items-start px-2">
-                              {!(deviation.mangel || deviation.description) && (
-                                <Plus className="shrink-0 w-6 h-6 text-muted-foreground" />
-                              )}
-                              <div className="flex-1 min-w-0 text-left">
-                                {(deviation.mangel || deviation.description) ? (
-                                  <>
-                                    <p className="label-medium text-muted-foreground">
-                                      Mangel
-                                    </p>
-                                    <p className="body-large">
-                                      {deviation.mangel || deviation.description}
-                                    </p>
-                                  </>
-                                ) : (
-                                  <p className="body-large">
-                                    Mangel
-                                  </p>
-                                )}
-                              </div>
-                              {(deviation.mangel || deviation.description) ? (
-                                <div className="shrink-0 w-12 h-12 flex items-center justify-center">
-                                  <div className="w-7 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors">
-                                    <Edit2 className="w-5 h-5 text-muted-foreground" />
-                                  </div>
-                                </div>
-                              ) : (
-                                <StatusChip isComplete={false} />
-                              )}
+                          <div className="flex items-start gap-4 py-2">
+                            <div className="flex-1">
+                              <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b]">
+                                Mangel
+                              </p>
+                              <p className="font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16]">
+                                {deviation.mangel || 'Ingen mangel lagt til'}
+                              </p>
                             </div>
-                          </button>
+                            <button
+                              onClick={() => {
+                                setEditingMangel(selectedQuestionId);
+                                setTempMangel(deviation.mangel || '');
+                              }}
+                              className="shrink-0 w-12 h-12 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
+                                <path d={svgPathsDeviation.p25003780} fill="#44483B" />
+                              </svg>
+                            </button>
+                          </div>
                         )}
 
-                        <div className="border-t border-[var(--border)] my-2" />
+                        <div className="mt-4 border-t border-[#c4c8b7]" />
+                      </div>
 
-                        {/* Bevis Section */}
-                        <div className="pt-2 pb-0 px-2">
-                          <p className="label-medium text-muted-foreground mb-1">
-                            Bevis
-                          </p>
-                          {deviation.bevis && (
-                            <p className="body-large mb-2">
-                              {deviation.bevis}
-                            </p>
-                          )}
-                          
-                          {/* Upload Button */}
+                      {/* Bevis */}
+                      <div className="pt-4">
+                        {editingBevis === selectedQuestionId ? (
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1">
+                              <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b] mb-2">
+                                Bevis
+                              </p>
+                              <textarea
+                                value={tempBevis}
+                                onChange={(e) => setTempBevis(e.target.value)}
+                                onBlur={() => {
+                                  if (onUpdateQuestionData) {
+                                    const updatedDeviations = [...selectedQuestionData.deviations];
+                                    updatedDeviations[0] = { ...updatedDeviations[0], bevis: tempBevis };
+                                    onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
+                                  }
+                                  setEditingBevis(null);
+                                }}
+                                autoFocus
+                                className="w-full p-2 border border-border rounded-[var(--radius)] font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16] resize-none"
+                                rows={2}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-4 py-2">
+                            <div className="flex-1">
+                              <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b]">
+                                Bevis
+                              </p>
+                              <p className="font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16]">
+                                {deviation.bevis || 'Ingen bevis lagt til'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setEditingBevis(selectedQuestionId);
+                                setTempBevis(deviation.bevis || '');
+                              }}
+                              className="shrink-0 w-12 h-12 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
+                                <path d={svgPathsDeviation.p25003780} fill="#44483B" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Upload Images */}
+                        <div className="mt-4">
                           <input
                             ref={fileInputRef}
                             type="file"
@@ -1038,36 +999,33 @@ export function AvvikshandteringPage({
                               }
                             }}
                           />
-                          <div className="relative inline-block">
-                            <button
-                              onClick={() => fileInputRef.current?.click()}
-                              className="flex items-center gap-2 px-6 py-4 border border-[var(--border)] rounded-full hover:bg-muted transition-colors"
-                            >
-                              <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-                                <path d={svgPathsUpload.p3fc73f80} fill="#44483B" />
-                              </svg>
-                              <span className="body-large text-muted-foreground">
-                                Last opp bilde
-                              </span>
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex items-center gap-2 px-6 py-4 border border-[#c4c8b7] rounded-full hover:bg-muted transition-colors"
+                          >
+                            <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
+                              <path d={svgPathsDeviation.p3573eb00} fill="#44483B" />
+                            </svg>
+                            <span className="font-['Manrope:Medium',sans-serif] text-[16px] leading-[24px] text-[#44483b]">
+                              Last opp bilde
+                            </span>
+                          </button>
 
-                          {/* Uploaded Images */}
+                          {/* Uploaded Images List */}
                           {deviation.bevisImages && deviation.bevisImages.length > 0 && (
                             <div className="mt-4 space-y-0">
                               {deviation.bevisImages.map((image: any, index: number) => (
-                                <div key={image.id || index} className="flex items-center gap-4 min-h-[72px] px-4">
+                                <div key={image.id || index} className="flex items-center gap-4 px-4 py-2 min-h-[72px]">
                                   <div className="w-14 h-14 bg-muted rounded overflow-hidden shrink-0">
                                     <img src={image.url} alt={image.name} className="w-full h-full object-cover" />
                                   </div>
                                   <div className="flex-1">
-                                    <p className="body-large">
+                                    <p className="font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16]">
                                       {image.name}
                                     </p>
                                   </div>
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
+                                    onClick={() => {
                                       if (onUpdateQuestionData) {
                                         const updatedDeviations = [...selectedQuestionData.deviations];
                                         updatedDeviations[0] = {
@@ -1077,7 +1035,7 @@ export function AvvikshandteringPage({
                                         onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
                                       }
                                     }}
-                                    className="shrink-0 w-6 h-6"
+                                    className="shrink-0"
                                   >
                                     <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 14 18">
                                       <path d={svgPathsDeviation.p4c48400} fill="#44483B" />
@@ -1089,22 +1047,20 @@ export function AvvikshandteringPage({
                           )}
                         </div>
 
-                        <div className="border-t border-[var(--border)] my-2" />
+                        <div className="mt-4 border-t border-[#c4c8b7]" />
+                      </div>
 
-                        {/* Krav Section */}
+                      {/* Krav */}
+                      <div className="pt-4">
                         {editingKrav === selectedQuestionId ? (
-                          <div className="min-h-[64px] pt-2 pb-0 px-2">
-                            <p className="label-medium text-muted-foreground mb-2">
-                              Krav (fra veileder)
-                            </p>
-                            <div className="flex items-start gap-2">
+                          <div className="flex items-start gap-4">
+                            <div className="flex-1">
+                              <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b] mb-2">
+                                Krav (fra veileder)
+                              </p>
                               <textarea
-                                ref={kravTextareaRef}
                                 value={tempKrav}
-                                onChange={(e) => {
-                                  setTempKrav(e.target.value);
-                                  adjustTextareaHeight(kravTextareaRef.current);
-                                }}
+                                onChange={(e) => setTempKrav(e.target.value)}
                                 onBlur={() => {
                                   if (onUpdateQuestionData) {
                                     const updatedDeviations = [...selectedQuestionData.deviations];
@@ -1113,58 +1069,39 @@ export function AvvikshandteringPage({
                                   }
                                   setEditingKrav(null);
                                 }}
-                                onFocus={() => adjustTextareaHeight(kravTextareaRef.current)}
                                 autoFocus
-                                className="flex-1 p-2 border border-border rounded-[var(--radius)] body-large resize-none overflow-hidden"
-                                rows={1}
-                                style={{ minHeight: '48px' }}
+                                className="w-full p-2 border border-border rounded-[var(--radius)] font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16] resize-none"
+                                rows={2}
                               />
                             </div>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => {
-                              setEditingKrav(selectedQuestionId);
-                              setTempKrav(deviation.krav || '');
-                            }}
-                            className="w-full pt-2 pb-0"
-                          >
-                            <div className="flex gap-4 items-start px-2">
-                              {!deviation.krav && (
-                                <Plus className="shrink-0 w-6 h-6 text-muted-foreground" />
-                              )}
-                              <div className="flex-1 min-w-0 text-left">
-                                {deviation.krav ? (
-                                  <>
-                                    <p className="label-medium text-muted-foreground">
-                                      Krav
-                                    </p>
-                                    <p className="body-large">
-                                      {deviation.krav}
-                                    </p>
-                                  </>
-                                ) : (
-                                  <p className="body-large">
-                                    Krav
-                                  </p>
-                                )}
-                              </div>
-                              {deviation.krav ? (
-                                <div className="shrink-0 w-12 h-12 flex items-center justify-center">
-                                  <div className="w-7 h-8 flex items-center justify-center rounded-full hover:bg-muted transition-colors">
-                                    <Edit2 className="w-5 h-5 text-muted-foreground" />
-                                  </div>
-                                </div>
-                              ) : (
-                                <StatusChip isComplete={false} />
-                              )}
+                          <div className="flex items-start gap-4 py-2">
+                            <div className="flex-1">
+                              <p className="font-['Manrope:Medium',sans-serif] text-[12px] leading-[16px] text-[#44483b]">
+                                Krav (fra veileder)
+                              </p>
+                              <p className="font-['Manrope:Regular',sans-serif] text-[16px] leading-[24px] text-[#1a1c16]">
+                                {deviation.krav || 'Ingen krav lagt til'}
+                              </p>
                             </div>
-                          </button>
+                            <button
+                              onClick={() => {
+                                setEditingKrav(selectedQuestionId);
+                                setTempKrav(deviation.krav || '');
+                              }}
+                              className="shrink-0 w-12 h-12 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
+                                <path d={svgPathsDeviation.p25003780} fill="#44483B" />
+                              </svg>
+                            </button>
+                          </div>
                         )}
-                      </>
-                    );
-                  })()}
-                </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               /* Unlocked State */
@@ -1174,9 +1111,13 @@ export function AvvikshandteringPage({
                     {selectedQuestion.questionText}
                   </h3>
                   
-                  {/* Krav & Veileder Section */}
-                  {selectedQuestionInfo && (
-                    <KravVeilederSection question={selectedQuestionInfo} />
+                  {selectedQuestionInfo.requiresDocumentation && (
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg label-medium">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 16">
+                        <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" />
+                      </svg>
+                      Dokumentasjon kreves
+                    </div>
                   )}
                 </div>
 
@@ -1234,9 +1175,9 @@ export function AvvikshandteringPage({
                 <div className="px-6 py-4">
                   {selectedQuestionData.answer && activeTab === 'avvik' && (
                     <DeviationListView 
-                      deviations={selectedQuestionData.deviations}
-                      onUpdate={(deviations) => onUpdateQuestionData?.(selectedQuestionId, { deviations })}
-                      showTrengerUtfylling={true}
+                      questionId={selectedQuestionId}
+                      questionData={selectedQuestionData}
+                      onUpdateQuestionData={onUpdateQuestionData}
                     />
                   )}
 
@@ -1291,206 +1232,6 @@ export function AvvikshandteringPage({
           </div>
         )}
       </div>
-
-      {/* MOBILE/TABLET: Bottom Sheet */}
-      {selectedQuestion && selectedQuestionInfo && (
-        <BottomSheet
-          isOpen={isBottomSheetOpen}
-          onClose={() => setIsBottomSheetOpen(false)}
-          title={selectedQuestionInfo.id}
-          maxHeight={90}
-        >
-          {!isLocked ? (
-            <>
-              <div className="px-6 py-4 border-b border-border">
-                <h3 className="body-large text-foreground mb-3">
-                  {selectedQuestion.questionText}
-                </h3>
-                
-                {/* Krav & Veileder Section */}
-                {selectedQuestionInfo && (
-                  <KravVeilederSection question={selectedQuestionInfo} />
-                )}
-              </div>
-
-              <div className="px-6 py-4 border-b border-border">
-                <h4 className="label-medium text-foreground mb-3">Velg svar</h4>
-                <div className="space-y-2">
-                  {(['Ja', 'Nei', 'Ikke relevant'] as const).map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => handleAnswerChange(option)}
-                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded-[var(--radius)] transition-colors"
-                    >
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${selectedQuestion.answer === option ? 'border-primary bg-primary' : 'border-foreground'}`}>
-                        {selectedQuestion.answer === option && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                        )}
-                      </div>
-                      <span className={`body-medium ${selectedQuestion.answer === option ? 'text-primary' : 'text-foreground'}`}>
-                        {option}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="border-b border-border">
-                <div className="flex overflow-x-auto scrollbar-hide px-4">
-                  {getVisibleTabs().map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className="px-3 py-3 label-medium relative transition-colors whitespace-nowrap"
-                      style={{color: activeTab === tab ? '#1a1c16' : '#44483b'}}
-                    >
-                      {getTabLabel(tab)}
-                      {activeTab === tab && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="px-6 py-4">
-                {selectedQuestionData.answer && activeTab === 'avvik' && (
-                  <DeviationListView 
-                    deviations={selectedQuestionData.deviations}
-                    onUpdate={(deviations) => onUpdateQuestionData?.(selectedQuestionId, { deviations })}
-                    showTrengerUtfylling={true}
-                  />
-                )}
-
-                {activeTab === 'egenvurderinger' && (
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <p className="label-small text-muted-foreground m-0">Svarvalg</p>
-                      <p className="body-medium text-foreground m-0">Ja</p>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <p className="label-small text-muted-foreground m-0">Svartekst</p>
-                      <p className="body-medium text-foreground m-0">
-                        {selectedQuestionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}
-                      </p>
-                    </div>
-                    
-                    {selectedQuestionData.attachedDocuments && selectedQuestionData.attachedDocuments.length > 0 && (
-                      <div className="flex flex-col gap-2 pt-2">
-                        <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
-                        <div className="flex flex-col gap-2">
-                          {selectedQuestionData.attachedDocuments.map((doc, index) => (
-                            <AttachedDocumentCard
-                              key={index}
-                              documentName={doc}
-                              onRemove={() => handleRemoveDocument(index)}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    <DocumentsMenu 
-                      isOpen={showDocumentsMenu} 
-                      onToggle={() => setShowDocumentsMenu(!showDocumentsMenu)}
-                      attachedDocuments={selectedQuestionData.attachedDocuments || []}
-                      onAttachDocuments={(documents) => onUpdateQuestionData?.(selectedQuestionId, { attachedDocuments: documents })}
-                      onNavigateToDocument={onNavigateToDocument}
-                    />
-                  </div>
-                )}
-
-                {activeTab === 'notat' && (
-                  <NotatView 
-                    questionId={selectedQuestionId}
-                    questionData={selectedQuestionData}
-                    onUpdateQuestionData={onUpdateQuestionData}
-                  />
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="pb-8">
-              {/* Locked State for Mobile Bottom Sheet */}
-              <div className="px-6 py-4">
-                <h3 className="body-large text-foreground mb-3">
-                  {selectedQuestion.questionText}
-                </h3>
-                
-                {/* Krav & Veileder Section */}
-                {selectedQuestionInfo && (
-                  <KravVeilederSection question={selectedQuestionInfo} />
-                )}
-
-                {/* Severity Badge */}
-                {selectedQuestion.severity && (
-                  <div className={`flex items-center gap-4 px-4 py-2 rounded-[var(--radius-md)] mt-4 min-h-[56px] ${getSeverityColor(selectedQuestion.severity)}`}>
-                    <div className="shrink-0 w-6 h-6 flex items-center justify-center">
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" overflow="visible">
-                        <path d={svgPaths.p6027970} fill="currentColor" />
-                      </svg>
-                    </div>
-                    <div className="flex-1 flex flex-col justify-center min-h-0 overflow-hidden">
-                      <p className="label-medium">
-                        Beregnet alvorlighetsgrad
-                      </p>
-                      <p className="body-large">
-                        {getSeverityLabel(selectedQuestion.severity)}
-                      </p>
-                    </div>
-                    <div className="shrink-0 w-6 h-6 flex items-center justify-center">
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" overflow="visible">
-                        <g transform="scale(1.2)">
-                          <path d={svgPaths.p19ecbc00} fill="currentColor" />
-                        </g>
-                      </svg>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Closure Information */}
-              <div className="px-6">
-                <div className="border-t border-[var(--border)] my-2" />
-                
-                <div className="py-2">
-                  {selectedClosureInfo.responsible && (
-                    <>
-                      <p className="label-medium text-muted-foreground mb-1">Ansvarlig</p>
-                      <p className="body-large mb-4">{selectedClosureInfo.responsible}</p>
-                    </>
-                  )}
-
-                  {selectedClosureInfo.deadline && (
-                    <>
-                      <p className="label-medium text-muted-foreground mb-1">Tidsfrist</p>
-                      <p className="body-large mb-4">{formatNorwegianDate(new Date(selectedClosureInfo.deadline))}</p>
-                    </>
-                  )}
-
-                  {selectedClosureInfo.confirmationMethod && (
-                    <>
-                      <p className="label-medium text-muted-foreground mb-1">Bekreftelse av tiltak</p>
-                      <p className="body-large mb-4">
-                        {selectedClosureInfo.confirmationMethod === 'dokumentasjon' && 'Dokumentasjon'}
-                        {selectedClosureInfo.confirmationMethod === 'digitalt-besok' && 'Digitalt besøk'}
-                        {selectedClosureInfo.confirmationMethod === 'fysisk-besok' && 'Fysisk besøk'}
-                      </p>
-                    </>
-                  )}
-
-                  {selectedClosureInfo.comment && (
-                    <>
-                      <p className="label-medium text-muted-foreground mb-1">Kommentar til foretaket</p>
-                      <p className="body-large">{selectedClosureInfo.comment}</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </BottomSheet>
-      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ interface DatePickerProps {
   required?: boolean;
   recommendedDate?: Date | null; // The anbefalt tidsfrist - always shown with outline
   maxDate?: Date | null; // Maximum allowed date - dates after this are disabled
+  highlightedDates?: Date[]; // Dates to highlight with primary outline (e.g., dates with revisions)
 }
 
 const NORWEGIAN_MONTHS = [
@@ -27,7 +28,8 @@ export function DatePicker({
   className = '',
   required = false,
   recommendedDate = null,
-  maxDate = null
+  maxDate = null,
+  highlightedDates = []
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -184,6 +186,16 @@ export function DatePicker({
     return date > maxDate;
   };
 
+  const isHighlighted = (day: number) => {
+    if (!highlightedDates) return false;
+    const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+    return highlightedDates.some(highlightedDate => 
+      highlightedDate.getFullYear() === date.getFullYear() &&
+      highlightedDate.getMonth() === date.getMonth() &&
+      highlightedDate.getDate() === date.getDate()
+    );
+  };
+
   const days = generateCalendar();
 
   return (
@@ -333,6 +345,7 @@ export function DatePicker({
                     const selected = isSelected(day);
                     const recommended = isRecommended(day);
                     const disabled = isDisabled(day);
+                    const highlighted = isHighlighted(day);
 
                     return (
                       <button
@@ -348,6 +361,8 @@ export function DatePicker({
                             ? 'border-2 border-primary text-foreground hover:bg-muted'
                             : disabled
                             ? 'text-muted-foreground bg-muted cursor-not-allowed opacity-50'
+                            : highlighted
+                            ? 'border-2 border-primary text-foreground hover:bg-muted'
                             : 'text-foreground hover:bg-muted'
                         }`}
                       >

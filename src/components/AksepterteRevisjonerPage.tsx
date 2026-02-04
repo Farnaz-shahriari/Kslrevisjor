@@ -11,13 +11,13 @@ import { RevisjonFilterChipBar } from './RevisjonFilterChipBar';
 import svgPathsSorting from "../imports/svg-59lykn648d";
 
 interface AksepterteRevisjonerPageProps {
-  onRevisionClick?: () => void;
+  onRevisionClick?: (revisionId: string) => void;
   initialFilter?: string[];
-  onFilterChange?: (filter: string[]) => void;
+  onFilterChange?: (newFilter: string[]) => void;
 }
 
 // Mock data - Exact same revisjoner as in ForsidePage
-const mockAksepterteRevisjoner = [
+export const mockAksepterteRevisjoner = [
   // Cards without planned date (Venter på planlegging)
   {
     id: 'awaiting-1',
@@ -624,36 +624,7 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
         <div className="h-px bg-[var(--border)]" />
       </div>
 
-      {/* Produksjon section */}
-      <div className="px-4 py-4">
-        <h3 className="label-medium text-foreground mb-2">Produksjon</h3>
-        <div className="flex flex-col gap-1">
-          {filterOptions.produksjon.map((item) => (
-            <div
-              key={item.value}
-              className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
-            >
-              <MaterialCheckbox
-                checked={selectedProduksjon.includes(item.value)}
-                onChange={(checked) => {
-                  const newList = checked
-                    ? [...selectedProduksjon, item.value]
-                    : selectedProduksjon.filter(s => s !== item.value);
-                  setSelectedProduksjon(newList);
-                }}
-                label={`${item.label} (${item.count})`}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="px-4">
-        <div className="h-px bg-[var(--border)]" />
-      </div>
-
-      {/* Ordning section */}
+      {/* Ordning section - MOVED ABOVE Produksjon */}
       <div className="px-4 py-4">
         <h3 className="label-medium text-foreground mb-2">Ordning</h3>
         <div className="flex flex-col gap-1">
@@ -682,20 +653,27 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
         <div className="h-px bg-[var(--border)]" />
       </div>
 
-      {/* Revisjonsfrist section */}
+      {/* Produksjon section - MOVED ABOVE Kommune */}
       <div className="px-4 py-4">
-        <h3 className="label-medium text-foreground mb-2">Revisjonsfrist</h3>
-        <div className="flex flex-col gap-6">
-          <DatePicker
-            label="Fra"
-            value={revisjonsfristFrom}
-            onChange={setRevisjonsfristFrom}
-          />
-          <DatePicker
-            label="Til"
-            value={revisjonsfristTo}
-            onChange={setRevisjonsfristTo}
-          />
+        <h3 className="label-medium text-foreground mb-2">Produksjon</h3>
+        <div className="flex flex-col gap-1">
+          {filterOptions.produksjon.map((item) => (
+            <div
+              key={item.value}
+              className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
+            >
+              <MaterialCheckbox
+                checked={selectedProduksjon.includes(item.value)}
+                onChange={(checked) => {
+                  const newList = checked
+                    ? [...selectedProduksjon, item.value]
+                    : selectedProduksjon.filter(s => s !== item.value);
+                  setSelectedProduksjon(newList);
+                }}
+                label={`${item.label} (${item.count})`}
+              />
+            </div>
+          ))}
         </div>
       </div>
 
@@ -704,29 +682,7 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
         <div className="h-px bg-[var(--border)]" />
       </div>
 
-      {/* Planlagt dato section */}
-      <div className="px-4 py-4">
-        <h3 className="label-medium text-foreground mb-2">Planlagt dato</h3>
-        <div className="flex flex-col gap-6">
-          <DatePicker
-            label="Fra"
-            value={planlagtDatoFrom}
-            onChange={setPlanlagtDatoFrom}
-          />
-          <DatePicker
-            label="Til"
-            value={planlagtDatoTo}
-            onChange={setPlanlagtDatoTo}
-          />
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="px-4">
-        <div className="h-px bg-[var(--border)]" />
-      </div>
-
-      {/* Kommune section - AT THE END */}
+      {/* Kommune section - MOVED BELOW Produksjon */}
       <div className="px-4 py-4">
         <h3 className="label-medium text-foreground mb-2">Kommune</h3>
         <div className="flex flex-col gap-1">
@@ -747,6 +703,50 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
               />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="px-4">
+        <div className="h-px bg-[var(--border)]" />
+      </div>
+
+      {/* Revisjonsfrist section */}
+      <div className="px-4 py-4">
+        <h3 className="label-medium text-foreground mb-2">Revisjonsfrist</h3>
+        <div className="flex flex-col gap-6">
+          <DatePicker
+            label="Fra og med"
+            value={revisjonsfristFrom}
+            onChange={setRevisjonsfristFrom}
+          />
+          <DatePicker
+            label="Til og med"
+            value={revisjonsfristTo}
+            onChange={setRevisjonsfristTo}
+          />
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="px-4">
+        <div className="h-px bg-[var(--border)]" />
+      </div>
+
+      {/* Revisjonsdato section - Changed from Planlagt dato */}
+      <div className="px-4 py-4">
+        <h3 className="label-medium text-foreground mb-2">Revisjonsdato</h3>
+        <div className="flex flex-col gap-6">
+          <DatePicker
+            label="Fra og med"
+            value={planlagtDatoFrom}
+            onChange={setPlanlagtDatoFrom}
+          />
+          <DatePicker
+            label="Til og med"
+            value={planlagtDatoTo}
+            onChange={setPlanlagtDatoTo}
+          />
         </div>
       </div>
     </>
@@ -946,7 +946,15 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
             {viewMode === 'list' ? (
               <div className="flex flex-col gap-6 pt-2">
                 {getSortedRevisjoner().map((revisjon) => (
-                  <RevisjonCard key={revisjon.id} revisjon={revisjon} />
+                  <RevisjonCard 
+                    key={revisjon.id} 
+                    revisjon={revisjon}
+                    onCardClick={() => {
+                      if (onRevisionClick) {
+                        onRevisionClick(revisjon.id);
+                      }
+                    }}
+                  />
                 ))}
               </div>
             ) : (

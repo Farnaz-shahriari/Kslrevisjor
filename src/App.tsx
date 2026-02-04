@@ -13,6 +13,7 @@ import { SpesialitetChecklistPage } from './components/SpesialitetChecklistPage'
 import { AvvikoversiktPage } from './components/AvvikoversiktPage';
 import { ProfilePage } from './components/ProfilePage';
 import { PrivateNotesPanel } from './components/PrivateNotesPanel';
+import { PrivateNotesPanelDockable } from './components/PrivateNotesPanelDockable';
 import { PlanleggRevisjonPage } from './components/PlanleggRevisjonPage';
 import { TildelteRevisjonerPage } from './components/TildelteRevisjonerPage';
 import { AksepterteRevisjonerPage } from './components/AksepterteRevisjonerPage';
@@ -249,7 +250,7 @@ export default function App() {
   const [activeProducerTab, setActiveProducerTab] = useState<ProducerNavTab>('hjem');
   const [selectedDocumentIndex, setSelectedDocumentIndex] = useState<number | null>(null);
   const [deviationsLocked, setDeviationsLocked] = useState(false);
-  const [activeTopBarTab, setActiveTopBarTab] = useState<TopBarTab>('revisjonsgrunnlag');
+  const [activeTopBarTab, setActiveTopBarTab] = useState<TopBarTab>('planlegg'); // Changed default to 'planlegg'
   const [reportLocked, setReportLocked] = useState(false);
   
   // State for tracking if we're viewing a specific revision detail or the list
@@ -583,6 +584,12 @@ export default function App() {
                       setAksepterteRevisjonerFilter(['venter-pa-planlegging']);
                       setActiveMainTab('aksepterteRevisjoner');
                     }}
+                    onRevisionClick={() => {
+                      setActiveMainTab('aksepterteRevisjoner');
+                      setActiveTopBarTab('planlegg'); // Reset to Planlegg revisjon tab
+                      setViewingRevisionDetail(true);
+                    }}
+                    onNavigateToAvvikoversikt={() => setActiveMainTab('avviksoversikt')}
                   />
                 ) : activeMainTab === 'tildelteRevisjoner' ? (
                   <TildelteRevisjonerPage 
@@ -593,7 +600,10 @@ export default function App() {
                     renderAksepterteRevisjonerContent()
                   ) : (
                     <AksepterteRevisjonerPage 
-                      onRevisionClick={() => setViewingRevisionDetail(true)}
+                      onRevisionClick={() => {
+                        setActiveTopBarTab('planlegg'); // Reset to Planlegg revisjon tab
+                        setViewingRevisionDetail(true);
+                      }}
                       initialFilter={aksepterteRevisjonerFilter}
                       onFilterChange={setAksepterteRevisjonerFilter}
                     />
@@ -613,9 +623,43 @@ export default function App() {
                 )}
               </div>
 
-              {/* Private Notes Panel for mobile - Bottom sheet */}
-              <div className="min-[1400px]:hidden">
-                <PrivateNotesPanel 
+              {/* Medium Extended FAB - Mobile/Tablet only, shown on aksepterteRevisjoner when viewing detail */}
+              {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && (
+                <button
+                  onClick={() => setIsPrivateNotesPanelOpen(true)}
+                  className="min-[1400px]:hidden fixed bottom-6 right-6 bg-secondary hover:bg-secondary/90 transition-colors rounded-[16px] shadow-lg flex items-center gap-3 px-6 h-14 z-50"
+                  aria-label="Åpne egne notater"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                    <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20ZM8 15.2L9.4 16.6L11 15L12.6 16.6L14 15.2L12.4 13.6L14 12L12.6 10.6L11 12.2L9.4 10.6L8 12L9.6 13.6L8 15.2Z" fill="var(--secondary-foreground)" />
+                  </svg>
+                  <span className="label-large text-secondary-foreground">Egne notater</span>
+                </button>
+              )}
+              
+              {/* Mobile/Tablet: BottomSheet Notes Panel */}
+              {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && (
+                <div className="min-[1400px]:hidden">
+                  <PrivateNotesPanel 
+                    isOpen={isPrivateNotesPanelOpen} 
+                    onClose={() => setIsPrivateNotesPanelOpen(false)} 
+                    onUpdateQuestionData={handleUpdateQuestionData}
+                    getQuestionData={(questionId: string) => questionData[questionId]}
+                    savedNotes={savedNotes}
+                    onSaveNote={handleSaveNote}
+                    onDeleteNote={handleDeleteNote}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Notes Panel - Desktop - Docked at application level (beside entire content) */}
+            {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && isPrivateNotesPanelOpen && (
+              <div 
+                className="max-[1399px]:hidden min-[1400px]:block" 
+                style={{ width: '400px', minWidth: '400px' }}
+              >
+                <PrivateNotesPanelDockable 
                   isOpen={isPrivateNotesPanelOpen} 
                   onClose={() => setIsPrivateNotesPanelOpen(false)} 
                   onUpdateQuestionData={handleUpdateQuestionData}
@@ -625,13 +669,7 @@ export default function App() {
                   onDeleteNote={handleDeleteNote}
                 />
               </div>
-
-              {/* Large Extended FAB - NOT shown on aksepterteRevisjoner (notes are per-revisjon) */}
-              {/* Removed FAB for aksepterteRevisjoner - notes are now inside each revisjon card */}
-            </div>
-
-            {/* Notes Panel - Desktop - Docked at application level (beside entire content) */}
-            {/* Removed notes panel for aksepterteRevisjoner - notes are now inside each revisjon card */}
+            )}
           </div>
         </div>
       )}

@@ -6,7 +6,7 @@ import kslLogoExpanded from 'figma:asset/0322202eb2e41df4deecc92938a86f291c0c7b5
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from './ui/sheet';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 
-type TabType = 'forside' | 'tildelteRevisjoner' | 'aksepterteRevisjoner' | 'avviksoversikt' | 'fakturagrunnlag' | 'revisjonshistorikk';
+type TabType = 'forside' | 'tildelteRevisjoner' | 'aksepterteRevisjoner' | 'revisjonshistorikk' | 'avviksoversikt' | 'fakturagrunnlag';
 
 interface NavigationRailProps {
   activeTab: TabType;
@@ -170,7 +170,9 @@ function AssignedIcon({ className }: { className?: string }) {
   return (
     <div className={`relative w-6 h-6 ${className || ''}`}>
       <svg className="absolute inset-0" width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z" fill="currentColor" />
+        {/* Material Design post_add icon */}
+        <path d="M17 19.22H5V7h7V5H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7h-2v7.22z" fill="currentColor" />
+        <path d="M19 2h-2v3h-3c.01.01 0 2 0 2h3v2.99c.01.01 2 0 2 0V7h3V5h-3V2zM7 9h8v2H7V9zm0 3v2h8v-2h-3H7zm0 3h8v2H7v-2z" fill="currentColor" />
       </svg>
     </div>
   );
@@ -204,9 +206,9 @@ function NavigationContent({
     { id: 'forside' as TabType, icon: HomeIcon, label: 'Forside' },
     { id: 'tildelteRevisjoner' as TabType, icon: AssignedIcon, label: 'Tildelte Revisjoner' },
     { id: 'aksepterteRevisjoner' as TabType, icon: AcceptedIcon, label: 'Aksepterte Revisjoner' },
+    { id: 'revisjonshistorikk' as TabType, icon: HistoryIcon, label: 'Revisjonshistorikk' },
     { id: 'avviksoversikt' as TabType, icon: ReportIcon, label: 'Avviksoversikt' },
     { id: 'fakturagrunnlag' as TabType, icon: ReceiptIcon, label: 'Fakturagrunnlag' },
-    { id: 'revisjonshistorikk' as TabType, icon: HistoryIcon, label: 'Revisjonshistorikk' },
   ];
 
   const handleNavClick = (tab: TabType) => {

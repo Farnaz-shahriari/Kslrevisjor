@@ -61,55 +61,50 @@ export function AdvancedSearchPanel({ onBack, allDeviations, onFilterChange, cur
     setDateTo(currentFilters.dateRange.to);
   }, [currentFilters]);
 
-  // Get currently filtered deviations based on active filters
-  const currentFilteredDeviations = useMemo(() => {
-    return allDeviations.filter(dev => {
-      // Apply current filters
-      if (selectedSeverities.length > 0 && !selectedSeverities.includes(dev.severity)) {
-        return false;
-      }
-      if (selectedStatuses.length > 0 && !selectedStatuses.includes(dev.status)) {
-        return false;
-      }
-      if (dateFrom && dev.deadline < dateFrom) {
-        return false;
-      }
-      if (dateTo && dev.deadline > dateTo) {
-        return false;
-      }
-      if (selectedForetak.length > 0 && !selectedForetak.includes(dev.foretakName)) {
-        return false;
-      }
-      return true;
-    });
-  }, [allDeviations, selectedSeverities, selectedStatuses, dateFrom, dateTo, selectedForetak]);
-
-  // Get available severities from currently filtered deviations
+  // Get ALL available severities from allDeviations (not filtered by current selection)
   const availableSeverities = useMemo(() => {
     const severities = new Set<string>();
-    currentFilteredDeviations.forEach(dev => {
+    allDeviations.forEach(dev => {
       severities.add(dev.severity);
     });
     return Array.from(severities);
-  }, [currentFilteredDeviations]);
+  }, [allDeviations]);
 
-  // Get unique statuses from currently filtered deviations with counts
+  // Get ALL unique statuses from allDeviations with counts based on current filters
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    currentFilteredDeviations.forEach(dev => {
-      counts[dev.status] = (counts[dev.status] || 0) + 1;
+    allDeviations.forEach(dev => {
+      // Count based on current filters to show accurate numbers
+      let matchesFilters = true;
+      
+      if (selectedSeverities.length > 0 && !selectedSeverities.includes(dev.severity)) {
+        matchesFilters = false;
+      }
+      if (dateFrom && dev.deadline < dateFrom) {
+        matchesFilters = false;
+      }
+      if (dateTo && dev.deadline > dateTo) {
+        matchesFilters = false;
+      }
+      if (selectedForetak.length > 0 && !selectedForetak.includes(dev.foretakName)) {
+        matchesFilters = false;
+      }
+      
+      if (matchesFilters) {
+        counts[dev.status] = (counts[dev.status] || 0) + 1;
+      }
     });
     return counts;
-  }, [currentFilteredDeviations]);
+  }, [allDeviations, selectedSeverities, dateFrom, dateTo, selectedForetak]);
 
-  // Get unique foretak names from currently filtered deviations
+  // Get ALL unique foretak names from allDeviations (not filtered by current selection)
   const uniqueForetak = useMemo(() => {
     const foretak = new Set<string>();
-    currentFilteredDeviations.forEach(dev => {
+    allDeviations.forEach(dev => {
       foretak.add(dev.foretakName);
     });
     return Array.from(foretak).sort();
-  }, [currentFilteredDeviations]);
+  }, [allDeviations]);
 
   const toggleSelection = (value: string, list: string[], setter: (list: string[]) => void) => {
     const newList = list.includes(value)

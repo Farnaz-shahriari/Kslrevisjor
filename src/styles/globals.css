@@ -72,6 +72,11 @@
   --popover: #EEEEE4;
   --popover-foreground: #1A1C16;
   --surface-container-low: #F5F5EB;
+  --surface-bright: #FAFAF0;
+  --surface: #F9FAF0;
+  --surface-variant: #E3E4D9;
+  --on-surface: #1A1C16;
+  --on-surface-variant: #44483B;
   
   /* Muted colors */
   --muted: #EEEEE4;
@@ -157,6 +162,18 @@
   --on-l-avvik-container: #3D2C00;
   --avvik-container: #FDD19F;
   --on-avvik-container: #3D2100;
+  
+  /* Surface colors specific to LokalMat */
+  --surface-bright: #FDFDF8;
+  --surface: #F9FAF0;
+  --surface-variant: #E3E4D9;
+  --on-surface: #1A1C16;
+  --on-surface-variant: #44483B;
+  --muted: #F5F5EB;
+  --surface-container-low: #F5F5EB;
+  --border: #C4C8B7;
+  --accent: #D3E8D1;
+  --accent-foreground: #2B4F27;
 }
 
 /* Nyt Norge Theme */
@@ -191,6 +208,18 @@
   --on-l-avvik-container: #3D2C00;
   --avvik-container: #FDD19F;
   --on-avvik-container: #3D2100;
+  
+  /* Surface colors specific to Nyt Norge */
+  --surface-bright: #F5F8FF;
+  --surface: #F0F3FA;
+  --surface-variant: #DFE2EB;
+  --on-surface: #1A1C22;
+  --on-surface-variant: #44464F;
+  --muted: #E8F0FF;
+  --surface-container-low: #E8F0FF;
+  --border: #C4C8D7;
+  --accent: #DCE1FF;
+  --accent-foreground: #0039B5;
 }
 
 /* Spesialitet Theme */
@@ -225,6 +254,18 @@
   --on-l-avvik-container: #3D2C00;
   --avvik-container: #FDD19F;
   --on-avvik-container: #3D2100;
+  
+  /* Surface colors specific to Spesialitet */
+  --surface-bright: #FAF8F5;
+  --surface: #F5F3F0;
+  --surface-variant: #E8E4DF;
+  --on-surface: #1C1B18;
+  --on-surface-variant: #48443F;
+  --muted: #F5F5EB;
+  --surface-container-low: #F5F5EB;
+  --border: #C4C8B7;
+  --accent: #E5DBC9;
+  --accent-foreground: #221700;
 }
 
 .dark {
@@ -474,6 +515,144 @@ html {
   font-size: var(--text-xl);
   font-weight: var(--font-weight-normal);
   line-height: 1.5;
+}
+
+/* ============================================
+   MATERIAL DESIGN 3 SCROLLBAR SYSTEM
+   ============================================
+   Global vertical scrollbar following Material Design 3 specifications.
+   Automatically applied to all scrollable containers.
+   
+   Design Specifications:
+   - Idle: 4px thumb, no track, onSurfaceVariant at 40%
+   - Hover: 8px thumb, track appears, 60% opacity
+   - Active: full emphasis, onSurface/primary color
+   - Smooth animations: 120-180ms
+   - Respects prefers-reduced-motion
+   - Fully accessible with keyboard support
+*/
+
+/* Scrollbar color tokens (Material 3) */
+:root {
+  --scrollbar-thumb-color: var(--on-surface-variant);
+  --scrollbar-thumb-hover-color: var(--on-surface-variant);
+  --scrollbar-thumb-active-color: var(--on-surface);
+  --scrollbar-track-color: var(--surface-variant);
+  
+  /* Scrollbar sizing (Material 3 spec) */
+  --scrollbar-width-idle: 4px;
+  --scrollbar-width-hover: 8px;
+  --scrollbar-width-active: 8px;
+  
+  /* Scrollbar opacity */
+  --scrollbar-thumb-opacity-idle: 0.4;
+  --scrollbar-thumb-opacity-hover: 0.65;
+  --scrollbar-thumb-opacity-active: 0.85;
+  --scrollbar-track-opacity: 0.3;
+  
+  /* Animation timing */
+  --scrollbar-transition-duration: 150ms;
+  --scrollbar-transition-easing: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(68, 72, 59, 0.4) transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(68, 72, 59, 0.65) rgba(227, 228, 217, 0.3);
+}
+
+/* Webkit scrollbar styling (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+  width: var(--scrollbar-width-idle);
+  height: var(--scrollbar-width-idle);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 100px;
+  margin: 2px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  opacity: var(--scrollbar-thumb-opacity-idle);
+  border-radius: 100px;
+  border: none;
+  transition: 
+    background-color var(--scrollbar-transition-duration) var(--scrollbar-transition-easing),
+    opacity var(--scrollbar-transition-duration) var(--scrollbar-transition-easing),
+    width var(--scrollbar-transition-duration) var(--scrollbar-transition-easing);
+  min-height: 48px;
+}
+
+/* Hover state - thumb expands and track appears */
+*:hover::-webkit-scrollbar {
+  width: var(--scrollbar-width-hover);
+}
+
+*:hover::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+  opacity: var(--scrollbar-track-opacity);
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-hover-color);
+  opacity: var(--scrollbar-thumb-opacity-hover);
+}
+
+/* Active state - dragging */
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active-color);
+  opacity: var(--scrollbar-thumb-opacity-active);
+  cursor: grabbing;
+}
+
+/* Focus state for keyboard navigation */
+*:focus-visible::-webkit-scrollbar-thumb {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *::-webkit-scrollbar-thumb {
+    transition: 
+      background-color 0ms,
+      opacity var(--scrollbar-transition-duration) var(--scrollbar-transition-easing);
+  }
+  
+  *:hover::-webkit-scrollbar {
+    width: var(--scrollbar-width-idle);
+  }
+}
+
+/* Dark mode adjustments */
+.dark *::-webkit-scrollbar-thumb {
+  background: rgba(196, 200, 183, 0.4);
+}
+
+.dark *:hover::-webkit-scrollbar-thumb {
+  background: rgba(196, 200, 183, 0.65);
+}
+
+.dark *::-webkit-scrollbar-thumb:active {
+  background: rgba(241, 241, 231, 0.85);
+}
+
+.dark *::-webkit-scrollbar-track {
+  background: rgba(68, 72, 59, 0.3);
+}
+
+.dark * {
+  scrollbar-color: rgba(196, 200, 183, 0.4) transparent;
+}
+
+.dark *:hover {
+  scrollbar-color: rgba(196, 200, 183, 0.65) rgba(68, 72, 59, 0.3);
 }
 
 /* ============================================

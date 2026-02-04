@@ -21,6 +21,7 @@ interface ExternalRevisionDeviation {
   deficiency?: string;
   evidence?: string;
   requirement?: string;
+  requirementNumber?: string;
   hasImage?: boolean;
 }
 
@@ -296,8 +297,17 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
                   className="cursor-pointer border-b border-[var(--border)] transition-colors hover:bg-muted"
                 >
                   <td className="px-6 py-4 w-auto">
+                    {/* Mobile: Condensed two-line format */}
                     <div className="flex flex-col gap-2">
-                      {getSeverityChip(deviation.severity)}
+                      {/* Line 1: Severity chip with gap-1 */}
+                      <div className="flex flex-row items-center gap-1 flex-wrap">
+                        {getSeverityChip(deviation.severity)}
+                        <span className="label-small text-muted-foreground">
+                          Krav {deviation.requirementNumber}
+                        </span>
+                      </div>
+                      
+                      {/* Line 2: Question text */}
                       <span className="body-medium text-foreground">
                         {deviation.questionNumber} {deviation.questionText}
                       </span>

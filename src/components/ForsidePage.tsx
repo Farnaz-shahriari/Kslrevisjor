@@ -1,18 +1,49 @@
-import svgPaths from "../imports/svg-4in44qqe2k";
-import svgPathsToDoList from "../imports/svg-nbjngogatf";
-import svgPathsUpcomingAudits from "../imports/svg-2vm1tzdqhs";
-import svgPathsNeedsAction from "../imports/svg-nh1bgog2fz";
-import svgPathsRevisorCard from "../imports/svg-kwr2krk31l";
-import svgPathsProfileDetails from "../imports/svg-epuzborok3";
-import { Button } from "./ui/button";
-import { User, Calendar, Paperclip, Download, ExternalLink, Check } from "lucide-react";
-import { formatNorwegianDate } from "../utils/dateFormat";
-import { RevisjonCard } from "./RevisjonCard";
-import { useState } from "react";
+import { ChevronRight, ChevronLeft, MapPin, Clock, CheckCircle2, AlertCircle, ExternalLink, Calendar, Paperclip, Download, Check } from 'lucide-react';
+import { Button } from './ui/button';
+import { formatNorwegianDate } from '../utils/dateFormat';
+import { RevisjonCard } from './RevisjonCard';
+import { allDeviations } from './AvvikoversiktPage';
+import { mockAksepterteRevisjoner } from './AksepterteRevisjonerPage';
+import { useState } from 'react';
 
-// Import deviation data from AvvikoversiktPage for data consistency
-// TODO: In production, this should use shared state management (Context/Redux) or backend API
-import { allDeviations } from "./AvvikoversiktPage";
+// SVG paths for icons
+const svgPathsProfileDetailsNew = {
+  // Avatar person icon paths
+  pb9ab680: "M9 11C10.66 11 12 9.66 12 8C12 6.34 10.66 5 9 5C7.34 5 6 6.34 6 8C6 9.66 7.34 11 9 11ZM9 13C6.67 13 2 14.17 2 16.5V18H16V16.5C16 14.17 11.33 13 9 13Z",
+  p14aadaf0: "M9 2C13.97 2 18 6.03 18 11C18 15.97 13.97 20 9 20C4.03 20 0 15.97 0 11C0 6.03 4.03 2 9 2Z",
+  // Statistics/percent icon
+  p37d26b00: "M7.5 11.5C8.88 11.5 10 10.38 10 9C10 7.62 8.88 6.5 7.5 6.5C6.12 6.5 5 7.62 5 9C5 10.38 6.12 11.5 7.5 11.5ZM16.5 6.5C15.12 6.5 14 7.62 14 9C14 10.38 15.12 11.5 16.5 11.5C17.88 11.5 19 10.38 19 9C19 7.62 17.88 6.5 16.5 6.5ZM21 9C21 6.79 19.21 5 17 5C15.76 5 14.66 5.57 14 6.45C13.34 5.57 12.24 5 11 5C8.79 5 7 6.79 7 9C7 11.21 8.79 13 11 13C12.24 13 13.34 12.43 14 11.55C14.66 12.43 15.76 13 17 13C19.21 13 21 11.21 21 9Z",
+  // Profile/identity icon
+  p24cfbd00: "M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z",
+  // Assignment/document icon paths
+  p15082280: "M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3Z",
+  p141e7e00: "M7 7H17V9H7V7Z",
+  p1e924700: "M7 11H17V13H7V11Z",
+  p3be0780: "M7 15H14V17H7V15Z",
+  // Calendar icon
+  p1c86d00: "M19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z",
+  // Description/report icon
+  p38bb600: "M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM16 18H8V16H16V18ZM16 14H8V12H16V14ZM13 9V3.5L18.5 9H13Z",
+  // Follow-up/checklist icon
+  p24139a00: "M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"
+};
+
+// Import data counts from other pages
+// These would normally come from a shared state management solution or backend API
+export const TILDELTE_REVISJONER_COUNT = 10; // From TildelteRevisjonerPage - total items
+export const VENTER_PA_PLANLEGGING_COUNT = 7; // From AksepterteRevisjonerPage - cards without planned date
+export const KLAR_FOR_RAPPORT_COUNT = 3; // Placeholder - will be determined later
+
+// Calculate KLAR_FOR_OPPFOLGING_COUNT
+// In production this would come from the backend or shared state
+// For now, we use a calculated value based on mock data (7 deviations require action)
+export const KLAR_FOR_OPPFOLGING_COUNT = 7;
+
+// ============================================================================
+// Planned Revisjoner Types and Data
+// ============================================================================
+
+type RevisjonType = 'besok-planlagt' | 'godkjent-revisjon';
 
 // Deviation types (from AvvikoversiktPage)
 type SeverityType = 'kritisk' | 'avvik' | 'lite';
@@ -36,37 +67,51 @@ function getSeveritySortOrder(severity: SeverityType): number {
   return order[severity];
 }
 
-// Helper function to get severity badge config
-function getSeverityConfig(severity: SeverityType) {
-  const configs = {
-    kritisk: { bg: '#ffdad6', text: '#410002', label: 'Stort avvik' },
-    avvik: { bg: '#ffedbf', text: '#705400', label: 'Avvik' },
-    lite: { bg: '#ffe9c4', text: '#932601', label: 'Lite avvik' }
-  };
-  return configs[severity];
+// Helper function to get severity config (colors and labels)
+function getSeverityConfig(severity: SeverityType): { label: string; text: string; bg: string } {
+  switch (severity) {
+    case 'kritisk':
+      return {
+        label: 'Stor avvik',
+        text: '#B3261E',
+        bg: 'var(--error-container)'
+      };
+    case 'avvik':
+      return {
+        label: 'Avvik',
+        text: '#E67E00',
+        bg: 'var(--avvik-container)'
+      };
+    case 'lite':
+      return {
+        label: 'Lite avvik',
+        text: '#E6B800',
+        bg: 'var(--l-avvik-container)'
+      };
+  }
 }
 
-// Helper function to get action text based on status and confirmation method
+// Helper function to get action text based on status
 function getActionText(status: StatusType, confirmationMethod: ConfirmationMethod): string {
-  if (status === 'tidspunkt-foreslatt') {
-    return confirmationMethod === 'digitalt-besok' 
-      ? 'Forespørsel om digitalt besøk'
-      : 'Forespørsel om fysisk besøk';
+  switch (status) {
+    case 'tidspunkt-foreslatt':
+      return confirmationMethod === 'digitalt-besok' 
+        ? 'Godkjenn tidspunkt for digitalt besøk' 
+        : 'Godkjenn tidspunkt for fysisk besøk';
+    case 'onsker-fristforlengelse':
+      return 'Godkjenn eller avslå forespørsel om fristforlengelse';
+    case 'dokument-levert':
+      return 'Vurder dokumentasjon og lukk avviket';
+    case 'venter-godkjenning':
+      return 'Dokument venter på din godkjenning';
+    case 'avventer-moteforslag':
+      return 'Venter på møteforslag fra bonde';
+    case 'avventer-dokumentasjon':
+      return 'Venter på dokumentasjon fra bonde';
+    default:
+      return 'Handling kreves';
   }
-  if (status === 'dokument-levert') {
-    return 'Dokumentasjon er lastet opp';
-  }
-  if (status === 'onsker-fristforlengelse') {
-    return 'Ønsker fristforlengelse';
-  }
-  return 'Krever handling';
 }
-
-// ============================================================================
-// Planned Revisjoner Types and Data
-// ============================================================================
-
-type RevisjonType = 'besok-planlagt' | 'godkjent-revisjon';
 
 interface RevisjonData {
   ordning: string;
@@ -102,30 +147,6 @@ const farmNames = [
   'Lunden Grønnsaker', 'Solberg Økologisk', 'Breivoll Beitebruk', 'Tindra Melkeproduksjon'
 ];
 
-const addresses = [
-  { street: 'HOLTEVEIEN 138', postalCode: '4639', city: 'Kristiansand s', kommune: 'Kristiansand' },
-  { street: 'Fjellveien 42', postalCode: '2670', city: 'Otta', kommune: 'Sel' },
-  { street: 'Storgata 15', postalCode: '2000', city: 'Lillehammer', kommune: 'Lillehammer' },
-  { street: 'Høyfjellsvegen 8', postalCode: '2660', city: 'Dombås', kommune: 'Dovre' },
-  { street: 'Fruktveien 23', postalCode: '2312', city: 'Ottestad', kommune: 'Stange' },
-  { street: 'Melkeveien 7', postalCode: '2408', city: 'Elverum', kommune: 'Elverum' },
-  { street: 'Kornveien 55', postalCode: '2150', city: 'Årnes', kommune: 'Nes' },
-  { street: 'Bakkevegen 12', postalCode: '1950', city: 'Fjerdingby', kommune: 'Sørum' }
-];
-
-const ordninger = ['KSL', 'LokalMat', 'Spesialitet', 'Nyt Norge'];
-
-const produksjonTypes = [
-  ['Sau (11)', 'Korn, frø, olje- og belgvekster (0)', 'Grovfôr (114)', 'Storfe (2)'],
-  ['Melkeproduksjon (80)', 'Grovfôr (200)', 'Storfe (85)'],
-  ['Frukt og bær (150)', 'Planter og stauder (45)'],
-  ['Økologiske grønnsaker (230)', 'Potet (120)'],
-  ['Sau (25)', 'Lam (40)', 'Grovfôr (80)'],
-  ['Biodling (35)', 'Honningproduksjon'],
-  ['Korn (450)', 'Frø og belgvekster (60)'],
-  ['Geit (18)', 'Geitost produksjon', 'Grovfôr (55)']
-];
-
 // Generate random date within next year
 function getRandomDateWithinYear(): Date {
   const now = new Date();
@@ -159,188 +180,27 @@ function getRevisjonsfrist(visitDate: Date): string {
   return `${day}. ${month} ${year}`;
 }
 
-// Get planned revisjoner from Avvikoversikt (besok-planlagt status) + random accepted revisjoner
+// Get planned revisjoner - ONLY from AksepterteRevisjonerPage with hasPlannedDate: true
 function getAllPlannedRevisjoner(): PlannedRevisjon[] {
-  // 1. Get revisjoner from deviations with besok-planlagt status
-  const deviationRevisjoner: PlannedRevisjon[] = allDeviations
-    .filter(d => d.status === 'besok-planlagt')
-    .map(d => {
-      const addressData = addresses[Math.floor(Math.random() * addresses.length)];
-      return {
-        id: `deviation-${d.id}`,
-        type: 'besok-planlagt' as RevisjonType,
-        foretakName: d.foretakName,
-        contactPerson: 'Per Hansen', // Mock contact
-        visitDate: d.deadline,
-        visitTime: '10:00 - 12:00',
-        visitType: d.confirmationMethod as 'digitalt-besok' | 'fysisk-besok',
-        address: d.confirmationMethod === 'fysisk-besok' ? `${addressData.street}, ${addressData.postalCode} ${addressData.city}` : undefined,
-        checklist: d.checklist,
-        notes: `Oppfølging av ${getSeverityConfig(d.severity).label.toLowerCase()}`,
-        deviationId: d.id,
-        severity: d.severity,
-        revisjonData: {
-          ordning: ordninger[Math.floor(Math.random() * ordninger.length)],
-          revisjonsfrist: getRevisjonsfrist(d.deadline),
-          produksjon: produksjonTypes[Math.floor(Math.random() * produksjonTypes.length)],
-          kommune: addressData.kommune,
-          address: `${addressData.street}, ${addressData.postalCode} ${addressData.city}`,
-          isPriority: Math.random() > 0.5
-        }
-      };
-    });
+  // Filter only revisjoner that have a planned date
+  const plannedRevisjoner: PlannedRevisjon[] = mockAksepterteRevisjoner
+    .filter(rev => rev.revisjonData.hasPlannedDate === true && rev.visitDate !== null)
+    .map(rev => ({
+      id: rev.id,
+      type: 'godkjent-revisjon' as RevisjonType,
+      foretakName: rev.foretakName,
+      contactPerson: 'Kontaktperson', // Mock contact
+      visitDate: rev.visitDate!,
+      visitTime: rev.visitTime!,
+      visitType: 'fysisk-besok',
+      address: rev.revisjonData.address,
+      checklist: 'Årlig ordinær revisjon',
+      notes: '',
+      revisjonData: rev.revisjonData
+    }));
 
-  // 2. Add random accepted revisjoner (not from deviations)
-  const addr1 = addresses[1]; // Fjellveien 42, 2670 Otta - Sel kommune
-  const addr2 = addresses[2]; // Storgata 15, 2000 Lillehammer - Lillehammer kommune
-  const addr3 = addresses[3]; // Høyfjellsvegen 8, 2660 Dombås - Dovre kommune
-  const addr4 = addresses[4]; // Fruktveien 23, 2312 Ottestad - Stange kommune
-  const addr5 = addresses[5]; // Melkeveien 7, 2408 Elverum - Elverum kommune
-  const addr6 = addresses[6]; // Kornveien 55, 2150 Årnes - Nes kommune
-
-  const randomRevisjoner: PlannedRevisjon[] = [
-    {
-      id: 'haugseter-gard',
-      type: 'godkjent-revisjon',
-      foretakName: 'Haugseter Gård',
-      contactPerson: 'Lars Haugseter',
-      visitDate: new Date(2025, 0, 15), // 15. januar 2025
-      visitTime: '09:00 - 12:00',
-      visitType: 'fysisk-besok',
-      address: 'Vangsvegen 302, 2974 Vang',
-      checklist: 'Årlig ordinær revisjon - KSL',
-      notes: 'Oppfølging gyldig KSL',
-      revisjonData: {
-        ordning: 'KSL - Kvalitetssystem i landbruket',
-        revisjonsfrist: '31. mars 2025',
-        produksjon: ['Storfe', 'Grovfôr'],
-        kommune: 'Vang',
-        address: 'Vangsvegen 302, 2974 Vang',
-        isPriority: false
-      }
-    },
-    {
-      id: 'accepted-1',
-      type: 'godkjent-revisjon',
-      foretakName: 'Nordlys Økologiske',
-      contactPerson: 'Kari Nordmann',
-      visitDate: new Date(2025, 0, 27), // 27. januar 2025
-      visitTime: '09:00 - 11:30',
-      visitType: 'fysisk-besok',
-      address: `${addr1.street}, ${addr1.postalCode} ${addr1.city}`,
-      checklist: 'Årlig ordinær revisjon - Husdyrhold',
-      notes: 'Første revisjon for dette foretaket',
-      revisjonData: {
-        ordning: ordninger[Math.floor(Math.random() * ordninger.length)],
-        revisjonsfrist: getRevisjonsfrist(new Date(2025, 0, 27)),
-        produksjon: produksjonTypes[Math.floor(Math.random() * produksjonTypes.length)],
-        kommune: addr1.kommune,
-        address: `${addr1.street}, ${addr1.postalCode} ${addr1.city}`,
-        isPriority: Math.random() > 0.5
-      }
-    },
-    {
-      id: 'accepted-2',
-      type: 'godkjent-revisjon',
-      foretakName: 'Grønn Vallei Gård',
-      contactPerson: 'Ola Svendsen',
-      visitDate: new Date(2025, 0, 27), // 27. januar 2025 - Same day
-      visitTime: '13:00 - 15:00',
-      visitType: 'digitalt-besok',
-      checklist: 'Oppfølging revisjon - Økologisk planteproduksjon',
-      notes: 'Gjennomgang av dokumentasjon fra forrige sesong',
-      revisjonData: {
-        ordning: ordninger[Math.floor(Math.random() * ordninger.length)],
-        revisjonsfrist: getRevisjonsfrist(new Date(2025, 0, 27)),
-        produksjon: produksjonTypes[Math.floor(Math.random() * produksjonTypes.length)],
-        kommune: addr2.kommune,
-        address: `${addr2.street}, ${addr2.postalCode} ${addr2.city}`,
-        isPriority: Math.random() > 0.5
-      }
-    },
-    {
-      id: 'accepted-3',
-      type: 'godkjent-revisjon',
-      foretakName: 'Fjellheim Sauebruk',
-      contactPerson: 'Ingrid Larsen',
-      visitDate: new Date(2025, 0, 29), // 29. januar 2025
-      visitTime: '10:00 - 13:00',
-      visitType: 'fysisk-besok',
-      address: `${addr3.street}, ${addr3.postalCode} ${addr3.city}`,
-      checklist: 'Årlig ordinær revisjon - Sauehold',
-      notes: 'Inkluderer inspeksjon av beiteområder',
-      revisjonData: {
-        ordning: ordninger[Math.floor(Math.random() * ordninger.length)],
-        revisjonsfrist: getRevisjonsfrist(new Date(2025, 0, 29)),
-        produksjon: produksjonTypes[Math.floor(Math.random() * produksjonTypes.length)],
-        kommune: addr3.kommune,
-        address: `${addr3.street}, ${addr3.postalCode} ${addr3.city}`,
-        isPriority: Math.random() > 0.5
-      }
-    },
-    {
-      id: 'accepted-4',
-      type: 'godkjent-revisjon',
-      foretakName: 'Solsiden Frukt & Bær',
-      contactPerson: 'Martin Berg',
-      visitDate: new Date(2025, 0, 29), // 29. januar 2025 - Same day
-      visitTime: '14:00 - 16:30',
-      visitType: 'fysisk-besok',
-      address: `${addr4.street}, ${addr4.postalCode} ${addr4.city}`,
-      checklist: 'Årlig ordinær revisjon - Fruktproduksjon',
-      notes: 'Fokus på nye plantinger fra 2024',
-      revisjonData: {
-        ordning: ordninger[Math.floor(Math.random() * ordninger.length)],
-        revisjonsfrist: getRevisjonsfrist(new Date(2025, 0, 29)),
-        produksjon: produksjonTypes[Math.floor(Math.random() * produksjonTypes.length)],
-        kommune: addr4.kommune,
-        address: `${addr4.street}, ${addr4.postalCode} ${addr4.city}`,
-        isPriority: Math.random() > 0.5
-      }
-    },
-    {
-      id: 'accepted-5',
-      type: 'godkjent-revisjon',
-      foretakName: 'Aurland Biogård',
-      contactPerson: 'Silje Andersen',
-      visitDate: new Date(2025, 1, 3), // 3. februar 2025
-      visitTime: '11:00 - 13:30',
-      visitType: 'digitalt-besok',
-      checklist: 'Oppfølging revisjon - Biodling',
-      notes: 'Gjennomgang av bikuberegistrering og honningproduksjon',
-      revisjonData: {
-        ordning: ordninger[Math.floor(Math.random() * ordninger.length)],
-        revisjonsfrist: getRevisjonsfrist(new Date(2025, 1, 3)),
-        produksjon: produksjonTypes[Math.floor(Math.random() * produksjonTypes.length)],
-        kommune: addr5.kommune,
-        address: `${addr5.street}, ${addr5.postalCode} ${addr5.city}`,
-        isPriority: Math.random() > 0.5
-      }
-    },
-    {
-      id: 'accepted-6',
-      type: 'godkjent-revisjon',
-      foretakName: 'Eikestad Melkeproduksjon',
-      contactPerson: 'Tor Eriksen',
-      visitDate: new Date(2025, 1, 3), // 3. februar 2025 - Same day
-      visitTime: '08:00 - 11:00',
-      visitType: 'fysisk-besok',
-      address: `${addr6.street}, ${addr6.postalCode} ${addr6.city}`,
-      checklist: 'Årlig ordinær revisjon - Melkeproduksjon',
-      notes: 'Stort foretak med 80 melkekyr',
-      revisjonData: {
-        ordning: ordninger[Math.floor(Math.random() * ordninger.length)],
-        revisjonsfrist: getRevisjonsfrist(new Date(2025, 1, 3)),
-        produksjon: produksjonTypes[Math.floor(Math.random() * produksjonTypes.length)],
-        kommune: addr6.kommune,
-        address: `${addr6.street}, ${addr6.postalCode} ${addr6.city}`,
-        isPriority: Math.random() > 0.5
-      }
-    }
-  ];
-
-  // Combine and sort by date
-  return [...deviationRevisjoner, ...randomRevisjoner].sort((a, b) => 
+  // Sort by date
+  return plannedRevisjoner.sort((a, b) => 
     a.visitDate.getTime() - b.visitDate.getTime()
   );
 }
@@ -372,20 +232,15 @@ function groupRevisjonerByDate(revisjoner: PlannedRevisjon[]): Map<string, Plann
 interface Section2Props {
   onNavigateToTildelteRevisjoner?: () => void;
   onNavigateToVenterPaPlanlegging?: () => void;
+  onRevisionClick?: (revisionId: string) => void;
+  onNavigateToAvvikoversikt?: () => void;
 }
 
-function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging }: Section2Props = {}) {
+function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick, onNavigateToAvvikoversikt }: Section2Props) {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 0, 1)); // January 2026
   const allPlannedRevisjoner = getAllPlannedRevisjoner();
   const groupedRevisjoner = groupRevisjonerByDate(allPlannedRevisjoner);
-
-  // Count revisjoner waiting for different statuses
-  // Tildelte revisjoner count (from TildelteRevisjonerPage - total items)
-  const tildelteRevisjonerCount = 10;
-  
-  // Venter på planlegging count (from AksepterteRevisjonerPage - cards without planned date)
-  const venterPaPlanleggingCount = 7;
 
   // Month navigation
   const goToPreviousMonth = () => {
@@ -466,97 +321,14 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
   };
 
   return (
-    <div className="bg-white content-stretch flex flex-col gap-[16px] items-start px-10 py-[32px] relative rounded-[12px] flex-1 h-full overflow-y-auto" data-name="Upcoming audits">
+    <div className="bg-white content-stretch flex flex-col gap-[16px] items-start px-10 max-[1400px]:px-0 py-[32px] relative rounded-[12px] max-[1400px]:rounded-none flex-1 h-full max-[1400px]:h-auto overflow-y-auto max-[1400px]:overflow-visible" data-name="Upcoming audits">
       {/* Title */}
-      <div className="title-large text-foreground">
+      <div className="title-large text-foreground max-[1400px]:px-6 max-[1400px]:pt-6">
         <p>Planlagte revisjoner</p>
       </div>
 
-      {/* Navigation cards */}
-      <div className="flex flex-row gap-4 items-start w-full">
-        {/* Card 1 - Tildelte revisjoner */}
-        <button 
-          onClick={onNavigateToTildelteRevisjoner}
-          className="bg-white rounded-2xl flex-1 max-w-[400px] p-3 flex items-center gap-3 hover:bg-muted/30 transition-colors relative"
-        >
-          <div className="absolute border border-[var(--outline-variant)] inset-0 pointer-events-none rounded-2xl" />
-          
-          {/* Icon with badge */}
-          <div className="relative shrink-0">
-            <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <g>
-                  <path d={svgPathsRevisorCard.p15082280} fill="var(--primary)" />
-                  <path d={svgPathsRevisorCard.p141e7e00} fill="var(--primary)" />
-                  <path d="M14.5 9.5H6.5V11.5H14.5V9.5Z" fill="var(--primary)" />
-                  <path d={svgPathsRevisorCard.p1e924700} fill="var(--primary)" />
-                  <path d={svgPathsRevisorCard.p3be0780} fill="var(--primary)" />
-                </g>
-              </svg>
-            </div>
-            {/* Badge */}
-            <div className="absolute -top-1 -right-1 bg-[var(--error)] rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
-              <span className="label-xsmall text-[var(--error-foreground)]">{tildelteRevisjonerCount}</span>
-            </div>
-          </div>
-
-          {/* Text content */}
-          <div className="flex-1 flex flex-col items-start gap-0">
-            <p className="title-medium text-[var(--foreground)]">Tildelte revisjoner</p>
-            <p className="body-medium text-[var(--muted-foreground)]">Venter på at du skal ta stilling</p>
-          </div>
-
-          {/* Arrow icon */}
-          <div className="shrink-0 w-6 h-6">
-            <svg className="block size-full" fill="none" viewBox="0 0 24 24">
-              <path d="M10 17V7L15 12L10 17Z" fill="var(--muted-foreground)" />
-            </svg>
-          </div>
-        </button>
-
-        {/* Card 2 - Venter på planlegging */}
-        <button 
-          onClick={onNavigateToVenterPaPlanlegging}
-          className="bg-white rounded-2xl flex-1 max-w-[400px] p-3 flex items-center gap-3 hover:bg-muted/30 transition-colors relative"
-        >
-          <div className="absolute border border-[var(--outline-variant)] inset-0 pointer-events-none rounded-2xl" />
-          
-          {/* Icon with badge */}
-          <div className="relative shrink-0">
-            <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <g>
-                  <path d={svgPathsRevisorCard.p15082280} fill="var(--primary)" />
-                  <path d={svgPathsRevisorCard.p141e7e00} fill="var(--primary)" />
-                  <path d="M14.5 9.5H6.5V11.5H14.5V9.5Z" fill="var(--primary)" />
-                  <path d={svgPathsRevisorCard.p1e924700} fill="var(--primary)" />
-                  <path d={svgPathsRevisorCard.p3be0780} fill="var(--primary)" />
-                </g>
-              </svg>
-            </div>
-            {/* Badge */}
-            <div className="absolute -top-1 -right-1 bg-[var(--error)] rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
-              <span className="label-xsmall text-[var(--error-foreground)]">{venterPaPlanleggingCount}</span>
-            </div>
-          </div>
-
-          {/* Text content */}
-          <div className="flex-1 flex flex-col items-start gap-0">
-            <p className="title-medium text-[var(--foreground)]">Venter på planlegging</p>
-            <p className="body-medium text-[var(--muted-foreground)]">Tidspunkt er ikke satt</p>
-          </div>
-
-          {/* Arrow icon */}
-          <div className="shrink-0 w-6 h-6">
-            <svg className="block size-full" fill="none" viewBox="0 0 24 24">
-              <path d="M10 17V7L15 12L10 17Z" fill="var(--muted-foreground)" />
-            </svg>
-          </div>
-        </button>
-      </div>
-
       {/* View toggle buttons - Liste and Kalender */}
-      <div className="flex gap-[2px] overflow-clip rounded-2xl">
+      <div className="flex gap-[2px] overflow-clip rounded-2xl max-[1400px]:mx-6">
         {/* Liste button */}
         <button
           onClick={() => setViewMode('list')}
@@ -600,7 +372,7 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
 
       {/* Calendar View */}
       {viewMode === 'calendar' && (
-        <div className="bg-[#f4f4ea] rounded-xl p-6 w-full">
+        <div className="bg-[#f4f4ea] rounded-xl p-6 w-full max-[1400px]:mx-6 max-[1400px]:mb-6">
           {/* Calendar header with month navigation */}
           <div className="flex items-center justify-center gap-4 py-2 mb-4">
             <button 
@@ -677,24 +449,32 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
 
       {/* List View */}
       {viewMode === 'list' && (
-        <>
+        <div className="w-full max-[1400px]:pb-4">
           {/* Date groups and revisjon cards */}
           {Array.from(groupedRevisjoner.entries()).map(([dateKey, revisjoner], groupIndex) => (
             <div key={dateKey} className="flex flex-col w-full" style={{ marginTop: groupIndex === 0 ? 0 : '24px' }}>
               {/* Date header - closer to cards below */}
-              <div className="label-medium text-foreground mb-2">
+              <div className="label-medium text-foreground mb-2 max-[1400px]:px-6">
                 <p>{dateKey}</p>
               </div>
 
               {/* Revisjon cards */}
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 max-[1400px]:px-6">
                 {revisjoner.map((revisjon) => (
-                  <RevisjonCard key={revisjon.id} revisjon={revisjon} />
+                  <RevisjonCard 
+                    key={revisjon.id} 
+                    revisjon={revisjon}
+                    onCardClick={() => {
+                      if (onRevisionClick) {
+                        onRevisionClick(revisjon.id);
+                      }
+                    }}
+                  />
                 ))}
               </div>
             </div>
           ))}
-        </>
+        </div>
       )}
     </div>
   );
@@ -717,10 +497,16 @@ function Section3SidePanelToDoList() {
   console.log('ForsidePage - Todo items:', todoItems.map(d => ({ id: d.id, foretak: d.foretakName, status: d.status })));
 
   return (
-    <div className="bg-background flex flex-col h-full px-10 py-[32px] relative shrink-0 w-[520px] gap-6 overflow-y-auto" data-name="Section 3 - Side panel to-do list">
-      {/* Header */}
-      <div className="title-large text-foreground">
-        <p>Til handling nå</p>
+    <div className="bg-background flex flex-col h-full max-[1400px]:h-auto px-10 py-[32px] relative shrink-0 w-[520px] max-[1400px]:w-full gap-6 overflow-y-auto" data-name="Section 3 - Side panel to-do list">
+      {/* Header with badge */}
+      <div className="flex items-center gap-2">
+        <div className="title-large text-foreground">
+          <p>Klar for oppfølging</p>
+        </div>
+        {/* Badge showing count */}
+        <div className="bg-[var(--error)] rounded-full min-w-6 h-6 px-2 flex items-center justify-center">
+          <span className="label-xsmall text-[var(--error-foreground)]">{todoItems.length}</span>
+        </div>
       </div>
 
       {/* To-do cards */}
@@ -838,108 +624,227 @@ function Section3SidePanelToDoList() {
   );
 }
 
-function Section1HomeHeading() {
+function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onNavigateToAvvikoversikt }: Section2Props) {
   return (
-    <div className="bg-background h-[160px] relative shrink-0 w-full" data-name="Profile Details">
-      <div className="flex flex-row items-center size-full">
-        <div className="content-stretch flex gap-[32px] items-center px-10 py-4 relative size-full">
-          {/* Information - Left side */}
-          <div className="basis-0 content-stretch flex flex-col grow items-start justify-center min-h-px min-w-px px-0 py-[8px] relative shrink-0">
-            {/* User greeting */}
-            <div className="content-stretch flex gap-[16px] items-center px-0 py-[8px] relative shrink-0">
-              {/* Avatar */}
-              <div className="relative shrink-0 size-[40px]">
-                <div className="absolute inset-0">
-                  <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 40 40">
-                    <g>
-                      <rect fill="#EFF1E7" height="40" rx="20" width="40" />
-                      <g>
-                        <path clipRule="evenodd" d={svgPathsProfileDetails.p16400780} fill="#284000" fillRule="evenodd" />
-                        <path d={svgPathsProfileDetails.pfd6ae80} fill="#284000" />
-                      </g>
-                    </g>
-                  </svg>
-                </div>
-              </div>
-              
-              {/* Welcome text */}
-              <div className="headline-small text-foreground">
-                <p>Velkommen til revisorprofilen din, Liv Berg</p>
-              </div>
-            </div>
-            
-            {/* Button */}
-            <div className="content-stretch flex items-center justify-center relative shrink-0">
-              <Button variant="secondary">
-                Se og rediger revisorsprofil
-              </Button>
-            </div>
+    <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[24px] py-[24px] relative w-full" data-name="Profile Details">
+      {/* Information - User greeting and action buttons */}
+      <div className="content-center flex flex-wrap gap-[8px] items-center justify-between py-[8px] relative shrink-0 w-full" data-name="information">
+        {/* User greeting */}
+        <div className="content-stretch flex gap-[16px] items-center py-[8px] relative shrink-0 w-[533px]" data-name="user greeting">
+          {/* Avatar - Clean profile picture without badge */}
+          <div className="relative shrink-0 size-[56px] rounded-full bg-[#EFF1E7] flex items-center justify-center" data-name="Generic avatar">
+            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#284000" />
+            </svg>
           </div>
 
-          {/* Statistics - Right side */}
-          <div className="bg-card content-stretch flex flex-col items-start justify-center overflow-clip pl-0 pr-[16px] py-[8px] relative rounded-xl shrink-0 w-[467px]">
-            {/* Stat content */}
-            <div className="content-stretch flex flex-col h-[56px] items-center justify-center min-h-[56px] relative shrink-0 w-full">
-              <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full">
-                <div className="flex flex-row items-center justify-center size-full">
-                  <div className="content-stretch flex gap-[16px] items-center justify-center px-[16px] py-[8px] relative size-full">
-                    {/* Percent icon */}
-                    <div className="content-stretch flex items-center justify-center relative shrink-0">
-                      <div className="relative shrink-0 size-[24px]">
-                        <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                          <path d={svgPaths.p37d26b00} fill="var(--foreground)" />
-                        </svg>
-                      </div>
-                    </div>
-                    
-                    {/* Text content */}
-                    <div className="basis-0 content-stretch flex flex-col grow h-full items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0">
-                      <div className="body-large text-foreground w-full">
-                        <p>Du gir 30% mindre avvik enn gjennomsitning</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* User Info - Reordered: Revisorprofil above, Liv Berg below, button at bottom */}
+          <div className="content-stretch flex flex-[1_0_0] flex-col gap-[4px] items-start justify-center leading-[0] min-h-px min-w-px relative" data-name="User Info">
+            <div className="label-large text-muted-foreground w-full">
+              <p>Revisorprofil</p>
             </div>
-
-            {/* Button */}
-            <div className="content-stretch flex items-center justify-center relative shrink-0">
-              <Button variant="secondary">
-                Se på statistik
-              </Button>
+            <div className="title-large text-foreground w-full">
+              <p>Liv Berg</p>
             </div>
+            <button className="label-medium text-primary hover:opacity-70 transition-opacity mt-1">
+              Rediger revisorsprofil
+            </button>
           </div>
         </div>
+
+        {/* Actions - Only "Se på statistik" button */}
+        <div className="content-center flex flex-wrap gap-[8px] items-center relative shrink-0" data-name="Actions">
+          {/* Button - Se på statistik with percent icon */}
+          <button className="content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 hover:opacity-80 transition-opacity" data-name="Button">
+            <div className="content-stretch flex gap-[8px] items-center justify-center px-[24px] py-[16px] relative shrink-0" data-name="State-layer">
+              {/* Percent icon % */}
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="5" x2="5" y2="19" />
+                <circle cx="6.5" cy="6.5" r="2.5" />
+                <circle cx="17.5" cy="17.5" r="2.5" />
+              </svg>
+              <div className="label-medium text-primary">
+                <p>Se på statistik</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Needs action audits navigation - Quick access cards */}
+      <div className="content-start flex flex-wrap gap-[24px] max-[900px]:grid max-[900px]:grid-cols-2 max-[900px]:gap-[8px] items-start relative shrink-0 w-full" data-name="needs action audits navigation">
+        {/* Card 1 - Tildelte revisjoner */}
+        <button
+          onClick={onNavigateToTildelteRevisjoner}
+          className="bg-white flex-[1_0_0] max-w-[280px] min-h-px min-w-[232px] max-[900px]:flex-none max-[900px]:w-auto max-[900px]:h-[120px] max-[900px]:min-w-0 max-[900px]:max-w-none relative rounded-[16px] max-[900px]:rounded-[12px] hover:bg-muted/30 transition-colors cursor-pointer"
+          data-name="Quick access card"
+        >
+          <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[16px] max-[900px]:rounded-[12px]" />
+          <div className="flex flex-col items-center max-w-[inherit] min-w-[inherit] size-full">
+            <div className="content-stretch flex flex-col items-center max-w-[inherit] min-w-[inherit] p-[12px] max-[900px]:px-[24px] max-[900px]:py-[16px] relative w-full">
+              <div className="content-stretch flex flex-col gap-[16px] max-[900px]:gap-[8px] items-center justify-center relative shrink-0" data-name="Container">
+                {/* Icon with larger badge */}
+                <div className="relative shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    {/* Material Design post_add icon */}
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                      <path d="M17 19.22H5V7h7V5H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-7h-2v7.22z" fill="var(--primary)" />
+                      <path d="M19 2h-2v3h-3c.01.01 0 2 0 2h3v2.99c.01.01 2 0 2 0V7h3V5h-3V2zM7 9h8v2H7V9zm0 3v2h8v-2h-3H7zm0 3h8v2H7v-2z" fill="var(--primary)" />
+                    </svg>
+                  </div>
+                  {/* Larger Badge */}
+                  <div className="absolute -top-1 -right-1 bg-[var(--error)] rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
+                    <span className="label-xsmall text-[var(--error-foreground)]">{TILDELTE_REVISJONER_COUNT}</span>
+                  </div>
+                </div>
+
+                {/* Text */}
+                <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Assigned Audits">
+                  <div className="label-large max-[900px]:label-small text-foreground w-full">
+                    <p>Tildelte revisjoner</p>
+                  </div>
+                  <p className="body-medium text-muted-foreground h-[20px] leading-[20px] overflow-hidden relative shrink-0 text-ellipsis w-full max-[900px]:hidden">Venter på at du skal ta stilling</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* Card 2 - Venter på planlegging */}
+        <button
+          onClick={onNavigateToVenterPaPlanlegging}
+          className="bg-white flex-[1_0_0] max-w-[280px] min-h-px min-w-[232px] max-[900px]:flex-none max-[900px]:w-auto max-[900px]:h-[120px] max-[900px]:min-w-0 max-[900px]:max-w-none relative rounded-[16px] max-[900px]:rounded-[12px] hover:bg-muted/30 transition-colors cursor-pointer"
+          data-name="Quick access card"
+        >
+          <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[16px] max-[900px]:rounded-[12px]" />
+          <div className="flex flex-col items-center max-w-[inherit] min-w-[inherit] size-full">
+            <div className="content-stretch flex flex-col items-center max-w-[inherit] min-w-[inherit] p-[12px] max-[900px]:px-[24px] max-[900px]:py-[16px] relative w-full">
+              <div className="content-stretch flex flex-col gap-[16px] max-[900px]:gap-[8px] items-center justify-center relative shrink-0" data-name="Container">
+                {/* Icon with larger badge */}
+                <div className="relative shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                      <g>
+                        <path d={svgPathsProfileDetailsNew.p1c86d00} fill="var(--primary)" />
+                      </g>
+                    </svg>
+                  </div>
+                  {/* Larger Badge */}
+                  <div className="absolute -top-1 -right-1 bg-[var(--error)] rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
+                    <span className="label-xsmall text-[var(--error-foreground)]">{VENTER_PA_PLANLEGGING_COUNT}</span>
+                  </div>
+                </div>
+
+                {/* Text */}
+                <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Waiting for Planning">
+                  <div className="label-large max-[900px]:label-small text-foreground w-full">
+                    <p>Venter på planlegging</p>
+                  </div>
+                  <p className="body-medium text-muted-foreground h-[20px] leading-[20px] overflow-hidden relative shrink-0 text-ellipsis w-full max-[900px]:hidden">Tidspunkt er ikke satt</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* Card 3 - Klar for rapport */}
+        <button
+          className="bg-white flex-[1_0_0] max-w-[280px] min-h-px min-w-[232px] max-[900px]:flex-none max-[900px]:w-auto max-[900px]:h-[120px] max-[900px]:min-w-0 max-[900px]:max-w-none relative rounded-[16px] max-[900px]:rounded-[12px] hover:bg-muted/30 transition-colors cursor-pointer"
+          data-name="Quick access card"
+        >
+          <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[16px] max-[900px]:rounded-[12px]" />
+          <div className="flex flex-col items-center max-w-[inherit] min-w-[inherit] size-full">
+            <div className="content-stretch flex flex-col items-center max-w-[inherit] min-w-[inherit] p-[12px] max-[900px]:px-[24px] max-[900px]:py-[16px] relative w-full">
+              <div className="content-stretch flex flex-col gap-[16px] max-[900px]:gap-[8px] items-center justify-center relative shrink-0" data-name="Container">
+                {/* Icon with larger badge */}
+                <div className="relative shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                      <g>
+                        <path d={svgPathsProfileDetailsNew.p38bb600} fill="var(--primary)" />
+                      </g>
+                    </svg>
+                  </div>
+                  {/* Larger Badge */}
+                  <div className="absolute -top-1 -right-1 bg-[var(--error)] rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
+                    <span className="label-xsmall text-[var(--error-foreground)]">{KLAR_FOR_RAPPORT_COUNT}</span>
+                  </div>
+                </div>
+
+                {/* Text */}
+                <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Ready for Report">
+                  <div className="label-large max-[900px]:label-small text-foreground w-full">
+                    <p>Klar for rapport</p>
+                  </div>
+                  <p className="body-medium text-muted-foreground h-[20px] leading-[20px] overflow-hidden relative shrink-0 text-ellipsis w-full max-[900px]:hidden">Rapport må ferdigstilles</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* Card 4 - Klar for oppfølging - Hidden on desktop (≥1400px) when "Til handling nå" panel is visible */}
+        <button
+          onClick={onNavigateToAvvikoversikt}
+          className="bg-white flex-[1_0_0] max-w-[280px] min-h-px min-w-[232px] max-[900px]:flex-none max-[900px]:w-auto max-[900px]:h-[120px] max-[900px]:min-w-0 max-[900px]:max-w-none relative rounded-[16px] max-[900px]:rounded-[12px] hover:bg-muted/30 transition-colors cursor-pointer max-[1399px]:flex min-[1400px]:hidden"
+          data-name="Quick access card"
+        >
+          <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[16px] max-[900px]:rounded-[12px]" />
+          <div className="flex flex-col items-center max-w-[inherit] min-w-[inherit] size-full">
+            <div className="content-stretch flex flex-col items-center max-w-[inherit] min-w-[inherit] p-[12px] max-[900px]:px-[24px] max-[900px]:py-[16px] relative w-full">
+              <div className="content-stretch flex flex-col gap-[16px] max-[900px]:gap-[8px] items-center justify-center relative shrink-0" data-name="Container">
+                {/* Icon with larger badge */}
+                <div className="relative shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                      <g>
+                        <path d={svgPathsProfileDetailsNew.p24139a00} fill="var(--primary)" />
+                      </g>
+                    </svg>
+                  </div>
+                  {/* Larger Badge */}
+                  <div className="absolute -top-1 -right-1 bg-[var(--error)] rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
+                    <span className="label-xsmall text-[var(--error-foreground)]">{KLAR_FOR_OPPFOLGING_COUNT}</span>
+                  </div>
+                </div>
+
+                {/* Text */}
+                <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Ready for Follow-up">
+                  <div className="label-large max-[900px]:label-small text-foreground w-full">
+                    <p>Klar for oppfølging</p>
+                  </div>
+                  <p className="body-medium text-muted-foreground h-[20px] leading-[20px] overflow-hidden relative shrink-0 text-ellipsis w-full max-[900px]:hidden">Avvik gjenstår etter besøk</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
       </div>
     </div>
   );
 }
 
-function MainContentArea({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging }: Section2Props = {}) {
+function MainContentArea({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick }: Section2Props) {
   return (
-    <div className="bg-background content-stretch flex flex-1 items-start justify-start relative w-full h-full overflow-hidden" data-name="Main Content Area">
+    <div className="bg-background content-stretch flex flex-1 items-start justify-start relative w-full h-full overflow-y-auto max-[1400px]:h-auto max-[1400px]:overflow-visible" data-name="Main Content Area">
       {/* Container with max gap between sections */}
-      <div className="flex items-start w-full h-full">
-        {/* Section 2 - Planned Revisjoner - with constrained width */}
-        <div className="h-full" style={{ 
-          flexGrow: 1,
-          flexShrink: 1,
-          flexBasis: 'auto',
-          minWidth: 0,
-          maxWidth: 'calc(100% - 520px - 32px)' // Total width minus right panel minus gap
-        }}>
+      <div className="flex items-start w-full h-full max-[1400px]:h-auto max-[1400px]:flex-col max-[1400px]:gap-6">
+        {/* Section 2 - Planned Revisjoner - Full width on mobile, constrained on desktop */}
+        <div className="h-full max-[1400px]:h-auto w-full min-[1400px]:flex-1 min-[1400px]:min-w-0">
           <Section2PlanlagteRevisjoner 
             onNavigateToTildelteRevisjoner={onNavigateToTildelteRevisjoner}
             onNavigateToVenterPaPlanlegging={onNavigateToVenterPaPlanlegging}
+            onRevisionClick={onRevisionClick}
           />
         </div>
 
-        {/* Gap - fixed at 32px */}
-        <div className="shrink-0" style={{ width: '32px' }} />
+        {/* Gap - fixed at 32px on desktop, removed on mobile */}
+        <div className="shrink-0 max-[1400px]:hidden" style={{ width: '32px' }} />
 
-        {/* Section 3 - To-do list - fixed width */}
-        <Section3SidePanelToDoList />
+        {/* Section 3 - To-do list - shown only on desktop (≥1400px), hidden on mobile/tablet */}
+        <div className="max-[1399px]:hidden min-[1400px]:block">
+          <Section3SidePanelToDoList />
+        </div>
       </div>
     </div>
   );
@@ -948,12 +853,18 @@ function MainContentArea({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaP
 interface ForsidePageProps {
   onNavigateToTildelteRevisjoner?: () => void;
   onNavigateToVenterPaPlanlegging?: () => void;
+  onRevisionClick?: (revisionId: string) => void;
+  onNavigateToAvvikoversikt?: () => void;
 }
 
-function ForsidePage({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging }: ForsidePageProps = {}) {
+function ForsidePage({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick, onNavigateToAvvikoversikt }: ForsidePageProps) {
   return (
-    <div className="bg-background content-stretch flex flex-col items-start relative size-full" data-name="Forside Page">
-      <Section1HomeHeading />
+    <div className="bg-background content-stretch flex flex-col items-start relative size-full max-[1400px]:h-auto max-[1400px]:overflow-y-auto" data-name="Forside Page">
+      <Section1HomeHeading 
+        onNavigateToTildelteRevisjoner={onNavigateToTildelteRevisjoner}
+        onNavigateToVenterPaPlanlegging={onNavigateToVenterPaPlanlegging}
+        onNavigateToAvvikoversikt={onNavigateToAvvikoversikt}
+      />
       
       {/* Divider between header and content */}
       <div className="w-full h-px bg-border" />
@@ -961,6 +872,8 @@ function ForsidePage({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanl
       <MainContentArea 
         onNavigateToTildelteRevisjoner={onNavigateToTildelteRevisjoner}
         onNavigateToVenterPaPlanlegging={onNavigateToVenterPaPlanlegging}
+        onRevisionClick={onRevisionClick}
+        onNavigateToAvvikoversikt={onNavigateToAvvikoversikt}
       />
     </div>
   );

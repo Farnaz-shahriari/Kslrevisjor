@@ -5,7 +5,7 @@ import { formatNorwegianDate } from '../utils/dateFormat';
 import { Button } from './ui/button';
 import { BottomSheet } from './ui/bottom-sheet';
 import { useState, useRef, useEffect } from 'react';
-import { Search, AlertTriangle, ChevronLeft, User, Calendar as CalendarIcon, Plus, Edit2 } from 'lucide-react';
+import { Search, AlertTriangle, ChevronLeft, User, Calendar as CalendarIcon, Plus, Edit2, SlidersHorizontal } from 'lucide-react';
 import svgPaths from '../imports/svg-8axi0x1eud';
 import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
 import { DeviationDetailPanel } from './DeviationDetailPanel';
@@ -248,12 +248,13 @@ function StatusBadge({ status, requiresAction }: { status: StatusType; requiresA
 export function AvvikoversiktPage() {
   const [activeTab, setActiveTab] = useState<TabType>('apne');
   const [selectedForetakId, setSelectedForetakId] = useState<string | null>('alle');
-  const [showingMenu, setShowingMenu] = useState(true);
   const [selectedDeviationId, setSelectedDeviationId] = useState<string | null>(null);
   const [isDetailBottomSheetOpen, setIsDetailBottomSheetOpen] = useState(false);
   const [panelWidth, setPanelWidth] = useState(520);
   const [isResizing, setIsResizing] = useState(false);
   const [showResizeHandle, setShowResizeHandle] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false); // New state for filter BottomSheet
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false); // New state for desktop advanced search panel visibility
   
   // Manage deviations as state so they can be updated
   const [deviations, setDeviations] = useState<Deviation[]>(allDeviations);
@@ -417,16 +418,28 @@ export function AvvikoversiktPage() {
     <div className="flex h-full w-full overflow-hidden flex-col bg-background">
       {/* Header with title and tabs */}
       <div className="flex flex-col border-b border-[var(--border)] bg-background">
-        {/* Title */}
-        <div className="px-6 pt-6 pb-4">
+        {/* Title and Search button */}
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <h2 className="headline-small text-foreground">Avvikoversikt</h2>
+          
+          {/* Desktop only: Advanced Search toggle button */}
+          {!isAdvancedSearchOpen && (
+            <Button 
+              variant="secondary"
+              onClick={() => setIsAdvancedSearchOpen(true)}
+              className="max-[1400px]:hidden"
+            >
+              <SlidersHorizontal className="w-5 h-5 mr-2" />
+              Avansert søk
+            </Button>
+          )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 px-6">
+        {/* Tabs - Horizontal scroll on mobile */}
+        <div className="max-[1400px]:overflow-x-auto max-[1400px]:overflow-y-hidden min-[1400px]:flex gap-1 px-6 max-[1400px]:flex max-[1400px]:flex-nowrap">
           <button
             onClick={() => setActiveTab('apne')}
-            className={`px-4 py-3 label-large transition-colors relative ${
+            className={`px-4 py-3 label-large transition-colors relative whitespace-nowrap ${
               activeTab === 'apne'
                 ? 'text-primary'
                 : 'text-foreground hover:bg-muted'
@@ -439,7 +452,7 @@ export function AvvikoversiktPage() {
           </button>
           <button
             onClick={() => setActiveTab('tilHandling')}
-            className={`px-4 py-3 label-large transition-colors relative ${
+            className={`px-4 py-3 label-large transition-colors relative whitespace-nowrap ${
               activeTab === 'tilHandling'
                 ? 'text-primary'
                 : 'text-foreground hover:bg-muted'
@@ -452,7 +465,7 @@ export function AvvikoversiktPage() {
           </button>
           <button
             onClick={() => setActiveTab('besokPlanlagt')}
-            className={`px-4 py-3 label-large transition-colors relative ${
+            className={`px-4 py-3 label-large transition-colors relative whitespace-nowrap ${
               activeTab === 'besokPlanlagt'
                 ? 'text-primary'
                 : 'text-foreground hover:bg-muted'
@@ -465,7 +478,7 @@ export function AvvikoversiktPage() {
           </button>
           <button
             onClick={() => setActiveTab('lukket')}
-            className={`px-4 py-3 label-large transition-colors relative ${
+            className={`px-4 py-3 label-large transition-colors relative whitespace-nowrap ${
               activeTab === 'lukket'
                 ? 'text-primary'
                 : 'text-foreground hover:bg-muted'
@@ -481,63 +494,37 @@ export function AvvikoversiktPage() {
 
       {/* Main content area with advanced search and table */}
       <div className="flex flex-1 overflow-hidden">
-        {/* MOBILE/TABLET: Advanced Search - Shows ONLY when showingMenu is true */}
-        {showingMenu && (
-          <div className="min-[1400px]:hidden w-full h-full bg-background overflow-hidden">
-            <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto">
-                <AdvancedSearchPanel 
-                  onBack={handleBackToMenu} 
-                  allDeviations={filteredDeviations}
-                  onFilterChange={setSearchFilters}
-                  currentFilters={searchFilters}
-                />
-              </div>
-              
-              {/* Button to see results */}
-              <div className="p-6 border-t border-[var(--border)] bg-background">
-                <Button 
-                  onClick={() => setShowingMenu(false)}
-                  className="w-full"
-                >
-                  Se resultater ({displayedDeviations.length})
-                </Button>
-              </div>
+        {/* DESKTOP: Advanced Search - Conditionally visible */}
+        {isAdvancedSearchOpen && (
+          <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
+            {/* Close button at the top */}
+            <div className="px-4 py-4 border-b border-[var(--border)]">
+              <Button 
+                variant="tertiary"
+                onClick={() => setIsAdvancedSearchOpen(false)}
+                className="w-full justify-start"
+              >
+                <ChevronLeft className="w-5 h-5 mr-2" />
+                Lukk søkepanel
+              </Button>
             </div>
+            
+            <AdvancedSearchPanel 
+              onBack={() => {
+                // On desktop, reset filters on back
+                handleClearAllFilters();
+              }} 
+              allDeviations={filteredDeviations}
+              onFilterChange={setSearchFilters}
+              currentFilters={searchFilters}
+            />
           </div>
         )}
 
-        {/* DESKTOP: Advanced Search - Always visible */}
-        <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
-          <AdvancedSearchPanel 
-            onBack={() => {
-              // On desktop, reset filters on back
-              handleClearAllFilters();
-            }} 
-            allDeviations={filteredDeviations}
-            onFilterChange={setSearchFilters}
-            currentFilters={searchFilters}
-          />
-        </div>
-
-        {/* MOBILE/TABLET & DESKTOP: Table Panel */}
-        <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full ${ selectedDeviationId ? 'max-[1400px]:flex' : ''}`}
+        {/* Table Panel */}
+        <div className="flex-1 h-full flex flex-col max-[1400px]:w-full relative"
           style={{ width: selectedDeviationId ? `calc(100% - ${panelWidth}px)` : '100%' }}
         >
-          {/* Back button - visible only on mobile/tablet */}
-          {!showingMenu && (
-            <div className="px-6 pt-4 pb-2 min-[1400px]:hidden border-b border-[var(--border)]">
-              <button
-                onClick={handleBackToMenu}
-                className="flex items-center gap-2 label-large text-foreground hover:opacity-70 transition-opacity"
-                aria-label="Tilbake til meny"
-              >
-                <ChevronLeft className="w-5 h-5" />
-                Tilbake
-              </button>
-            </div>
-          )}
-
           {/* Table content */}
           <div className="flex-1 overflow-auto bg-background flex flex-col">
             {/* Filter chip bar - only shows when filters are active */}
@@ -552,19 +539,20 @@ export function AvvikoversiktPage() {
               <table className="w-full">
                 <thead className="bg-surface-container-low sticky top-0 z-10">
                   <tr className="border-b border-[var(--border)]">
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium text-foreground">Avvik Type</span>
+                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                      <span className="label-medium text-foreground">Alvorlighetsgrad</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
                       <span className="label-medium text-foreground">Produsent</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[900px]:hidden">
-                      <span className="label-medium text-foreground">Checklist poeng</span>
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
+                      <span className="label-medium text-foreground max-[768px]:hidden">Sjekklistespørsmål</span>
+                      <span className="label-medium text-foreground min-[768px]:hidden">Avvik</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[900px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
                       <span className="label-medium text-foreground">Oppfølging</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
                       <span className="label-medium text-foreground">Status</span>
                     </th>
                   </tr>
@@ -584,22 +572,56 @@ export function AvvikoversiktPage() {
                         selectedDeviationId === deviation.id ? 'bg-secondary-container' : ''
                       }`}
                     >
-                      <td className="px-6 py-4">
+                      {/* Desktop: Severity column */}
+                      <td className="px-6 py-4 max-[768px]:hidden">
                         <SeverityBadge severity={deviation.severity} />
                       </td>
-                      <td className="px-6 py-4">
+                      
+                      {/* Desktop: Producer column */}
+                      <td className="px-6 py-4 max-[768px]:hidden">
                         <span className="body-medium text-foreground">{deviation.foretakName}</span>
                       </td>
-                      <td className="px-6 py-4 max-[900px]:hidden">
-                        <span className="body-medium text-foreground">{deviation.checklist}</span>
-                      </td>
-                      <td className="px-6 py-4 max-[900px]:hidden">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="body-medium text-foreground">{getConfirmationMethodLabel(getConfirmationMethod(deviation))}</span>
-                          <span className="body-small text-muted-foreground">Frist: {formatNorwegianDate(deviation.deadline)}</span>
+                      
+                      {/* Responsive column - different content on mobile vs desktop */}
+                      <td className="px-6 py-4">
+                        {/* Desktop: Checklist question only */}
+                        <span className="body-medium text-foreground max-[768px]:hidden">
+                          {deviation.checklist}
+                        </span>
+                        
+                        {/* Mobile: Condensed two-line format */}
+                        <div className="flex flex-col gap-2 min-[768px]:hidden">
+                          {/* Line 1: Chips and badges with gap-1 */}
+                          <div className="flex flex-row items-center gap-1 flex-wrap">
+                            <SeverityBadge severity={deviation.severity} />
+                            <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
+                            <span className="label-small text-muted-foreground">
+                              Frist: {formatNorwegianDate(deviation.deadline)}
+                            </span>
+                          </div>
+                          
+                          {/* Line 2: Producer and checklist */}
+                          <div className="flex flex-col gap-0.5">
+                            <span className="body-medium text-foreground">
+                              {deviation.foretakName}
+                            </span>
+                            <span className="body-medium text-foreground">
+                              {deviation.checklist}
+                            </span>
+                          </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      
+                      {/* Desktop: Follow-up column */}
+                      <td className="px-6 py-4 max-[768px]:hidden">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="body-medium text-foreground">{getConfirmationMethodLabel(getConfirmationMethod(deviation))}</span>
+                          <span className="label-small text-muted-foreground">Frist: {formatNorwegianDate(deviation.deadline)}</span>
+                        </div>
+                      </td>
+                      
+                      {/* Desktop: Status column */}
+                      <td className="px-6 py-4 max-[768px]:hidden">
                         <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
                       </td>
                     </tr>
@@ -644,6 +666,43 @@ export function AvvikoversiktPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button (FAB) - Mobile/Tablet only */}
+      <button
+        onClick={() => setIsFilterSheetOpen(true)}
+        className="min-[1400px]:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center z-50"
+        aria-label="Filtrer"
+      >
+        <SlidersHorizontal className="w-6 h-6" />
+      </button>
+
+      {/* BottomSheet for filters - Mobile/Tablet only */}
+      <BottomSheet
+        isOpen={isFilterSheetOpen}
+        onClose={() => setIsFilterSheetOpen(false)}
+        title="Filtrer listen"
+      >
+        <div className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto">
+            <AdvancedSearchPanel 
+              onBack={() => setIsFilterSheetOpen(false)}
+              allDeviations={filteredDeviations}
+              onFilterChange={setSearchFilters}
+              currentFilters={searchFilters}
+            />
+          </div>
+          
+          {/* Button to see results */}
+          <div className="p-6 border-t border-[var(--border)] bg-background">
+            <Button 
+              onClick={() => setIsFilterSheetOpen(false)}
+              className="w-full"
+            >
+              Se resultater ({displayedDeviations.length})
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Detail Bottom Sheet */}
       <BottomSheet

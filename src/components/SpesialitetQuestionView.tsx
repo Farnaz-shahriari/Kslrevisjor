@@ -2,17 +2,12 @@ import { ChevronDown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ObservationView } from './ObservationView';
 import { DeviationListView } from './DeviationListView';
-import { ProducerDeviationView } from './ProducerDeviationView';
 import { NotatView } from './NotatView';
 import { DocumentsMenu } from './DocumentsMenu';
 import { AttachedDocumentCard } from './AttachedDocumentCard';
-import { ProducerDocumentationView } from './ProducerDocumentationView';
-import { KravVeiledningProducerMobile } from './KravVeiledningProducerMobile';
-import { QuestionHeadingWithNavigation } from './QuestionHeadingWithNavigation';
 import { getSpesialitetQuestionById, getNextSpesialitetQuestionId, getPreviousSpesialitetQuestionId } from '../data/spesialitetQuestions';
 import svgPaths from '../imports/svg-4o5ww5kgwr';
 import DocumentationChip from '../imports/DocumentationChip';
-import { RadioButton } from './ui/radio-button';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
 type TabType = 'observasjoner' | 'egenvurderinger' | 'notat' | 'avvik';
@@ -104,231 +99,293 @@ export function SpesialitetQuestionView({ questionId, questionData: savedData, o
     }
   };
 
-  const getVisibleTabs = (): TabType[] => {
-    if (!selectedAnswer) {
-      return ['notat'];
+  const handleAddDocuments = (documents: string[]) => {
+    if (onUpdateData) {
+      const currentDocuments = savedData.attachedDocuments || [];
+      onUpdateData(questionId, { attachedDocuments: [...currentDocuments, ...documents] });
     }
-    if (selectedAnswer === 'ja') {
-      return ['observasjoner', 'notat'];
-    } else if (selectedAnswer === 'nei') {
-      return ['avvik', 'notat'];
-    }
-    return ['notat'];
   };
 
-  const getTabLabel = (tab: TabType): string => {
-    const labels: Record<TabType, string> = {
-      observasjoner: 'Dokumentasjon',
-      egenvurderinger: 'Egenrevisjonssvar',
-      notat: 'Notat',
-      avvik: 'Avvik'
-    };
-    return labels[tab];
+  const handleNavigatePrevious = () => {
+    const prevId = getPreviousSpesialitetQuestionId(questionId);
+    if (prevId && onNavigate) {
+      onNavigate(prevId);
+    }
   };
 
-  const getAnswerDisplayText = (answer: AnswerType | null): string => {
-    if (!answer) return 'Ja';
-    const displayTexts: Record<AnswerType, string> = {
-      'ja': 'Ja',
-      'nei': 'Nei',
-      'ikke-relevant': 'Ikke relevant'
-    };
-    return displayTexts[answer];
+  const handleNavigateNext = () => {
+    const nextId = getNextSpesialitetQuestionId(questionId);
+    if (nextId && onNavigate) {
+      onNavigate(nextId);
+    }
   };
 
   if (!questionInfo) {
     return (
       <div className="flex-1 bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Spørsmål ikke funnet</p>
+        <p className="body-medium text-muted-foreground">Spørsmål ikke funnet</p>
       </div>
     );
   }
 
-  return (
-    <div className="flex-1 bg-background flex flex-col h-full overflow-auto">
-      {/* Scrollable content */}
-      <div className="px-[40px] pt-[12px] pb-6">
-        {/* Question heading with navigation */}
-        <div className="mb-2">
-          <QuestionHeadingWithNavigation
-            questionNumber={questionId}
-            hasAnswer={!!selectedAnswer}
-            onPrevious={() => {
-              const prevId = getPreviousSpesialitetQuestionId(questionId);
-              if (prevId && onNavigate) {
-                onNavigate(prevId);
-              }
-            }}
-            onNext={() => {
-              const nextId = getNextSpesialitetQuestionId(questionId);
-              if (nextId && onNavigate) {
-                onNavigate(nextId);
-              }
-            }}
-            hasPrevious={!!getPreviousSpesialitetQuestionId(questionId)}
-            hasNext={!!getNextSpesialitetQuestionId(questionId)}
-          />
-        </div>
+  const previousQuestionId = getPreviousSpesialitetQuestionId(questionId);
+  const nextQuestionId = getNextSpesialitetQuestionId(questionId);
 
-        {/* Question title */}
-        <div className="w-full mb-2">
-          <p className="title-large m-0">{questionInfo.title}</p>
+  return (
+    <div className="flex-1 bg-background flex flex-col h-full overflow-hidden">
+      {/* Header Section */}
+      <div className="shrink-0 px-10 pt-3 border-b border-border">
+        {/* Question number and text */}
+        <div className="flex items-start gap-2 w-full mb-2">
+          <div className="shrink-0">
+            <p className="title-large m-0 text-nowrap">{questionId}</p>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="title-large m-0">{questionInfo.title}</p>
+          </div>
         </div>
 
         {/* Information chips */}
-        <div className="flex gap-2 items-center w-full mb-2">{questionInfo.requiresDocumentation && (
-            <div className="bg-secondary h-8 flex items-center justify-center rounded-[8px]">
-              <div className="flex gap-2 items-center justify-center pl-2 pr-3 py-1.5">
-                <div className="w-[18px] h-[18px] flex items-center justify-center">
-                  <svg className="w-[15px] h-3" fill="none" viewBox="0 0 20 16">
-                    <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" fill="white" />
-                  </svg>
-                </div>
-                <p className="label-medium text-secondary-foreground m-0">Dokumentasjon kreves</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Krav og Veiledning - Always visible for Spesialitet producers */}
-        <div className="w-full mb-4">
-          <KravVeiledningProducerMobile
-            veilederText={questionInfo.veilederText}
-            kravLinks={questionInfo.kravLinks}
-          />
-        </div>
+        {questionInfo.requiresDocumentation && (
+          <div className="flex gap-2 items-center w-full mb-2">
+            <DocumentationChip />
+          </div>
+        )}
 
         {/* Answer selection */}
-        <div className="flex flex-col min-[768px]:flex-row items-stretch min-[768px]:items-center w-full gap-2 mb-6">
-          <div className="flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors hover:bg-muted">
-            <RadioButton
-              checked={selectedAnswer === 'ja'}
-              onClick={() => handleAnswerSelect('ja')}
-              label="Ja"
-              disabled={deviationsLocked}
-              className="w-full px-4"
-            />
-          </div>
+        <div className="flex flex-row items-center w-full gap-2 mb-6">
+          {/* Ja */}
+          <button
+            onClick={() => handleAnswerSelect('ja')}
+            className="flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors hover:bg-muted"
+          >
+            <div className="flex gap-2 items-center justify-center w-full h-full">
+              <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors"
+                style={{
+                  borderColor: selectedAnswer === 'ja' ? 'var(--foreground)' : 'var(--border)',
+                }}
+              >
+                {selectedAnswer === 'ja' && (
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--foreground)' }}></div>
+                )}
+              </div>
+              <p className="body-large m-0" style={{ color: selectedAnswer === 'ja' ? 'var(--foreground)' : 'var(--muted-foreground)' }}>
+                Ja
+              </p>
+            </div>
+          </button>
 
-          <div className="flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors hover:bg-muted">
-            <RadioButton
-              checked={selectedAnswer === 'nei'}
-              onClick={() => handleAnswerSelect('nei')}
-              label="Nei"
-              disabled={deviationsLocked}
-              className="w-full px-4"
-            />
-          </div>
+          {/* Nei */}
+          <button
+            onClick={() => handleAnswerSelect('nei')}
+            className="flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors hover:bg-muted"
+          >
+            <div className="flex gap-2 items-center justify-center w-full h-full">
+              <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors"
+                style={{
+                  borderColor: selectedAnswer === 'nei' ? 'var(--foreground)' : 'var(--border)',
+                }}
+              >
+                {selectedAnswer === 'nei' && (
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--foreground)' }}></div>
+                )}
+              </div>
+              <p className="body-large m-0" style={{ color: selectedAnswer === 'nei' ? 'var(--foreground)' : 'var(--muted-foreground)' }}>
+                Nei
+              </p>
+            </div>
+          </button>
 
-          <div className="flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors hover:bg-muted">
-            <RadioButton
-              checked={selectedAnswer === 'ikke-relevant'}
-              onClick={() => handleAnswerSelect('ikke-relevant')}
-              label="Ikke relevant"
-              disabled={deviationsLocked}
-              className="w-full px-4"
-            />
-          </div>
+          {/* Ikke relevant */}
+          <button
+            onClick={() => handleAnswerSelect('ikke-relevant')}
+            className="flex flex-col h-10 min-h-[40px] items-center justify-center flex-1 rounded-[var(--radius)] transition-colors hover:bg-muted"
+          >
+            <div className="flex gap-2 items-center justify-center w-full h-full">
+              <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors"
+                style={{
+                  borderColor: selectedAnswer === 'ikke-relevant' ? 'var(--foreground)' : 'var(--border)',
+                }}
+              >
+                {selectedAnswer === 'ikke-relevant' && (
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: 'var(--foreground)' }}></div>
+                )}
+              </div>
+              <p className="body-large m-0 whitespace-nowrap" style={{ color: selectedAnswer === 'ikke-relevant' ? 'var(--foreground)' : 'var(--muted-foreground)' }}>
+                Ikke relevant
+              </p>
+            </div>
+          </button>
         </div>
 
         {/* Tabs */}
-        <div className="content-stretch flex flex-col items-start shrink-0 w-full">
-          <div className="content-stretch cursor-pointer flex items-start shrink-0 w-full relative">
-            {getVisibleTabs().map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className="content-stretch flex flex-col h-[48px] items-center justify-center shrink-0 px-[16px] py-[14px] relative"
-              >
-                <div className="flex flex-col font-['Manrope:Medium',sans-serif] font-medium justify-center leading-[0] shrink-0 text-center text-nowrap tracking-[0.1px]" style={{
-                  fontSize: 'var(--text-sm)',
-                  color: activeTab === tab ? '#1a1c16' : '#44483b'
-                }}>
-                  <p className="leading-[20px] whitespace-pre m-0">
-                    {getTabLabel(tab)}
-                  </p>
-                </div>
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 h-[2px] left-0 right-0 bg-[#4a671e] z-10" data-name="Indicator" />
-                )}
-              </button>
-            ))}
-          </div>
-          <div className="content-stretch flex flex-col items-start justify-center shrink-0 w-full">
-            <div className="h-0 shrink-0 w-full relative">
-              <div className="absolute bottom-0 left-0 right-0 top-[-2px]">
-                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 622 2">
-                  <line stroke="#E3E3D9" strokeWidth="2" x2="622" y1="1" y2="1" />
-                </svg>
+        <div className="flex gap-4 border-b border-border">
+          <button
+            onClick={() => setActiveTab('egenvurderinger')}
+            className={`px-4 py-2 label-medium transition-colors relative ${
+              activeTab === 'egenvurderinger'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Egenvurderinger
+            {activeTab === 'egenvurderinger' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('observasjoner')}
+            className={`px-4 py-2 label-medium transition-colors relative ${
+              activeTab === 'observasjoner'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Observasjoner
+            {activeTab === 'observasjoner' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('avvik')}
+            className={`px-4 py-2 label-medium transition-colors relative ${
+              activeTab === 'avvik'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Avvik
+            {activeTab === 'avvik' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('notat')}
+            className={`px-4 py-2 label-medium transition-colors relative ${
+              activeTab === 'notat'
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Notat
+            {activeTab === 'notat' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-auto">
+        <div className="px-10 pt-6 pb-6">
+          {/* Tab Content */}
+          {activeTab === 'egenvurderinger' && (
+            <div>
+              <p className="body-medium text-muted-foreground mb-4">
+                Her kan du legge til egne vurderinger og kommentarer til spørsmålet.
+              </p>
+            </div>
+          )}
+
+          {activeTab === 'observasjoner' && (
+            <ObservationView
+              improvementText={savedData.improvementText || ''}
+              improvementImages={savedData.improvementImages || []}
+              positiveText={savedData.positiveText || ''}
+              positiveImages={savedData.positiveImages || []}
+              onImprovementTextChange={(text) => onUpdateData?.(questionId, { improvementText: text })}
+              onImprovementImagesChange={(images) => onUpdateData?.(questionId, { improvementImages: images })}
+              onPositiveTextChange={(text) => onUpdateData?.(questionId, { positiveText: text })}
+              onPositiveImagesChange={(images) => onUpdateData?.(questionId, { positiveImages: images })}
+            />
+          )}
+
+          {activeTab === 'avvik' && (
+            <DeviationListView
+              deviations={savedData.deviations || []}
+              onDeviationsChange={(deviations) => onUpdateData?.(questionId, { deviations })}
+              locked={deviationsLocked}
+            />
+          )}
+
+          {activeTab === 'notat' && (
+            <NotatView
+              notatText={savedData.notatText || ''}
+              onNotatChange={(text) => onUpdateData?.(questionId, { notatText: text })}
+            />
+          )}
+
+          {/* Attached Documents Section */}
+          {savedData.attachedDocuments && savedData.attachedDocuments.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="label-medium text-foreground">Vedlagte dokumenter</h3>
+              </div>
+              <div className="space-y-2">
+                {savedData.attachedDocuments.map((doc, index) => (
+                  <AttachedDocumentCard
+                    key={index}
+                    documentName={doc}
+                    onRemove={() => handleRemoveDocument(index)}
+                    onNavigate={() => onNavigateToDocument?.(index)}
+                  />
+                ))}
               </div>
             </div>
+          )}
+
+          {/* Add Documents Button */}
+          <div className="mt-6 relative">
+            <button
+              onClick={() => setShowDocumentsMenu(!showDocumentsMenu)}
+              className="border border-border text-foreground px-6 py-2.5 h-10 rounded-[var(--radius-button)] label-medium hover:bg-muted transition-colors"
+            >
+              Legg til dokument
+            </button>
+            {showDocumentsMenu && (
+              <DocumentsMenu
+                onClose={() => setShowDocumentsMenu(false)}
+                onSelectDocuments={handleAddDocuments}
+              />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Tab content - no separate scroll */}
-      <div className="px-[40px] pt-[12px] pb-6">
-        {/* When an answer is selected, show tab content */}
-        {selectedAnswer && (
-          <div className="max-w-2xl">
-            {activeTab === 'observasjoner' && selectedAnswer === 'ja' && (
-              <ProducerDocumentationView 
-                documentationText={savedData.improvementText}
-                onUpdate={(text) => onUpdateData?.(questionId, { improvementText: text })}
-              />
-            )}
-            {activeTab === 'observasjoner' && selectedAnswer === 'ikke-relevant' && (
-              <NotatView 
-                notatText={savedData.notatText}
-                onUpdate={(text) => onUpdateData?.(questionId, { notatText: text })}
-              />
-            )}
-            {activeTab === 'observasjoner' && selectedAnswer === 'nei' && (
-              <ObservationView 
-                improvementText={savedData.improvementText}
-                improvementImages={savedData.improvementImages}
-                positiveText={savedData.positiveText}
-                positiveImages={savedData.positiveImages}
-                onUpdate={(data) => onUpdateData?.(questionId, data)}
-              />
-            )}
-            {activeTab === 'avvik' && selectedAnswer === 'nei' && (
-              <ProducerDeviationView 
-                deviationText={savedData.deviations?.[0]?.text || ''}
-                deviationDeadline={savedData.deviations?.[0]?.deadline || ''}
-                onUpdate={(data) => onUpdateData?.(questionId, { 
-                  deviations: [{
-                    text: data.deviationText,
-                    deadline: data.deviationDeadline,
-                    type: 'producer'
-                  }]
-                })}
-                onDelete={() => onUpdateData?.(questionId, { deviations: [] })}
-              />
-            )}
-            {activeTab === 'avvik' && selectedAnswer !== 'nei' && (
-              <DeviationListView 
-                deviations={savedData.deviations}
-                onUpdate={(deviations) => onUpdateData?.(questionId, { deviations })}
-                showTrengerUtfylling={false}
-              />
-            )}
-            {activeTab === 'notat' && (
-              <NotatView 
-                notatText={savedData.notatText}
-                onUpdate={(text) => onUpdateData?.(questionId, { notatText: text })}
-              />
-            )}
-          </div>
-        )}
+      {/* Fixed Bottom Navigation */}
+      <div className="shrink-0 border-t border-border px-10 py-4 bg-background">
+        <div className="flex items-center justify-between gap-4">
+          {/* Previous Button */}
+          <button
+            onClick={handleNavigatePrevious}
+            disabled={!previousQuestionId}
+            className={`border border-border px-6 py-2.5 h-10 rounded-[var(--radius-button)] label-medium transition-colors ${
+              previousQuestionId
+                ? 'text-foreground hover:bg-muted'
+                : 'text-muted-foreground cursor-not-allowed opacity-50'
+            }`}
+          >
+            Forrige spørsmål
+          </button>
 
-        {/* When no answer is selected, show Notat content directly */}
-        {!selectedAnswer && (
-          <NotatView 
-            notatText={savedData.notatText}
-            onUpdate={(text) => onUpdateData?.(questionId, { notatText: text })}
-          />
-        )}
+          {/* Question Counter */}
+          <span className="body-medium text-muted-foreground">
+            Spørsmål {questionId}
+          </span>
+
+          {/* Next Button */}
+          <button
+            onClick={handleNavigateNext}
+            disabled={!nextQuestionId}
+            className={`px-6 py-2.5 h-10 rounded-[var(--radius-button)] label-medium transition-colors ${
+              nextQuestionId
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+            }`}
+          >
+            Neste spørsmål
+          </button>
+        </div>
       </div>
     </div>
   );
