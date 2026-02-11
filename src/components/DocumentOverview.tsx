@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import svgPaths from '../imports/svg-jn8ghpuyc1';
 import searchSvgPaths from '../imports/svg-fww0ywnfzv';
 import { Download, X, ChevronLeft } from 'lucide-react';
@@ -151,6 +151,23 @@ export function DocumentOverview({ initialSelectedIndex = null }: DocumentOvervi
   const [selectedAttachment, setSelectedAttachment] = useState<string | null>(null);
   // Mobile/Tablet state - true = showing menu, false = showing detail
   const [showingMenu, setShowingMenu] = useState(true);
+  
+  // Track if we're on desktop for attachment preview (≥1024px)
+  const [isDesktopView, setIsDesktopView] = useState(
+    typeof window !== 'undefined' && window.innerWidth >= 1024
+  );
+
+  // Update desktop view state on resize
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleResize = () => {
+      setIsDesktopView(window.innerWidth >= 1024);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Handler for navigating to detail with animation
   const handleNavigateToDetail = (docIndex: number) => {
@@ -237,6 +254,11 @@ export function DocumentOverview({ initialSelectedIndex = null }: DocumentOvervi
         {/* Detail content */}
         <div className="flex-1 overflow-y-auto">
           <div className="box-border content-stretch flex flex-col gap-4 items-start px-10 max-[1400px]:px-6 py-4 relative size-full">
+            {/* Document title - Mobile only (visible below Tilbake button) */}
+            <div className="min-[1400px]:hidden w-full mb-2">
+              <h2 className="title-large m-0 text-foreground">{documents[selectedDocIndex]}</h2>
+            </div>
+
             {/* Document badge */}
             <div className="content-stretch flex gap-2 items-center relative shrink-0 w-full">
               <div className="box-border content-stretch flex gap-1 h-12 items-center overflow-clip pl-0 pr-1 py-0 relative rounded-[8px] shrink-0">
@@ -521,7 +543,7 @@ export function DocumentOverview({ initialSelectedIndex = null }: DocumentOvervi
           </div>
 
           {/* Mobile/Tablet: Bottom Sheet */}
-          <Sheet open={!!selectedAttachment} onOpenChange={(open) => !open && setSelectedAttachment(null)}>
+          <Sheet open={!isDesktopView && !!selectedAttachment} onOpenChange={(open) => !open && setSelectedAttachment(null)}>
             <SheetContent side="bottom" className="min-[1024px]:hidden h-[90vh] p-0">
               <VisuallyHidden.Root>
                 <SheetTitle>Forhåndsvisning av vedlegg</SheetTitle>
@@ -529,12 +551,15 @@ export function DocumentOverview({ initialSelectedIndex = null }: DocumentOvervi
               </VisuallyHidden.Root>
               
               <div className="flex flex-col h-full">
-                {/* Header with title, download and close */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
-                  <div className="flex-1">
-                    <h3 className="title-large m-0" style={{ color: 'var(--foreground)' }}>{selectedAttachment}</h3>
+                {/* Header with title and close - restructured for mobile */}
+                <div className="flex flex-col gap-3 px-6 py-4 border-b border-[var(--border)]">
+                  {/* Title */}
+                  <div className="flex items-start">
+                    <h3 className="title-large m-0 flex-1 break-words" style={{ color: 'var(--foreground)' }}>{selectedAttachment}</h3>
                   </div>
-                  <div className="flex items-center gap-2">
+                  
+                  {/* Download button */}
+                  <div className="flex">
                     <Button
                       variant="secondary"
                       onClick={() => {
@@ -546,20 +571,14 @@ export function DocumentOverview({ initialSelectedIndex = null }: DocumentOvervi
                         link.click();
                         document.body.removeChild(link);
                       }}
+                      className="w-full"
                     >
                       <Download className="w-5 h-5" />
                       <span>Last ned</span>
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedAttachment(null)}
-                    >
-                      <X className="w-6 h-6" />
-                    </Button>
                   </div>
                 </div>
-
+                
                 {/* PDF Preview */}
                 <div className="flex-1 overflow-y-auto p-6">
                   <div className="w-full h-full border rounded-[var(--radius)] overflow-hidden" style={{ borderColor: 'var(--border)' }}>

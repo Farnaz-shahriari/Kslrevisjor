@@ -8,6 +8,10 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { formatNorwegianDate, formatNorwegianDateTime } from '../utils/dateFormat';
 import { RevisjonCard } from './RevisjonCard';
 import imgMap from "figma:asset/c0527853f7bdf08aa49e67977a1c1456feddc02b.png";
+import imgDebio from "figma:asset/ad6a9cba5bc5debb973519a0747d791024fa12b8.png";
+import MdiCow from "../imports/MdiCow";
+import MdiSheep from "../imports/MdiSheep";
+import IconParkOutlinePig from "../imports/IconParkOutlinePig";
 
 type TabType = 'revisjoner-samme-sted' | 'kontaktinformasjon' | 'ordninger' | 'brev' | 'varemottakere' | 'logg';
 
@@ -291,17 +295,67 @@ export function PlanleggRevisjonPage() {
           {/* Farm Name */}
           <div className="px-1 flex flex-col gap-2">
             <h2 className="title-medium text-foreground">Haugseter Gård</h2>
-            {/* KSL Ordning Chip */}
-            <div 
-              className="h-[32px] relative rounded-[8px] shrink-0 w-fit"
-              style={{ backgroundColor: '#4A671E' }}
-            >
-              <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
-                <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
-                  <div className="label-medium" style={{ color: '#FFFFFF' }}>
-                    <p>KSL</p>
+            
+            {/* Chips Row */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* KSL Ordning Chip */}
+              <div 
+                className="h-[32px] relative rounded-[8px] shrink-0 w-fit"
+                style={{ backgroundColor: '#4A671E' }}
+              >
+                <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                  <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                    <div className="label-medium" style={{ color: '#FFFFFF' }}>
+                      <p>KSL</p>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Debio Chip */}
+              <div className="h-[32px] relative rounded-[8px] shrink-0 w-fit">
+                <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                  <div className="content-stretch flex gap-2 h-[32px] items-center justify-center pl-2 pr-4 py-[6px] relative shrink-0">
+                    <div className="relative shrink-0 size-[18px]">
+                      <img alt="Debio" className="absolute inset-0 max-w-none object-cover pointer-events-none size-full" src={imgDebio} />
+                    </div>
+                    <span className="label-medium text-foreground whitespace-nowrap">Debio</span>
+                  </div>
+                </div>
+                <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
+              </div>
+
+              {/* DVP storfe Chip */}
+              <div className="h-[32px] relative rounded-[8px] shrink-0 w-fit">
+                <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                  <div className="content-stretch flex gap-2 h-[32px] items-center justify-center pl-2 pr-4 py-[6px] relative shrink-0">
+                    <MdiCow />
+                    <span className="label-medium text-[#44483b] whitespace-nowrap">DVP storfe</span>
+                  </div>
+                </div>
+                <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
+              </div>
+
+              {/* Helsegris Chip */}
+              <div className="h-[32px] relative rounded-[8px] shrink-0 w-fit">
+                <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                  <div className="content-stretch flex gap-2 h-[32px] items-center justify-center pl-2 pr-4 py-[6px] relative shrink-0">
+                    <IconParkOutlinePig />
+                    <span className="label-medium text-[#44483b] whitespace-nowrap">Helsegris</span>
+                  </div>
+                </div>
+                <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
+              </div>
+
+              {/* DVP sau Chip */}
+              <div className="h-[32px] relative rounded-[8px] shrink-0 w-fit">
+                <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                  <div className="content-stretch flex gap-2 h-[32px] items-center justify-center pl-2 pr-4 py-[6px] relative shrink-0">
+                    <MdiSheep />
+                    <span className="label-medium text-[#44483b] whitespace-nowrap">DVP sau</span>
+                  </div>
+                </div>
+                <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
               </div>
             </div>
           </div>
@@ -353,31 +407,43 @@ export function PlanleggRevisjonPage() {
         </div>
 
         {/* Revision Details Card - Right Section with Background - Fixed width and height on desktop, max 800px */}
-        <div className="w-full min-[1024px]:w-[360px] max-w-[800px] min-[1024px]:h-[480px] flex flex-col gap-2 p-3 rounded-[var(--radius-card)] border border-border shrink-0 relative min-[1024px]:overflow-y-auto" style={{ backgroundColor: '#fafaf0' }}>
+        <div className="w-full min-[1024px]:w-[360px] max-w-[800px] min-[1024px]:h-[480px] flex flex-col gap-2 p-4 rounded-[var(--radius-card)] border border-border shrink-0 relative min-[1024px]:overflow-y-auto" style={{ backgroundColor: '#fafaf0' }}>
           {/* Section Title */}
-          <div className="px-1">
+          <div>
             <h3 className="title-medium text-foreground">Revisjonstidspunkt</h3>
+            
+            {/* Revisor Outlined Chip */}
+            <div className="h-[32px] relative rounded-[8px] shrink-0 mt-2 w-fit">
+              <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                <div className="content-stretch flex h-[32px] items-center justify-center px-4 py-[6px] relative shrink-0">
+                  <span className="label-medium text-foreground whitespace-nowrap">
+                    Revisor
+                  </span>
+                </div>
+              </div>
+              <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
+            </div>
           </div>
 
           {revisionDate ? (
             <>
               {/* Filled State - Date and Time are set */}
-              <div className="flex flex-col gap-1 px-4 py-2">
+              <div className="flex flex-col gap-1">
                 <span className="label-small text-muted-foreground">Dato</span>
                 <span className="body-large text-foreground">{formatNorwegianDate(revisionDate)}</span>
               </div>
 
-              <div className="flex flex-col gap-1 px-4 py-2">
+              <div className="flex flex-col gap-1">
                 <span className="label-small text-muted-foreground">Tidspunkt</span>
                 <span className="body-large text-foreground">{revisionStartTime} til {revisionEndTime}</span>
               </div>
 
-              <div className="flex flex-col gap-1 px-4 py-2">
+              <div className="flex flex-col gap-1">
                 <span className="label-small text-muted-foreground">Andre revisorer på oppdraget</span>
                 <span className="body-large text-foreground">Geir Jakobsen, Medrevisor (Status: Akseptert)</span>
               </div>
 
-              <div className="flex flex-col gap-2 pt-2">
+              <div className="flex flex-col gap-2">
                 <Button 
                   variant="secondary" 
                   className="w-full"
@@ -397,7 +463,7 @@ export function PlanleggRevisjonPage() {
           ) : (
             <>
               {/* Empty State - No date/time set */}
-              <div className="flex flex-col gap-3 px-4 py-4">
+              <div className="flex flex-col gap-3">
                 <p className="body-large text-muted-foreground">
                   Det er ikke satt noe revisjonstidspunkt ennå.
                 </p>

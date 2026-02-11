@@ -19,6 +19,8 @@ interface PrivateNotesPanelDockableProps {
   savedNotes?: SavedNote[];
   onSaveNote?: (note: SavedNote) => void;
   onDeleteNote?: (noteId: string) => void;
+  panelWidth?: number;
+  onPanelWidthChange?: (width: number) => void;
 }
 
 interface MatchedQuestion {
@@ -28,7 +30,7 @@ interface MatchedQuestion {
   score: number;
 }
 
-export function PrivateNotesPanelDockable({ isOpen, onClose, onUpdateQuestionData, getQuestionData, savedNotes = [], onSaveNote, onDeleteNote }: PrivateNotesPanelDockableProps) {
+export function PrivateNotesPanelDockable({ isOpen, onClose, onUpdateQuestionData, getQuestionData, savedNotes = [], onSaveNote, onDeleteNote, panelWidth = 384, onPanelWidthChange }: PrivateNotesPanelDockableProps) {
   const [noteText, setNoteText] = useState('');
   const [isRelatedToDeviation, setIsRelatedToDeviation] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -59,7 +61,7 @@ export function PrivateNotesPanelDockable({ isOpen, onClose, onUpdateQuestionDat
   const [notesSearchQuery, setNotesSearchQuery] = useState('');
   
   // Panel width state (resizable from 400px minimum)
-  const [panelWidth, setPanelWidth] = useState(400);
+  const [currentPanelWidth, setCurrentPanelWidth] = useState(panelWidth);
   const [isResizing, setIsResizing] = useState(false);
   
   const recognitionRef = useRef<any>(null);
@@ -681,14 +683,73 @@ export function PrivateNotesPanelDockable({ isOpen, onClose, onUpdateQuestionDat
     }
   };
 
+  // Handle mouse down on resize handle
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  // Handle mouse move and mouse up for resizing
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      
+      // Constrain width between 20% and 50% of screen width
+      const minWidth = window.innerWidth * 0.20; // 20%
+      const maxWidth = window.innerWidth * 0.50; // 50%
+      
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setCurrentPanelWidth(constrainedWidth);
+      
+      // Call parent callback if provided
+      if (onPanelWidthChange) {
+        onPanelWidthChange(constrainedWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, onPanelWidthChange]);
+
   if (!isOpen) return null;
 
   // Desktop: Dockable Side Panel - Only render this version for desktop
   // The parent component wraps this in conditional rendering based on screen size
   return (
-    <div className="flex flex-col h-full bg-[var(--surface-container)] border-l border-border">
+    <div 
+      ref={panelRef}
+      className="flex flex-row h-full bg-surface-container-low border-l border-border relative"
+      style={{ width: `${currentPanelWidth}px` }}
+    >
+      {/* Resize Handle - Left Edge */}
+      <div
+        onMouseDown={handleMouseDown}
+        className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary transition-colors z-10 ${
+          isResizing ? 'bg-primary' : 'bg-transparent'
+        }`}
+        style={{
+          touchAction: 'none',
+        }}
+      >
+        {/* Wider invisible hit area for easier grabbing */}
+        <div className="absolute -left-1 -right-1 top-0 bottom-0" />
+      </div>
+
       {/* Content */}
-      {viewMode === 'create' ? renderNotesPanelContent() : renderNotesListView()}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {viewMode === 'create' ? renderNotesPanelContent() : renderNotesListView()}
+      </div>
     </div>
   );
 
@@ -715,9 +776,9 @@ export function PrivateNotesPanelDockable({ isOpen, onClose, onUpdateQuestionDat
   // Render notes list view
   function renderNotesListView() {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
-        {/* Top section with green button and close X */}
-        <div className="flex items-center justify-between px-6 py-4 shrink-0">
+      <div className="flex flex-col h-full overflow-hidden bg-surface-container-low">
+        {/* Top section with buttons side by side */}
+        <div className="flex flex-row items-center justify-between gap-4 px-6 py-4 shrink-0">
           {/* Green "Legg til nytt notat" button */}
           <Button 
             onClick={handleCreateNewNote}
@@ -727,19 +788,16 @@ export function PrivateNotesPanelDockable({ isOpen, onClose, onUpdateQuestionDat
             <span className="label-medium">Legg til nytt notat</span>
           </Button>
           
-          {/* Close button */}
+          {/* Close icon button */}
           <Button
             variant="ghost"
             size="icon"
             onClick={handleClose}
-            aria-label="Lukk"
+            aria-label="Lukk egne notater"
           >
-            <X className="w-6 h-6 text-foreground" />
+            <X className="w-6 h-6" />
           </Button>
         </div>
-
-        {/* Divider */}
-        <div className="h-px w-full bg-border shrink-0" />
 
         {/* Search and Filter Row */}
         <div className="flex items-center justify-between px-6 py-4 shrink-0">
@@ -939,7 +997,7 @@ export function PrivateNotesPanelDockable({ isOpen, onClose, onUpdateQuestionDat
     }
 
     return (
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-full overflow-hidden bg-surface-container-low">
         {/* Header */}
         <div className="shrink-0 px-6 pt-4 pb-2">
           {/* Navigation row */}

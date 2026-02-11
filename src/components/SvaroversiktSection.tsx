@@ -608,9 +608,15 @@ export function SvaroversiktSection({
 
       {/* Table and Detail Panel */}
       <div id="svaroversikt-container" className="flex flex-1 overflow-hidden w-full">
-        {/* Table */}
-        <div className="flex-1 overflow-auto border-r border-border relative">
-          <table className="w-full">
+        {/* List/Table Container - Changes layout based on whether detail is shown */}
+        <div 
+          className={`h-full flex flex-col relative ${
+            selectedQuestionId ? 'w-1/2' : 'flex-1'
+          }`}
+        >
+          <div className="flex-1 overflow-auto bg-background flex flex-col">
+            {/* Desktop Table - Shows on wide screens (≥1600px) or when detail panel is not shown, OR on tablet (768-1399px) */}
+            <table className={`w-full ${selectedQuestionId ? 'min-[1400px]:max-[1599px]:hidden max-[768px]:hidden' : 'max-[768px]:hidden'}`}>
             <thead className="bg-surface-container-low sticky top-0 z-10">
               <tr className="border-b border-border">
                 <th className="w-46 px-10 py-2 text-left bg-surface-container-low">
@@ -635,11 +641,13 @@ export function SvaroversiktSection({
                   onClick={() => {
                     setSelectedQuestionId(answer.id);
                     // Open bottom sheet on mobile/tablet
-                    setIsBottomSheetOpen(true);
+                    if (window.innerWidth < 1400) {
+                      setIsBottomSheetOpen(true);
+                    }
                   }}
                   className={`cursor-pointer border-b border-border transition-colors ${
                     selectedQuestionId === answer.id
-                      ? 'bg-accent'
+                      ? 'bg-secondary-container'
                       : 'hover:bg-muted'
                   }`}
                 >
@@ -685,6 +693,60 @@ export function SvaroversiktSection({
               ))}
             </tbody>
           </table>
+
+          {/* Condensed List - Shows on smaller screens when table would be too cramped */}
+          <div className={`flex flex-col ${selectedQuestionId ? 'min-[768px]:max-[1399px]:hidden min-[1600px]:hidden' : 'min-[768px]:hidden'}`}>
+            <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
+              <span className="label-medium text-foreground">Svar</span>
+            </div>
+            {filteredAnswers.map((answer) => (
+              <div
+                key={answer.id}
+                onClick={() => {
+                  setSelectedQuestionId(answer.id);
+                  // On mobile/tablet, open bottom sheet
+                  if (window.innerWidth < 1400) {
+                    setIsBottomSheetOpen(true);
+                  }
+                }}
+                className={`px-6 py-4 border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
+                  selectedQuestionId === answer.id ? 'bg-secondary-container' : ''
+                }`}
+              >
+                <div className="flex flex-col gap-2">
+                  {/* Line 1: Answer status with gap-1 */}
+                  <div className="flex flex-row items-center gap-1 flex-wrap">
+                    {selectedFilter === 'ubesvarte' ? (
+                      <div className="bg-[#f4f4ea] box-border flex items-center justify-center overflow-clip relative rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_1px_3px_1px_rgba(0,0,0,0.15)] shrink-0">
+                        <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
+                          <div className="relative shrink-0 w-[18px] h-[18px]">
+                            <div className="absolute inset-[8.333%]">
+                              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
+                                <path d={svgPathsChip.p1c3b4f80} fill="#BA1A1A" />
+                              </svg>
+                            </div>
+                          </div>
+                          <span className="label-medium text-foreground whitespace-nowrap">
+                            Trenger utfylling
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="label-small text-muted-foreground">
+                        Svar: {answer.answer}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Line 2: Question text */}
+                  <span className="body-medium text-foreground">
+                    {answer.id} {answer.questionText}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          </div>
           
           {/* Snackbar positioned at bottom of table */}
           {snackbarVisible && (
@@ -702,11 +764,10 @@ export function SvaroversiktSection({
           )}
         </div>
 
-        {/* Detail Panel - Desktop only */}
+        {/* DESKTOP: Detail Panel - Shows selected question at 50% width */}
         {selectedQuestion && selectedQuestionInfo && (
           <div 
-            className="bg-background flex flex-col overflow-hidden relative max-[1400px]:hidden"
-            style={{ width: `${panelWidth}px` }}
+            className="max-[1400px]:hidden w-1/2 h-full bg-background overflow-y-auto border-l border-[var(--border)]"
             onMouseEnter={() => setShowResizeHandle(true)}
             onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
           >

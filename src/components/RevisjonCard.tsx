@@ -35,6 +35,7 @@ interface RevisjonCardProps {
 
 export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }: RevisjonCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [avvikExpanded, setAvvikExpanded] = useState(false);
   const data = revisjon.revisjonData;
 
   // Get surface colors based on ordning - but DON'T apply theme class
@@ -212,17 +213,32 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
                 <div className="title-medium text-foreground">
                   <p>{revisjon.visitDate?.getDate()}. {revisjon.visitDate?.toLocaleString('default', { month: 'long' })} {revisjon.visitDate?.getFullYear()}, kl. {revisjon.visitTime?.split(' - ')[0]}</p>
                 </div>
-                {/* Ordning chip with theme colors */}
-                <div 
-                  className="h-[32px] relative rounded-[8px] shrink-0 mt-2"
-                  style={{ backgroundColor: chipColors.bg }}
-                >
-                  <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
-                    <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
-                      <div className="label-medium" style={{ color: chipColors.text }}>
-                        <p>{data.ordning}</p>
+                {/* Chips Row */}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  {/* Ordning chip with theme colors */}
+                  <div 
+                    className="h-[32px] relative rounded-[8px] shrink-0"
+                    style={{ backgroundColor: chipColors.bg }}
+                  >
+                    <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                      <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                        <div className="label-medium" style={{ color: chipColors.text }}>
+                          <p>{data.ordning}</p>
+                        </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Revisor/Medrevisor Outlined Chip */}
+                  <div className="h-[32px] relative rounded-[8px] shrink-0">
+                    <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                      <div className="content-stretch flex h-[32px] items-center justify-center px-4 py-[6px] relative shrink-0">
+                        <span className="label-medium text-foreground whitespace-nowrap">
+                          {revisjon.id === 'rev-2' || revisjon.id === 'rev-5' ? 'Medrevisor' : 'Revisor'}
+                        </span>
+                      </div>
+                    </div>
+                    <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
                   </div>
                 </div>
               </>
@@ -231,17 +247,32 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
                 <div className="title-medium text-foreground">
                   <p>Revisjonsfrist: {data.revisjonsfrist}</p>
                 </div>
-                {/* Ordning chip with theme colors */}
-                <div 
-                  className="h-[32px] relative rounded-[8px] shrink-0 mt-2"
-                  style={{ backgroundColor: chipColors.bg }}
-                >
-                  <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
-                    <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
-                      <div className="label-medium" style={{ color: chipColors.text }}>
-                        <p>{data.ordning}</p>
+                {/* Chips Row */}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  {/* Ordning chip with theme colors */}
+                  <div 
+                    className="h-[32px] relative rounded-[8px] shrink-0"
+                    style={{ backgroundColor: chipColors.bg }}
+                  >
+                    <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                      <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                        <div className="label-medium" style={{ color: chipColors.text }}>
+                          <p>{data.ordning}</p>
+                        </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Revisor/Medrevisor Outlined Chip */}
+                  <div className="h-[32px] relative rounded-[8px] shrink-0">
+                    <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                      <div className="content-stretch flex h-[32px] items-center justify-center px-4 py-[6px] relative shrink-0">
+                        <span className="label-medium text-foreground whitespace-nowrap">
+                          {revisjon.id === 'rev-2' || revisjon.id === 'rev-5' ? 'Medrevisor' : 'Revisor'}
+                        </span>
+                      </div>
+                    </div>
+                    <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
                   </div>
                 </div>
               </>
@@ -328,24 +359,6 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
                   </div>
                 </div>
               </div>
-              
-              {/* Avvik information - only show if avvik counts exist */}
-              {(data.avvikCount !== undefined && data.avvikCount > 0) && (
-                <div className="content-stretch flex flex-col items-start min-h-[72px] relative shrink-0 w-full">
-                  <div className="content-stretch flex gap-[16px] items-start py-[4px] relative shrink-0 w-full">
-                    <div className="content-stretch flex flex-[1_0_0] flex-col items-start min-h-px min-w-px overflow-clip relative">
-                      <div className="label-small text-muted-foreground">
-                        <p>Avvik</p>
-                      </div>
-                      <div className="body-large text-foreground">
-                        <p>{data.avvikCount} totalt</p>
-                        <p>{data.avvikOpen || 0} åpne</p>
-                        <p>{data.avvikClosed || 0} lukket</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
@@ -392,6 +405,170 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
           )}
         </div>
       </div>
+      
+      {/* Kort rapport section - only show when expanded and locked */}
+      {isExpanded && data.rapportLocked && (
+        <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-name="Kort rapport">
+          <div className="label-small text-muted-foreground mb-2">
+            <p>Kort rapport</p>
+          </div>
+          <div className="body-large text-foreground">
+            <p>
+              {revisjon.id === 'rev-1' 
+                ? 'Revisjonen ble gjennomført den 30. januar 2026. Gården viste god etterlevelse av regelverket innenfor de fleste områder. Det ble identifisert ett kritisk avvik knyttet til gjødselplan og lagringskapasitet, samt to mindre avvik relatert til dokumentasjon. Oppfølging er planlagt gjennom fysisk besøk og dokumentasjon.'
+                : revisjon.id === 'rev-2'
+                ? 'Under revisjonen ble det konstatert gode rutiner for dyrevelferd og fôrhåndtering. To avvik ble registrert i forbindelse med sporbarhet i produksjonsregistreringer. Bedriften har fått frist til 25. mars for å levere manglende dokumentasjon. Ingen kritiske avvik ble funnet.'
+                : revisjon.id === 'rev-3'
+                ? 'Revisjonen avdekket tilfredsstillende overholdelse av hygienekrav og driftsrutiner. Ett lite avvik ble notert vedrørende oppdatering av internkontrollsystemet. Bedriften har selv tatt ansvar for å lukke avviket innen fristen gjennom opplasting av dokumentasjon.'
+                : revisjon.id === 'rev-4'
+                ? 'Gården holder høy standard på produksjonslokaler og utstyr. Ett avvik ble registrert knyttet til lagring av plantevernmidler. Oppfølging vil skje gjennom digitalt besøk for å verifisere at tiltakene er gjennomført. Forventet lukking av avviket er satt til 15. april 2026.'
+                : 'Revisjonen viste god kontroll på nøkkelprosesser og sporbarhet. Det ble identifisert mindre forbedringspotensial innenfor dokumentasjonshåndtering. Alle avvik har lav alvorlighetsgrad og forventes lukket innen satt frist gjennom levering av oppdatert dokumentasjon.'
+              }
+            </p>
+          </div>
+        </div>
+      )}
+      
+      {/* Deviations section - only show when expanded and locked with deviations */}
+      {isExpanded && data.rapportLocked && (data.avvikCount !== undefined && data.avvikCount > 0) && (
+        <div className="content-stretch flex flex-col items-start relative shrink-0 w-full" data-name="Deviations">
+          {/* Avvik expandable header button */}
+          <button
+            onClick={() => setAvvikExpanded(!avvikExpanded)}
+            className="flex items-center gap-4 h-[56px] px-0 py-2 hover:bg-[rgba(0,0,0,0.05)] transition-colors cursor-pointer rounded-[var(--radius)] w-full"
+          >
+            {avvikExpanded ? (
+              <ChevronUp className="w-6 h-6 text-foreground" />
+            ) : (
+              <ChevronDown className="w-6 h-6 text-foreground" />
+            )}
+            <div className="label-small text-muted-foreground">
+              <p>Avvik ({(data.avvikOpen || 0) + 1})</p>
+            </div>
+          </button>
+          
+          {/* Deviation items - only show when expanded */}
+          {avvikExpanded && (() => {
+            const openCount = data.avvikOpen || 0;
+            const deviations = [];
+            
+            // Severity options for random generation
+            const severityOptions = [
+              { severity: 'kritisk', bg: '#ffdad6', color: '#410002', label: 'Kritisk' },
+              { severity: 'avvik', bg: '#fddcc9', color: '#4a2800', label: 'Avvik' },
+              { severity: 'lite-avvik', bg: '#fdeeb1', color: '#3d2c00', label: 'Lite avvik' }
+            ];
+            
+            // Questions pool for random selection
+            const questionPool = [
+              '1.2.1 – Har du en gyldig gjødslingsplan og skiftekart for året?',
+              '1.3.6 – Har du nok lagringskapasitet (min. 8 måneder)?',
+              '2.1.3 – Er produksjonsregistreringene oppdatert og korrekte?',
+              '2.4.2 – Er lagring av plantevernmidler i tråd med forskriftene?',
+              '3.2.1 – Er internkontrollsystemet oppdatert med siste revisjonsdato?',
+              '1.1.4 – Er avløpssystemet for husdyrgjødsel tilfredsstillende?',
+              '2.3.1 – Følger du kravene til sporbarhet i produksjonen?',
+              '3.1.2 – Er hygienekravene i produksjonslokaler oppfylt?'
+            ];
+            
+            // Status options for open deviations
+            const openStatusOptions = [
+              { status: 'Dokument levert', dot: '#ba1a1a' },
+              { status: 'Tidspunkt foreslått', dot: '#ba1a1a' },
+              { status: 'Venter på handling', dot: '#ba1a1a' }
+            ];
+            
+            // Deadlines pool
+            const deadlines = [
+              'Tirsdag 25. mars 2026',
+              'Lørdag 5. april 2026',
+              'Torsdag 13. mars 2026',
+              'Mandag 10. mars 2026',
+              'Fredag 28. mars 2026',
+              'Onsdag 2. april 2026'
+            ];
+            
+            // Generate open deviations
+            for (let i = 0; i < openCount; i++) {
+              const severityData = severityOptions[i % severityOptions.length];
+              const question = questionPool[i % questionPool.length];
+              const statusData = openStatusOptions[i % openStatusOptions.length];
+              const deadline = deadlines[i % deadlines.length];
+              
+              deviations.push(
+                <div key={`open-${i}`} className="w-full border-b border-[var(--border)] py-4">
+                  <div className="content-stretch flex flex-col gap-2 items-start relative shrink-0 w-full">
+                    {/* Badges row */}
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {/* Severity badge */}
+                      <div className="content-stretch flex gap-2 h-[33px] items-center px-3 relative rounded-xl shrink-0" style={{ backgroundColor: severityData.bg }}>
+                        <svg className="size-4" fill="none" viewBox="0 0 16 16">
+                          <path d="M1.33334 14.6667H14.6667L8.00001 2.66667L1.33334 14.6667ZM8.66668 12.6667H7.33334V11.3333H8.66668V12.6667ZM8.66668 10H7.33334V7.33333H8.66668V10Z" fill={severityData.color} />
+                        </svg>
+                        <span className="label-medium" style={{ color: severityData.color }}>{severityData.label}</span>
+                      </div>
+                      
+                      {/* Status badge */}
+                      <div className="flex gap-2 items-center">
+                        <div className="rounded-full size-2" style={{ backgroundColor: statusData.dot }} />
+                        <span className="label-medium text-foreground">{statusData.status}</span>
+                      </div>
+                      
+                      {/* Deadline */}
+                      <span className="label-small text-muted-foreground">Frist: {deadline}</span>
+                    </div>
+                    
+                    {/* Status text */}
+                    <p className="label-medium text-[#ba1a1a] tracking-[0.1px]">Avvik åpent</p>
+                    
+                    {/* Question text */}
+                    <p className="body-medium text-foreground">{question}</p>
+                  </div>
+                </div>
+              );
+            }
+            
+            // Add one closed deviation
+            const closedSeverity = severityOptions[openCount % severityOptions.length];
+            const closedQuestion = questionPool[(openCount + 1) % questionPool.length];
+            const closedDeadline = deadlines[(openCount + 1) % deadlines.length];
+            
+            deviations.push(
+              <div key="closed" className="w-full border-b border-[var(--border)] py-4">
+                <div className="content-stretch flex flex-col gap-2 items-start relative shrink-0 w-full">
+                  {/* Badges row */}
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {/* Severity badge */}
+                    <div className="content-stretch flex gap-2 h-[33px] items-center px-3 relative rounded-xl shrink-0" style={{ backgroundColor: closedSeverity.bg }}>
+                      <svg className="size-4" fill="none" viewBox="0 0 16 16">
+                        <path d="M1.33334 14.6667H14.6667L8.00001 2.66667L1.33334 14.6667ZM8.66668 12.6667H7.33334V11.3333H8.66668V12.6667ZM8.66668 10H7.33334V7.33333H8.66668V10Z" fill={closedSeverity.color} />
+                      </svg>
+                      <span className="label-medium" style={{ color: closedSeverity.color }}>{closedSeverity.label}</span>
+                    </div>
+                    
+                    {/* Status badge */}
+                    <div className="flex gap-2 items-center">
+                      <div className="bg-[#4a671e] rounded-full size-2" />
+                      <span className="label-medium text-foreground">Godkjent</span>
+                    </div>
+                    
+                    {/* Deadline */}
+                    <span className="label-small text-muted-foreground">Frist: {closedDeadline}</span>
+                  </div>
+                  
+                  {/* Status text */}
+                  <p className="label-medium text-foreground tracking-[0.1px]">Avvik lukket</p>
+                  
+                  {/* Question text */}
+                  <p className="body-medium text-foreground">{closedQuestion}</p>
+                </div>
+              </div>
+            );
+            
+            return deviations;
+          })()}
+        </div>
+      )}
       
       {/* Mobile layout - Action buttons first, then Vis mer at bottom */}
       <div className="md:hidden w-full flex flex-col">

@@ -112,17 +112,32 @@ export function TildeltRevisjonCard({ revisjon, onAccept, onReject }: TildeltRev
               <p>Akseptfrist: {formatNorwegianDate(revisjon.visitDate)}</p>
             </div>
             
-            {/* Ordning chip with theme colors */}
-            <div 
-              className="h-[32px] relative rounded-[8px] shrink-0 mt-2"
-              style={{ backgroundColor: chipColors.bg }}
-            >
-              <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
-                <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
-                  <div className="label-medium" style={{ color: chipColors.text }}>
-                    <p>{data.ordning}</p>
+            {/* Chips Row */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {/* Ordning chip with theme colors */}
+              <div 
+                className="h-[32px] relative rounded-[8px] shrink-0"
+                style={{ backgroundColor: chipColors.bg }}
+              >
+                <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                  <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                    <div className="label-medium" style={{ color: chipColors.text }}>
+                      <p>{data.ordning}</p>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Revisor/Medrevisor Outlined Chip */}
+              <div className="h-[32px] relative rounded-[8px] shrink-0">
+                <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                  <div className="content-stretch flex h-[32px] items-center justify-center px-4 py-[6px] relative shrink-0">
+                    <span className="label-medium text-foreground whitespace-nowrap">
+                      {['tildelt-2', 'tildelt-5', 'tildelt-1', 'tildelt-7', 'akseptert-3', 'akseptert-6'].includes(revisjon.id) ? 'Medrevisor' : 'Revisor'}
+                    </span>
+                  </div>
+                </div>
+                <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
               </div>
             </div>
           </div>

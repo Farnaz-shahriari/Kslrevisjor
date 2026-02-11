@@ -30,6 +30,10 @@ interface Deviation {
   requiresAction: boolean; // true when revisor needs to do something
   confirmationMethod: ConfirmationMethod;
   rejectedDocuments?: RejectedDocument[]; // Array of rejected documents for this specific avvik
+  extensionRequest?: {
+    requestedDate: Date;
+    reason: string;
+  };
 }
 
 interface Foretak {
@@ -75,7 +79,20 @@ const foretakList: Foretak[] = [
 export const allDeviations: Deviation[] = [
   // Action required - Kritisk severity
   { id: '1', severity: 'kritisk', foretakName: 'Solheim Gård', checklist: '1.1.1 – Oversikt over alle driftsmidler du har kjøpt og produkter du har solgt?', deadline: new Date(2025, 2, 15), status: 'tidspunkt-foreslatt', requiresAction: true, confirmationMethod: 'digitalt-besok' },
-  { id: '2', severity: 'kritisk', foretakName: 'Bjarki Økologiske', checklist: '1.3.5 – Har du kontrollert gjødsellageret de siste 12 månedene?', deadline: new Date(2025, 2, 20), status: 'onsker-fristforlengelse', requiresAction: true, confirmationMethod: 'fysisk-besok' },
+  { 
+    id: '2', 
+    severity: 'kritisk', 
+    foretakName: 'Bjarki Økologiske', 
+    checklist: '1.3.5 – Har du kontrollert gjødsellageret de siste 12 månedene?', 
+    deadline: new Date(2025, 2, 20), 
+    status: 'onsker-fristforlengelse', 
+    requiresAction: true, 
+    confirmationMethod: 'fysisk-besok',
+    extensionRequest: {
+      requestedDate: new Date(2025, 3, 5), // 16 days after deadline
+      reason: 'På grunn av uventet sykdom i familien har jeg ikke fått tid til å gjennomføre den nødvendige kontrollen av gjødsellageret. Jeg trenger ekstra tid for å kunne fullføre en grundig inspeksjon og dokumentere resultatene.'
+    }
+  },
   { id: '3', severity: 'kritisk', foretakName: 'Haugen Gård', checklist: '1.1.2 – En plan for håndtering eller tilbakekalling av helseskadelige produkter?', deadline: new Date(2025, 2, 18), status: 'besok-planlagt', requiresAction: false, confirmationMethod: 'digitalt-besok' },
   
   // Action required - Avvik severity
@@ -85,7 +102,20 @@ export const allDeviations: Deviation[] = [
   { id: '7', severity: 'avvik', foretakName: 'Haugen Gård', checklist: '1.3.6 – Har du nok lagringskapasitet (min. 8 måneder)?', deadline: new Date(2025, 3, 5), status: 'tidspunkt-foreslatt', requiresAction: true, confirmationMethod: 'fysisk-besok' },
   { id: '8', severity: 'avvik', foretakName: 'Bjarki Økologiske', checklist: '1.5.5 – Oppbevares plantevernmidler forsvarlig (avlåst, merket, og iht. etikettkrav)?', deadline: new Date(2025, 3, 8), status: 'dokument-levert', requiresAction: true, confirmationMethod: 'dokumentasjon' },
   { id: '9', severity: 'avvik', foretakName: 'Naturens Hjerte', checklist: '1.6.1 Følger du opplysningsplikten for meldepliktige skadegjørere og floghavre?', deadline: new Date(2025, 3, 10), status: 'besok-planlagt', requiresAction: false, confirmationMethod: 'digitalt-besok' },
-  { id: '10', severity: 'avvik', foretakName: 'Lund Gård', checklist: '1.2.2 – Noterer du gjødselmengdene som brukes?', deadline: new Date(2025, 3, 12), status: 'onsker-fristforlengelse', requiresAction: true, confirmationMethod: 'fysisk-besok' },
+  { 
+    id: '10', 
+    severity: 'avvik', 
+    foretakName: 'Lund Gård', 
+    checklist: '1.2.2 – Noterer du gjødselmengdene som brukes?', 
+    deadline: new Date(2025, 3, 12), 
+    status: 'onsker-fristforlengelse', 
+    requiresAction: true, 
+    confirmationMethod: 'fysisk-besok',
+    extensionRequest: {
+      requestedDate: new Date(2025, 4, 10), // 28 days after deadline
+      reason: 'Vi har hatt tekniske problemer med vårt dokumentasjonssystem, og en del data har gått tapt. Vi holder på å gjenopprette informasjonen fra sikkerhetskopier og trenger litt ekstra tid for å sikre at alle gjødselmengder er korrekt registrert.'
+    }
+  },
   { id: '11', severity: 'avvik', foretakName: 'Oreen Frukt', checklist: '1.5.4 – Oppfyller du krav til integrert plantevern, vannmiljøbeskyttelse og journalføring?', deadline: new Date(2025, 3, 15), status: 'avventer-dokumentasjon', requiresAction: false, confirmationMethod: 'dokumentasjon' },
   { id: '12', severity: 'avvik', foretakName: 'Skogsvann Organics', checklist: '1.3.4 – Ved spredning på åpen åker, moldes gjødsla ned innen 18 timer?', deadline: new Date(2025, 3, 18), status: 'besok-planlagt', requiresAction: false, confirmationMethod: 'digitalt-besok' },
   { id: '13', severity: 'avvik', foretakName: 'Bjarki Økologiske', checklist: '1.6.3 – Har du rutiner for bekjempelse og forebygging av floghavre?', deadline: new Date(2025, 3, 20), status: 'dokument-levert', requiresAction: true, confirmationMethod: 'dokumentasjon' },
@@ -250,9 +280,6 @@ export function AvvikoversiktPage() {
   const [selectedForetakId, setSelectedForetakId] = useState<string | null>('alle');
   const [selectedDeviationId, setSelectedDeviationId] = useState<string | null>(null);
   const [isDetailBottomSheetOpen, setIsDetailBottomSheetOpen] = useState(false);
-  const [panelWidth, setPanelWidth] = useState(520);
-  const [isResizing, setIsResizing] = useState(false);
-  const [showResizeHandle, setShowResizeHandle] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false); // New state for filter BottomSheet
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false); // New state for desktop advanced search panel visibility
   
@@ -269,6 +296,15 @@ export function AvvikoversiktPage() {
     statuses: [],
     foretak: []
   });
+
+  // State for resizable detail panel
+  const [detailPanelWidth, setDetailPanelWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth * 0.5; // Default to 50% of screen width
+    }
+    return 600;
+  });
+  const [isResizingDetail, setIsResizingDetail] = useState(false);
 
   // Handler to update deviation status
   const handleDeviationStatusUpdate = (deviationId: string, newStatus: StatusType) => {
@@ -414,6 +450,34 @@ export function AvvikoversiktPage() {
     });
   };
 
+  // Handle mouse move and mouse up for resizing detail panel
+  useEffect(() => {
+    if (!isResizingDetail) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      
+      // Constrain width between 30% and 70% of screen width
+      const minWidth = window.innerWidth * 0.30; // 30%
+      const maxWidth = window.innerWidth * 0.70; // 70%
+      
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setDetailPanelWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingDetail(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingDetail]);
+
   return (
     <div className="flex h-full w-full overflow-hidden flex-col bg-background">
       {/* Header with title and tabs */}
@@ -521,9 +585,9 @@ export function AvvikoversiktPage() {
           </div>
         )}
 
-        {/* Table Panel */}
-        <div className="flex-1 h-full flex flex-col max-[1400px]:w-full relative"
-          style={{ width: selectedDeviationId ? `calc(100% - ${panelWidth}px)` : '100%' }}
+        {/* Table Panel - Uses flex-1 to fill remaining space */}
+        <div 
+          className="h-full flex flex-col max-[1200px]:w-full flex-1 relative"
         >
           {/* Table content */}
           <div className="flex-1 overflow-auto bg-background flex flex-col">
@@ -536,23 +600,23 @@ export function AvvikoversiktPage() {
             />
             
             <div className="flex-1 overflow-auto">
-              <table className="w-full">
+              {/* Desktop Table - Shows on wide screens (≥1600px) or when detail panel is not shown, OR on tablet (768-1199px) */}
+              <table className={`w-full ${selectedDeviationId ? 'min-[1200px]:max-[1599px]:hidden max-[768px]:hidden' : 'max-[768px]:hidden'}`}>
                 <thead className="bg-surface-container-low sticky top-0 z-10">
                   <tr className="border-b border-[var(--border)]">
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium text-foreground">Alvorlighetsgrad</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium text-foreground">Produsent</span>
                     </th>
                     <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium text-foreground max-[768px]:hidden">Sjekklistespørsmål</span>
-                      <span className="label-medium text-foreground min-[768px]:hidden">Avvik</span>
+                      <span className="label-medium text-foreground">Sjekklistespørsmål</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium text-foreground">Oppfølging</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium text-foreground">Status</span>
                     </th>
                   </tr>
@@ -563,8 +627,8 @@ export function AvvikoversiktPage() {
                       key={deviation.id}
                       onClick={() => {
                         setSelectedDeviationId(deviation.id);
-                        // On mobile, open bottom sheet
-                        if (window.innerWidth < 1400) {
+                        // On mobile/tablet, open bottom sheet
+                        if (window.innerWidth < 1200) {
                           setIsDetailBottomSheetOpen(true);
                         }
                       }}
@@ -572,62 +636,82 @@ export function AvvikoversiktPage() {
                         selectedDeviationId === deviation.id ? 'bg-secondary-container' : ''
                       }`}
                     >
-                      {/* Desktop: Severity column */}
-                      <td className="px-6 py-4 max-[768px]:hidden">
+                      {/* Severity column */}
+                      <td className="px-6 py-4">
                         <SeverityBadge severity={deviation.severity} />
                       </td>
                       
-                      {/* Desktop: Producer column */}
-                      <td className="px-6 py-4 max-[768px]:hidden">
+                      {/* Producer column */}
+                      <td className="px-6 py-4">
                         <span className="body-medium text-foreground">{deviation.foretakName}</span>
                       </td>
                       
-                      {/* Responsive column - different content on mobile vs desktop */}
+                      {/* Checklist question column */}
                       <td className="px-6 py-4">
-                        {/* Desktop: Checklist question only */}
-                        <span className="body-medium text-foreground max-[768px]:hidden">
+                        <span className="body-medium text-foreground">
                           {deviation.checklist}
                         </span>
-                        
-                        {/* Mobile: Condensed two-line format */}
-                        <div className="flex flex-col gap-2 min-[768px]:hidden">
-                          {/* Line 1: Chips and badges with gap-1 */}
-                          <div className="flex flex-row items-center gap-1 flex-wrap">
-                            <SeverityBadge severity={deviation.severity} />
-                            <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
-                            <span className="label-small text-muted-foreground">
-                              Frist: {formatNorwegianDate(deviation.deadline)}
-                            </span>
-                          </div>
-                          
-                          {/* Line 2: Producer and checklist */}
-                          <div className="flex flex-col gap-0.5">
-                            <span className="body-medium text-foreground">
-                              {deviation.foretakName}
-                            </span>
-                            <span className="body-medium text-foreground">
-                              {deviation.checklist}
-                            </span>
-                          </div>
-                        </div>
                       </td>
                       
-                      {/* Desktop: Follow-up column */}
-                      <td className="px-6 py-4 max-[768px]:hidden">
+                      {/* Follow-up column */}
+                      <td className="px-6 py-4">
                         <div className="flex flex-col gap-0.5">
                           <span className="body-medium text-foreground">{getConfirmationMethodLabel(getConfirmationMethod(deviation))}</span>
                           <span className="label-small text-muted-foreground">Frist: {formatNorwegianDate(deviation.deadline)}</span>
                         </div>
                       </td>
                       
-                      {/* Desktop: Status column */}
-                      <td className="px-6 py-4 max-[768px]:hidden">
+                      {/* Status column */}
+                      <td className="px-6 py-4">
                         <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
+              {/* Condensed List View - Shows on mobile (<768px) OR on desktop when detail panel is open and screen is narrow (1200-1599px) */}
+              <div className={`flex flex-col ${selectedDeviationId ? 'min-[768px]:max-[1199px]:hidden min-[1600px]:hidden' : 'min-[768px]:hidden'}`}>
+                <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
+                  <span className="label-medium text-foreground">Avvik</span>
+                </div>
+                {displayedDeviations.map((deviation) => (
+                  <div
+                    key={deviation.id}
+                    onClick={() => {
+                      setSelectedDeviationId(deviation.id);
+                      // On mobile/tablet, open bottom sheet
+                      if (window.innerWidth < 1200) {
+                        setIsDetailBottomSheetOpen(true);
+                      }
+                    }}
+                    className={`px-6 py-4 border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
+                      selectedDeviationId === deviation.id ? 'bg-secondary-container' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col gap-2">
+                      {/* Line 1: Chips and badges with gap-1 */}
+                      <div className="flex flex-row items-center gap-1 flex-wrap">
+                        <SeverityBadge severity={deviation.severity} />
+                        <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
+                        <span className="label-small text-muted-foreground">
+                          Frist: {formatNorwegianDate(deviation.deadline)}
+                        </span>
+                      </div>
+                      
+                      {/* Line 2: Producer */}
+                      <span className="body-medium text-foreground">
+                        {deviation.foretakName}
+                      </span>
+                      
+                      {/* Line 3: Checklist question */}
+                      <span className="body-medium text-foreground">
+                        {deviation.checklist}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
               {/* Empty state */}
               {displayedDeviations.length === 0 && (
@@ -639,30 +723,38 @@ export function AvvikoversiktPage() {
           </div>
         </div>
 
-        {/* Resize Handle - Desktop only, visible when deviation is selected */}
-        {selectedDeviationId && (
-          <div
-            className="max-[1400px]:hidden relative w-1 bg-border cursor-col-resize hover:bg-primary transition-colors flex-shrink-0"
-            onMouseEnter={() => setShowResizeHandle(true)}
-            onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
-          >
-            {showResizeHandle && (
-              <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-1 bg-primary" />
-            )}
-          </div>
-        )}
-
-        {/* DESKTOP: Detail Panel - Shows selected deviation */}
+        {/* DESKTOP: Detail Panel - Shows selected deviation with resizable width */}
         {selectedDeviationId && (
           <div 
-            className="max-[1400px]:hidden h-full bg-background overflow-hidden flex flex-col"
-            style={{ width: `${panelWidth}px` }}
+            className="max-[1200px]:hidden h-full bg-background overflow-hidden flex flex-row relative"
+            style={{ width: `${detailPanelWidth}px` }}
           >
-            <DeviationDetailPanel 
-              deviation={deviations.find(d => d.id === selectedDeviationId)!} 
-              onStatusUpdate={handleDeviationStatusUpdate}
-              onAddRejectedDocuments={handleAddRejectedDocuments}
-            />
+            {/* Resize Handle - Left Edge */}
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setIsResizingDetail(true);
+              }}
+              className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary transition-colors z-10 ${
+                isResizingDetail ? 'bg-primary' : 'bg-transparent'
+              }`}
+              style={{
+                touchAction: 'none',
+              }}
+            >
+              {/* Wider invisible hit area for easier grabbing */}
+              <div className="absolute -left-1 -right-1 top-0 bottom-0" />
+            </div>
+
+            {/* Detail Panel Content */}
+            <div className="flex-1 flex flex-col border-l border-[var(--border)]">
+              <DeviationDetailPanel 
+                deviation={deviations.find(d => d.id === selectedDeviationId)!} 
+                onStatusUpdate={handleDeviationStatusUpdate}
+                onAddRejectedDocuments={handleAddRejectedDocuments}
+                onClose={() => setSelectedDeviationId(null)}
+              />
+            </div>
           </div>
         )}
       </div>
@@ -670,7 +762,7 @@ export function AvvikoversiktPage() {
       {/* Floating Action Button (FAB) - Mobile/Tablet only */}
       <button
         onClick={() => setIsFilterSheetOpen(true)}
-        className="min-[1400px]:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center z-50"
+        className="min-[1200px]:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center z-50"
         aria-label="Filtrer"
       >
         <SlidersHorizontal className="w-6 h-6" />

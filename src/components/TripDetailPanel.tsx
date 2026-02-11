@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { RadioButton } from './ui/radio-button';
-import { AlertTriangle, Info, Trash2 } from 'lucide-react';
+import { AlertTriangle, Info, Trash2, X } from 'lucide-react';
 import { TextInputWithIcon } from './ui/text-input-with-icon';
 import { NumberInputWithIcon } from './ui/number-input-with-icon';
 import { TimePickerWithIcon } from './ui/time-picker-with-icon';
@@ -26,6 +26,7 @@ interface TripDetailPanelProps {
   onSave?: () => void; // Called when trip is saved (type + date selected)
   onDelete?: () => void; // Called when user wants to delete the trip
   isSaved?: boolean; // Whether the trip has been saved
+  onClose?: () => void; // Called when user clicks close button
 }
 
 // Mock revision database - past month revisions
@@ -350,7 +351,7 @@ export const MOCK_REVISIONS: Revision[] = [
   }
 ];
 
-export function TripDetailPanel({ trip, onUpdate, onSave, onDelete, isSaved }: TripDetailPanelProps) {
+export function TripDetailPanel({ trip, onUpdate, onSave, onDelete, isSaved, onClose }: TripDetailPanelProps) {
   // Auto-detect trip type based on dates
   const autoDetectedTripType: TripType = useMemo(() => {
     if (!trip.startDate || !trip.endDate) return null;
@@ -580,15 +581,27 @@ export function TripDetailPanel({ trip, onUpdate, onSave, onDelete, isSaved }: T
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background">
+      {/* Header with title and close button - only show when onClose is provided */}
+      {onClose && (
+        <div className="flex items-center justify-between px-6 pt-4 pb-2 sticky top-0 bg-background z-10 border-b border-[var(--border)]">
+          <h2 className="title-large text-foreground">
+            Reise {trip.tripNumber}
+          </h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            aria-label="Lukk panel"
+          >
+            <X className="w-6 h-6" />
+          </Button>
+        </div>
+      )}
+
       {/* Content */}
       <div className="flex flex-col gap-2 p-6">
         {/* ===== GENERAL INFO SECTION ===== */}
         <div className="flex flex-col gap-2">
-          {/* Title */}
-          <h2 className="title-large text-foreground">
-            Reise {trip.tripNumber}
-          </h2>
-          
           {/* Status Chip - Only show "Ny reise" when creating (not yet saved) */}
           {trip.id.startsWith('new-') && !isSaved && (
             <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#dae2ff] self-start">

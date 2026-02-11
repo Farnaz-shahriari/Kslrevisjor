@@ -958,24 +958,10 @@ export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], on
 
         {/* MOBILE/TABLET & DESKTOP: Main Content Area */}
         <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full`}>
-          {/* Back button - visible only on mobile/tablet */}
-          {!showingMenu && (
-            <div className="px-6 pt-4 pb-2 min-[1400px]:hidden">
-              <button
-                onClick={handleBackToMenu}
-                className="flex items-center gap-2 label-large text-foreground hover:opacity-70 transition-opacity"
-                aria-label="Tilbake til søk"
-              >
-                <ChevronLeft className="w-5 h-5" />
-                Tilbake
-              </button>
-            </div>
-          )}
-
-          {/* Main content */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 pr-10 min-[1500px]:pr-[200px]">
+          {/* Detail content */}
+          <div className="flex-1 overflow-y-auto px-6 max-[900px]:px-4">
             {/* Sorting and Bulk Actions Bar */}
-            <div className="flex items-center justify-between gap-4 py-0 mb-6 flex-wrap max-w-[1040px]">
+            <div className="flex items-center justify-between gap-4 py-6 mb-0 flex-wrap max-w-[1040px]">
               {/* LEFT GROUP: View toggle */}
               <div className="flex items-center gap-4 flex-wrap">
                 {/* View Mode Toggle */}

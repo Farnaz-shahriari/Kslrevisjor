@@ -1,8 +1,11 @@
-import { ChevronDown, ChevronRight, Plus, AlertTriangle, FileText, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, AlertTriangle, FileText, Search, X, ChevronLeft, Check } from 'lucide-react';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { questionsData, MainCategory, QuestionGroup } from '../data/questions';
 import svgPathsPending from '../imports/svg-fq63idszfj';
 import svgPathsDone from '../imports/svg-492gvby77f';
+import { Switch } from './ui/switch';
+import { QuestionListDropdown } from './QuestionListDropdown';
+import { DividerWithSubtitle } from './ui/divider-with-subtitle';
 
 interface LeftSidebarProps {
   currentQuestionId: string;
@@ -11,6 +14,8 @@ interface LeftSidebarProps {
   questionsWithDeviations?: Set<string>;
   manuallyAddedQuestions?: Set<string>;
   manuallyRemovedQuestions?: Set<string>;
+  onAddQuestionToRegister?: (questionId: string) => void;
+  onRemoveQuestionFromRegister?: (questionId: string) => void;
 }
 
 export function LeftSidebar({ 
@@ -19,7 +24,9 @@ export function LeftSidebar({
   answeredQuestions = new Set(), 
   questionsWithDeviations = new Set(),
   manuallyAddedQuestions = new Set(),
-  manuallyRemovedQuestions = new Set()
+  manuallyRemovedQuestions = new Set(),
+  onAddQuestionToRegister,
+  onRemoveQuestionFromRegister
 }: LeftSidebarProps) {
   const [expandedMainCategories, setExpandedMainCategories] = useState<Set<string>>(
     new Set(['category-1'])
@@ -30,9 +37,13 @@ export function LeftSidebar({
   const [hoveredQuestionId, setHoveredQuestionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const [showOnlyUnanswered, setShowOnlyUnanswered] = useState<boolean>(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
+  const [isAddMode, setIsAddMode] = useState<boolean>(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const selectedQuestionRef = useRef<HTMLDivElement>(null);
+  const dropdownButtonRef = useRef<HTMLDivElement>(null);
 
   const mainCategories = questionsData;
 
@@ -46,8 +57,27 @@ export function LeftSidebar({
     '1.8.2'
   ]), []);
 
+  // Create a Set of all question IDs that exist in Register Revisjon (questionsData)
+  const questionsInRegisterRevisjon = useMemo(() => {
+    const questionIds = new Set<string>();
+    questionsData.forEach(category => {
+      category.questionGroups.forEach(group => {
+        group.questions.forEach(question => {
+          questionIds.add(question.id);
+        });
+      });
+    });
+    return questionIds;
+  }, []);
+
   // Helper function to determine if a question should be shown in Register Revisjon
   const shouldShowQuestion = (questionId: string): boolean => {
+    // In add mode, show ALL questions
+    if (isAddMode) {
+      return true;
+    }
+    
+    // In normal mode, only show questions that are added to the register
     // Focus area questions are always shown
     if (focusAreaQuestions.has(questionId)) {
       return true;
@@ -65,6 +95,47 @@ export function LeftSidebar({
     
     // Otherwise show (it's in the original questionsData)
     return true;
+  };
+
+  // Function to get the partOfBasis status for a question (used in add mode)
+  const getPartOfBasisStatus = (questionId: string): 'added' | 'focus' | 'not-added' => {
+    // First check if it's a focus area question (always included, cannot be removed)
+    if (focusAreaQuestions.has(questionId)) {
+      return 'focus';
+    }
+    
+    // Check if manually removed
+    if (manuallyRemovedQuestions.has(questionId)) {
+      return 'not-added';
+    }
+    
+    // Check if manually added
+    if (manuallyAddedQuestions.has(questionId)) {
+      return 'added';
+    }
+    
+    // Check if it exists in the original Register Revisjon data
+    if (questionsInRegisterRevisjon.has(questionId)) {
+      return 'added';
+    }
+    
+    // Otherwise, it's not added
+    return 'not-added';
+  };
+
+  // Wrapper to prevent removing focus area questions
+  const handleRemoveQuestion = (questionId: string) => {
+    if (!onRemoveQuestionFromRegister) return;
+    // Don't allow removing focus area questions
+    if (focusAreaQuestions.has(questionId)) {
+      return;
+    }
+    onRemoveQuestionFromRegister(questionId);
+  };
+
+  const handleAddQuestion = (questionId: string) => {
+    if (!onAddQuestionToRegister) return;
+    onAddQuestionToRegister(questionId);
   };
 
   // Find which group contains the current question
@@ -195,33 +266,56 @@ export function LeftSidebar({
         questions: group.questions.filter(q => shouldShowQuestion(q.id))
       })).filter(group => group.questions.length > 0) // Remove empty groups
     })).filter(category => category.questionGroups.length > 0); // Remove empty categories
-  }, [mainCategories, manuallyAddedQuestions, manuallyRemovedQuestions]);
+  }, [mainCategories, manuallyAddedQuestions, manuallyRemovedQuestions, isAddMode]);
 
-  // Then filter categories based on search query
+  // Then filter categories based on search query and unanswered filter
   const filteredCategories = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return baseFilteredCategories;
+    let categories = baseFilteredCategories;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      
+      categories = categories.map(category => {
+        const filteredGroups = category.questionGroups.map(group => {
+          const filteredQuestions = group.questions.filter(question => {
+            const questionText = `${question.id} ${question.title}`.toLowerCase();
+            return questionText.includes(query);
+          });
+
+          return filteredQuestions.length > 0
+            ? { ...group, questions: filteredQuestions }
+            : null;
+        }).filter(Boolean) as QuestionGroup[];
+
+        return filteredGroups.length > 0
+          ? { ...category, questionGroups: filteredGroups }
+          : null;
+      }).filter(Boolean) as MainCategory[];
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    
-    return baseFilteredCategories.map(category => {
-      const filteredGroups = category.questionGroups.map(group => {
-        const filteredQuestions = group.questions.filter(question => {
-          const questionText = `${question.id} ${question.title}`.toLowerCase();
-          return questionText.includes(query);
-        });
+    // Apply unanswered filter
+    if (showOnlyUnanswered) {
+      categories = categories.map(category => {
+        const filteredGroups = category.questionGroups.map(group => {
+          const filteredQuestions = group.questions.filter(question => {
+            const isAnswered = question.isAnswered || answeredQuestions.has(question.id);
+            return !isAnswered; // Only show unanswered questions
+          });
 
-        return filteredQuestions.length > 0
-          ? { ...group, questions: filteredQuestions }
+          return filteredQuestions.length > 0
+            ? { ...group, questions: filteredQuestions }
+            : null;
+        }).filter(Boolean) as QuestionGroup[];
+
+        return filteredGroups.length > 0
+          ? { ...category, questionGroups: filteredGroups }
           : null;
-      }).filter(Boolean) as QuestionGroup[];
+      }).filter(Boolean) as MainCategory[];
+    }
 
-      return filteredGroups.length > 0
-        ? { ...category, questionGroups: filteredGroups }
-        : null;
-    }).filter(Boolean) as MainCategory[];
-  }, [baseFilteredCategories, searchQuery]);
+    return categories;
+  }, [baseFilteredCategories, searchQuery, showOnlyUnanswered, answeredQuestions]);
 
   // Pending Icon Component
   const PendingIcon = () => (
@@ -248,30 +342,88 @@ export function LeftSidebar({
       style={{ minWidth: '400px', width: '400px' }}
     >
       {/* Header - Fixed */}
-      <div className="shrink-0 p-4 border-b border-border">
-        <div className="flex gap-4 items-start w-full">
+      <div className="shrink-0 px-4 pt-4 pb-1 border-b border-border">
+        <div className="flex flex-col gap-1 w-full">
+          <div className="flex gap-4 items-start w-full">
           {!isSearchOpen ? (
             <>
-              {/* Search Button */}
-              <div className="flex-1">
-                <button 
-                  onClick={handleOpenSearch}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-4 border border-border rounded-[100px] hover:bg-muted transition-colors"
-                >
-                  <Search className="w-6 h-6" />
-                  <span className="label-large">Søk i sjekklistespørsmål</span>
-                </button>
-              </div>
-              
-              {/* Add Question Button */}
-              <div className="shrink-0">
-                <button className="flex items-center justify-center w-14 h-14 rounded-[100px] border border-border hover:bg-muted transition-colors">
-                  <Plus className="w-6 h-6" />
-                </button>
-              </div>
+              {/* Normal Mode - Search and Plus Button */}
+              {!isAddMode ? (
+                <>
+                  {/* Search Button */}
+                  <div className="flex-1">
+                    <button 
+                      onClick={handleOpenSearch}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-4 border border-border rounded-[100px] hover:bg-muted transition-colors"
+                    >
+                      <Search className="w-6 h-6" />
+                      <span className="label-large">Søk i sjekklistespørsmål</span>
+                    </button>
+                  </div>
+                  
+                  {/* Add Question Button */}
+                  {onAddQuestionToRegister && onRemoveQuestionFromRegister && (
+                    <div className="shrink-0">
+                      <button 
+                        onClick={() => setIsAddMode(true)}
+                        className="flex items-center justify-center w-14 h-14 rounded-[100px] border border-border hover:bg-muted transition-colors"
+                      >
+                        <Plus className="w-6 h-6" />
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Add Mode - Back Button, Title, and Search */
+                <div className="flex-1 flex flex-col gap-4">
+                  {/* Title with Cancel Button */}
+                  <div className="flex items-center gap-4 px-2">
+                    <h3 className="title-medium flex-1">Legg til spørsmål i revisjonen</h3>
+                    <button 
+                      onClick={() => setIsAddMode(false)}
+                      className="flex items-center justify-center w-14 h-14 rounded-[100px] border border-border hover:bg-muted transition-colors"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  {/* Search Box */}
+                  <div className="bg-[#e9e9df] flex gap-1 w-full h-14 items-center rounded-[28px] px-1">
+                    {/* Leading icon */}
+                    <div className="flex items-center justify-center shrink-0 w-12 h-12">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full">
+                        <Search className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    </div>
+                    
+                    {/* Input field */}
+                    <div className="flex-1 min-w-0">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Søk i sjekklistespørsmål"
+                        className="w-full bg-transparent border-none outline-none body-large text-foreground placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    
+                    {/* Clear button - only show when there's text */}
+                    {searchQuery && (
+                      <div className="flex items-center justify-center shrink-0 w-12 h-12">
+                        <button 
+                          onClick={() => setSearchQuery('')}
+                          className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-muted/50 transition-colors"
+                        >
+                          <X className="w-6 h-6 text-muted-foreground" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
-            /* Search Input - Full Width */
+            /* Search Input - Full Width (Normal Mode) */
             <div ref={searchContainerRef} className="flex-1">
               <div className="bg-[#e9e9df] flex gap-1 w-full h-14 items-center rounded-[28px] px-1">
                 {/* Leading icon */}
@@ -305,154 +457,247 @@ export function LeftSidebar({
               </div>
             </div>
           )}
+          </div>
+
+          {/* Filter: Show only unanswered questions - Only show in normal mode */}
+          {!isAddMode && (
+            <div className="flex items-center gap-4 px-4 py-1">
+              <Switch
+                checked={showOnlyUnanswered}
+                onCheckedChange={setShowOnlyUnanswered}
+              />
+              <span className="label-large text-foreground">Vis kun ubesvarte</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Navigation Content */}
       <div className="flex-1 overflow-y-auto p-4 scrollable-sidebar">
-        {/* Main Categories */}
-        {filteredCategories.map((category) => (
-          <div key={category.id} className="mb-4">
-            {/* Level 1: Main Category */}
-            <button
-              onClick={() => toggleMainCategory(category.id)}
-              className={`w-full flex items-start gap-3 p-2 rounded-[var(--radius)] text-left transition-colors mb-2 ${
-                category.id === 'category-1' ? 'hover:bg-muted' : 'cursor-default'
-              }`}
-            >
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                <span className="label-medium">{category.number === 0 ? 'KSL' : category.number}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-muted-foreground label-medium">{getCategoryProgress(category)}</p>
-                <p className="mt-0.5 body-large">{category.title}</p>
-              </div>
-              {category.id === 'category-1' && (
-                <div className="shrink-0 mt-1">
-                  {expandedMainCategories.has(category.id) ? (
-                    <ChevronDown className="w-5 h-5" />
-                  ) : (
-                    <ChevronRight className="w-5 h-5" />
-                  )}
-                </div>
-              )}
-            </button>
-
-            {/* Level 2: Question Groups */}
-            {expandedMainCategories.has(category.id) && (
-              <div className="ml-3 space-y-2">
-                {category.questionGroups.map((group) => {
-                  const groupInfo = findGroupForQuestion(currentQuestionId);
-                  const isCurrentGroup = groupInfo && groupInfo.groupId === group.id;
-                  const cannotCollapse = isCurrentGroup && expandedQuestionGroups.has(group.id);
-                  
-                  return (
+        {isAddMode ? (
+          /* Add Mode - Flat list with dividers, no collapsing */
+          <div className="space-y-4">
+            {filteredCategories.map((category) => (
+              <div key={category.id}>
+                {category.questionGroups.map((group, groupIndex) => (
                   <div key={group.id}>
-                    <button
-                      onClick={() => toggleQuestionGroup(group.id)}
-                      className={`w-full flex items-center gap-2 p-2 rounded-[var(--radius)] text-left transition-colors ${
-                        cannotCollapse ? 'cursor-default' : 'hover:bg-muted'
-                      }`}
-                      title={cannotCollapse ? 'Kan ikke lukke gruppen som inneholder valgt spørsmål' : ''}
-                    >
-                      {/* Status Icon for Question Group */}
-                      <div className="shrink-0">
-                        {isGroupComplete(group) ? <DoneIcon /> : <PendingIcon />}
-                      </div>
-                      <span className="flex-1 min-w-0 text-ellipsis overflow-hidden">
-                        {group.title}
-                      </span>
-                      <div className="shrink-0">
-                        {expandedQuestionGroups.has(group.id) ? (
-                          <ChevronDown className={`w-4 h-4 ${cannotCollapse ? 'opacity-50' : ''}`} />
-                        ) : (
-                          <ChevronRight className="w-4 h-4" />
+                    {/* Group Divider with Subtitle */}
+                    <DividerWithSubtitle 
+                      subtitle={`${group.id.split('-').pop()} ${group.title}`}
+                      className="mb-3 mt-6 first:mt-0"
+                    />
+
+                    {/* Questions - Flat list, no nesting */}
+                    <div className="space-y-1">
+                      {group.questions.map((question) => {
+                        const basisStatus = getPartOfBasisStatus(question.id);
+                        const isFocus = basisStatus === 'focus';
+                        const isAdded = basisStatus === 'added';
+                        const isNotAdded = basisStatus === 'not-added';
+                        
+                        return (
+                          <div key={question.id} className="w-full flex items-start gap-2 p-3 rounded-[12px] transition-colors">
+                            {/* Question Text - Full text, no truncation */}
+                            <div className="flex-1 min-w-0">
+                              <p className="body-large">
+                                {question.id} {question.title}
+                              </p>
+                            </div>
+
+                            {/* Add/Remove Chips */}
+                            <div className="shrink-0 mt-0.5">
+                              {isFocus ? (
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295]">
+                                  <span className="label-medium">
+                                    Fokusområde
+                                  </span>
+                                </div>
+                              ) : isAdded ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveQuestion(question.id);
+                                  }}
+                                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295] hover:bg-[#c5d5ff] transition-colors cursor-pointer"
+                                  title="Klikk for å fjerne fra Register Revisjon"
+                                >
+                                  <Check size={18} />
+                                  <span className="label-medium">
+                                    Lagt til
+                                  </span>
+                                </button>
+                              ) : isNotAdded ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddQuestion(question.id);
+                                  }}
+                                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] border border-[var(--border)] hover:bg-muted transition-colors cursor-pointer"
+                                  title="Klikk for å legge til i Register Revisjon"
+                                >
+                                  <Plus size={18} className="text-foreground" />
+                                  <span className="label-medium text-foreground">
+                                    Legg til
+                                  </span>
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Normal Mode - Collapsible hierarchy */
+          <>
+            {filteredCategories.map((category) => (
+              <div key={category.id} className="mb-4">
+                {/* Level 1: Main Category */}
+                <button
+                  onClick={() => toggleMainCategory(category.id)}
+                  className={`w-full flex items-start gap-3 p-2 rounded-[var(--radius)] text-left transition-colors mb-2 ${
+                    category.id === 'category-1' ? 'hover:bg-muted' : 'cursor-default'
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <span className="label-medium">{category.number === 0 ? 'KSL' : category.number}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-muted-foreground label-medium">{getCategoryProgress(category)}</p>
+                    <p className="mt-0.5 body-large">{category.title}</p>
+                  </div>
+                  {category.id === 'category-1' && (
+                    <div className="shrink-0 mt-1">
+                      {expandedMainCategories.has(category.id) ? (
+                        <ChevronDown className="w-5 h-5" />
+                      ) : (
+                        <ChevronRight className="w-5 h-5" />
+                      )}
+                    </div>
+                  )}
+                </button>
+
+                {/* Level 2: Question Groups */}
+                {expandedMainCategories.has(category.id) && (
+                  <div className="ml-3 space-y-2">
+                    {category.questionGroups.map((group) => {
+                      const groupInfo = findGroupForQuestion(currentQuestionId);
+                      const isCurrentGroup = groupInfo && groupInfo.groupId === group.id;
+                      const cannotCollapse = isCurrentGroup && expandedQuestionGroups.has(group.id);
+                      
+                      return (
+                      <div key={group.id}>
+                        <button
+                          onClick={() => toggleQuestionGroup(group.id)}
+                          className={`w-full flex items-center gap-2 p-2 rounded-[var(--radius)] text-left transition-colors ${
+                            cannotCollapse ? 'cursor-default' : 'hover:bg-muted'
+                          }`}
+                          title={cannotCollapse ? 'Kan ikke lukke gruppen som inneholder valgt spørsmål' : ''}
+                        >
+                          {/* Status Icon for Question Group */}
+                          <div className="shrink-0">
+                            {isGroupComplete(group) ? <DoneIcon /> : <PendingIcon />}
+                          </div>
+                          <span className="flex-1 min-w-0 text-ellipsis overflow-hidden">
+                            {group.title}
+                          </span>
+                          <div className="shrink-0">
+                            {expandedQuestionGroups.has(group.id) ? (
+                              <ChevronDown className={`w-4 h-4 ${cannotCollapse ? 'opacity-50' : ''}`} />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </div>
+                        </button>
+
+                        {/* Level 3: Individual Questions */}
+                        {expandedQuestionGroups.has(group.id) && group.questions.length > 0 && (
+                          <div className="ml-7 mt-1 space-y-1">
+                            {group.questions.map((question) => {
+                              const isAnswered = question.isAnswered || answeredQuestions.has(question.id);
+                              const isSelected = currentQuestionId === question.id;
+                              
+                              return (
+                                <div 
+                                  key={question.id} 
+                                  className="relative group"
+                                  ref={isSelected ? selectedQuestionRef : null}
+                                >
+                                  <button
+                                    onClick={() => onQuestionSelect(question.id)}
+                                    onMouseEnter={() => setHoveredQuestionId(question.id)}
+                                    onMouseLeave={() => setHoveredQuestionId(null)}
+                                    className={`w-full flex items-start gap-2 p-3 rounded-[12px] text-left transition-colors ${
+                                      isSelected
+                                        ? 'bg-accent text-accent-foreground'
+                                        : 'hover:bg-muted'
+                                    }`}
+                                  >
+                                    {/* Status Icon */}
+                                    <div className="shrink-0 mt-0.5">
+                                      {isAnswered ? <DoneIcon /> : <PendingIcon />}
+                                    </div>
+
+                                    {/* Question Text - Truncated to 3 lines */}
+                                    <div className="flex-1 min-w-0">
+                                      <p 
+                                        className="body-large line-clamp-3"
+                                        style={{
+                                          display: '-webkit-box',
+                                          WebkitLineClamp: 3,
+                                          WebkitBoxOrient: 'vertical',
+                                          overflow: 'hidden'
+                                        }}
+                                      >
+                                        {question.id} {question.title}
+                                      </p>
+
+                                      {/* Icons Row */}
+                                      <div className="flex items-center gap-2 mt-2">
+                                        {(question.hasDeviation || questionsWithDeviations.has(question.id)) && (
+                                          <div className="flex items-center gap-1">
+                                            <AlertTriangle className="w-4 h-4 text-destructive" />
+                                            <span className="label-xsmall text-destructive">Avvik</span>
+                                          </div>
+                                        )}
+                                        {question.requiresDocumentation && (
+                                          <div className="w-5 h-5 flex items-center justify-center">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 20 16">
+                                              <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" fill="#174295" />
+                                            </svg>
+                                          </div>
+                                        )}
+                                        {question.hasDocument && (
+                                          <FileText className="w-4 h-4 text-secondary" />
+                                        )}
+                                      </div>
+                                    </div>
+                                  </button>
+
+                                  {/* Tooltip on Hover */}
+                                  {hoveredQuestionId === question.id && (
+                                    <div className="absolute left-0 top-full mt-1 z-50 w-full max-w-sm p-3 bg-foreground text-primary-foreground rounded-[var(--radius)] shadow-[var(--elevation-sm)] pointer-events-none">
+                                      <p>{question.id} {question.title}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
-                    </button>
-
-                    {/* Level 3: Individual Questions */}
-                    {expandedQuestionGroups.has(group.id) && group.questions.length > 0 && (
-                      <div className="ml-7 mt-1 space-y-1">
-                        {group.questions.map((question) => {
-                          const isAnswered = question.isAnswered || answeredQuestions.has(question.id);
-                          const isSelected = currentQuestionId === question.id;
-                          
-                          return (
-                            <div 
-                              key={question.id} 
-                              className="relative group"
-                              ref={isSelected ? selectedQuestionRef : null}
-                            >
-                              <button
-                                onClick={() => onQuestionSelect(question.id)}
-                                onMouseEnter={() => setHoveredQuestionId(question.id)}
-                                onMouseLeave={() => setHoveredQuestionId(null)}
-                                className={`w-full flex items-start gap-2 p-3 rounded-[12px] text-left transition-colors ${
-                                  isSelected
-                                    ? 'bg-accent text-accent-foreground'
-                                    : 'hover:bg-muted'
-                                }`}
-                              >
-                                {/* Status Icon */}
-                                <div className="shrink-0 mt-0.5">
-                                  {isAnswered ? <DoneIcon /> : <PendingIcon />}
-                                </div>
-
-                                {/* Question Text - Truncated to 3 lines */}
-                                <div className="flex-1 min-w-0">
-                                  <p 
-                                    className="body-large line-clamp-3"
-                                    style={{
-                                      display: '-webkit-box',
-                                      WebkitLineClamp: 3,
-                                      WebkitBoxOrient: 'vertical',
-                                      overflow: 'hidden'
-                                    }}
-                                  >
-                                    {question.id} {question.title}
-                                  </p>
-
-                                  {/* Icons Row */}
-                                  <div className="flex items-center gap-2 mt-2">
-                                    {(question.hasDeviation || questionsWithDeviations.has(question.id)) && (
-                                      <div className="flex items-center gap-1">
-                                        <AlertTriangle className="w-4 h-4 text-destructive" />
-                                        <span className="label-xsmall text-destructive">Avvik</span>
-                                      </div>
-                                    )}
-                                    {question.requiresDocumentation && (
-                                      <div className="w-5 h-5 flex items-center justify-center">
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 20 16">
-                                          <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" fill="#174295" />
-                                        </svg>
-                                      </div>
-                                    )}
-                                    {question.hasDocument && (
-                                      <FileText className="w-4 h-4 text-secondary" />
-                                    )}
-                                  </div>
-                                </div>
-                              </button>
-
-                              {/* Tooltip on Hover */}
-                              {hoveredQuestionId === question.id && (
-                                <div className="absolute left-0 top-full mt-1 z-50 w-full max-w-sm p-3 bg-foreground text-primary-foreground rounded-[var(--radius)] shadow-[var(--elevation-sm)] pointer-events-none">
-                                  <p>{question.id} {question.title}</p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
-                  );
-                })}
+                )}
               </div>
-            )}
-          </div>
-        ))}
+            ))}
+          </>
+        )}
       </div>
     </div>
   );

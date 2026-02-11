@@ -263,6 +263,9 @@ export default function App() {
   // State for private notes panel
   const [isPrivateNotesPanelOpen, setIsPrivateNotesPanelOpen] = useState(false);
   
+  // State for notes panel width - default to 384px
+  const [notesPanelWidth, setNotesPanelWidth] = useState(384);
+  
   // State for Aksepterte Revisjoner filter (venter-pa-planlegging)
   const [aksepterteRevisjonerFilter, setAksepterteRevisjonerFilter] = useState<string[]>([]);
   
@@ -479,6 +482,8 @@ export default function App() {
             manuallyRemovedQuestions={manuallyRemovedQuestions}
             onNavigateToDocument={handleNavigateToDocument}
             deviationsLocked={deviationsLocked}
+            onAddQuestionToRegister={handleAddQuestionToRegister}
+            onRemoveQuestionFromRegister={handleRemoveQuestionFromRegister}
           />
         );
     }
@@ -627,7 +632,7 @@ export default function App() {
               {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && (
                 <button
                   onClick={() => setIsPrivateNotesPanelOpen(true)}
-                  className="min-[1400px]:hidden fixed bottom-6 right-6 bg-secondary hover:bg-secondary/90 transition-colors rounded-[16px] shadow-lg flex items-center gap-3 px-6 h-14 z-50"
+                  className="min-[1200px]:hidden fixed bottom-6 right-6 bg-secondary hover:bg-secondary/90 transition-colors rounded-[16px] shadow-lg flex items-center gap-3 px-6 h-14 z-50"
                   aria-label="Åpne egne notater"
                 >
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
@@ -639,7 +644,7 @@ export default function App() {
               
               {/* Mobile/Tablet: BottomSheet Notes Panel */}
               {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && (
-                <div className="min-[1400px]:hidden">
+                <div className="min-[1200px]:hidden">
                   <PrivateNotesPanel 
                     isOpen={isPrivateNotesPanelOpen} 
                     onClose={() => setIsPrivateNotesPanelOpen(false)} 
@@ -656,8 +661,8 @@ export default function App() {
             {/* Notes Panel - Desktop - Docked at application level (beside entire content) */}
             {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && isPrivateNotesPanelOpen && (
               <div 
-                className="max-[1399px]:hidden min-[1400px]:block" 
-                style={{ width: '400px', minWidth: '400px' }}
+                className="max-[1199px]:hidden min-[1200px]:block"
+                style={{ width: `${notesPanelWidth}px`, minWidth: `${notesPanelWidth}px` }}
               >
                 <PrivateNotesPanelDockable 
                   isOpen={isPrivateNotesPanelOpen} 
@@ -667,6 +672,8 @@ export default function App() {
                   savedNotes={savedNotes}
                   onSaveNote={handleSaveNote}
                   onDeleteNote={handleDeleteNote}
+                  panelWidth={notesPanelWidth}
+                  onPanelWidthChange={setNotesPanelWidth}
                 />
               </div>
             )}

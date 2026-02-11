@@ -1,15 +1,16 @@
 import { formatNorwegianDate } from '../utils/dateFormat';
 import { useState, useEffect } from 'react';
-import svgPaths from '../imports/svg-1takk81wic';
 import svgPathsOld from '../imports/svg-8axi0x1eud';
 import svgPathsFysiskBesok from '../imports/svg-h0hxm9lc87';
 import svgPathsDokumentasjon from '../imports/svg-41jcdwqzsu';
+import svgPathsPostpone from '../imports/svg-1q9ydsa8k6';
 import { KravVeilederSection } from './KravVeilederSection';
 import { getQuestionById } from '../data/questions';
 import { Button } from './ui/button';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { ListItem } from './ui/list-item';
+import { AlertTriangle } from 'lucide-react';
 
 type SeverityType = 'kritisk' | 'avvik' | 'lite';
 type StatusType = 'tidspunkt-foreslatt' | 'besok-planlagt' | 'venter-godkjenning' | 'onsker-fristforlengelse' | 'dokument-levert' | 'avventer-moteforslag' | 'avventer-dokumentasjon';
@@ -25,12 +26,17 @@ interface Deviation {
   requiresAction: boolean;
   confirmationMethod?: ConfirmationMethod;
   rejectedDocuments?: RejectedDocument[];
+  extensionRequest?: {
+    requestedDate: Date;
+    reason: string;
+  };
 }
 
 interface DeviationDetailPanelProps {
   deviation: Deviation;
   onStatusUpdate?: (deviationId: string, newStatus: StatusType) => void;
   onAddRejectedDocuments?: (deviationId: string, documents: RejectedDocument[]) => void;
+  onClose?: () => void;
 }
 
 interface RejectedDocument {
@@ -106,7 +112,7 @@ function getInitials(name: string): string {
   return name.substring(0, 2).toUpperCase();
 }
 
-export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedDocuments }: DeviationDetailPanelProps) {
+export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedDocuments, onClose }: DeviationDetailPanelProps) {
   const details = getDeviationDetails(deviation);
   
   // Get question ID from checklist string (e.g., "1.1.1")
@@ -228,11 +234,14 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
           <h3 className="title-large">
             {questionId}
           </h3>
-          <button className="p-2 hover:bg-muted rounded-full transition-colors">
-            <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-              <path d={svgPaths.p13453dc0} fill="#1A1C16" />
-            </svg>
-          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            aria-label="Lukk panel"
+          >
+            <X className="w-6 h-6" />
+          </Button>
         </div>
 
         {/* Question Text */}
@@ -271,7 +280,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
             <div className="relative size-10">
               <div className="absolute inset-0 rounded-full" style={{ backgroundColor: getSeverityColor(deviation.severity).replace('bg-', '') }}>
                 <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-6" fill="none" viewBox="0 0 24 24">
-                  <path d={svgPaths.p24139a00} fill={deviation.severity === 'kritisk' ? '#410002' : '#3d2e00'} />
+                  <path d={svgPathsOld.p24139a00} fill={deviation.severity === 'kritisk' ? '#410002' : '#3d2e00'} />
                 </svg>
               </div>
             </div>
@@ -286,7 +295,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
           </div>
           <button className="size-10 flex items-center justify-center shrink-0 hover:bg-black/5 rounded-full transition-colors">
             <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-              <path d={svgPaths.p2668ba00} fill="#44483B" />
+              <path d={svgPathsOld.p2668ba00} fill="#44483B" />
             </svg>
           </button>
         </div>
@@ -357,7 +366,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
         {/* Deadline */}
         <div className="flex gap-4 items-start p-2 w-full">
           <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-            <path d={svgPaths.p2c046200} fill="#44483B" />
+            <path d={svgPathsOld.p2c046200} fill="#44483B" />
           </svg>
           <div className="flex-1">
             <p className="label-small text-muted-foreground">
@@ -369,10 +378,55 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
           </div>
         </div>
 
+        {/* Extension Request - Only show when status is 'onsker-fristforlengelse' */}
+        {deviation.status === 'onsker-fristforlengelse' && deviation.extensionRequest && (
+          <div className="bg-[var(--l-avvik-container)] border border-[var(--on-l-avvik-container)] rounded-[var(--radius-lg)] p-6 space-y-4">
+            {/* Alert Header */}
+            <div className="flex items-center gap-2 py-2">
+              <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                <path d={svgPathsPostpone.p2668ba00} fill="var(--on-l-avvik-container)" />
+              </svg>
+              <p className="label-medium text-[var(--on-l-avvik-container)]">
+                Foretaket har bedt om fristforlengelse
+              </p>
+            </div>
+
+            {/* Requested Date */}
+            <div className="space-y-1">
+              <p className="label-small text-[var(--on-l-avvik-container)]">
+                Ønsket ny frist
+              </p>
+              <p className="body-large text-[var(--on-l-avvik-container)]">
+                {formatNorwegianDate(deviation.extensionRequest.requestedDate)}
+              </p>
+            </div>
+
+            {/* Reason */}
+            <div className="space-y-1">
+              <p className="label-small text-[var(--on-l-avvik-container)]">
+                Begrunnelse
+              </p>
+              <p className="body-medium text-[var(--on-l-avvik-container)]">
+                "{deviation.extensionRequest.reason}"
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button variant="primary" className="flex-1">
+                Godta fristforlengelse
+              </Button>
+              <Button variant="secondary" className="flex-1">
+                Avvis
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Ansvarlig */}
         <div className="flex gap-4 items-start p-2 w-full">
           <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-            <path d={svgPaths.p3e89b580} fill="#44483B" />
+            <path d={svgPathsOld.p3e89b580} fill="#44483B" />
           </svg>
           <div className="flex-1">
             <p className="label-small text-muted-foreground">
@@ -406,7 +460,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
               </svg>
             ) : (
               <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                <path d={svgPaths.p3b7e4b92} fill="#44483B" />
+                <path d={svgPathsOld.p3b7e4b92} fill="#44483B" />
               </svg>
             )}
             <p className="label-medium text-foreground">
@@ -576,7 +630,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
               {currentStatus === 'tidspunkt-foreslatt' && (
                 <div className="relative inline-flex gap-2 items-center px-2 pr-4 py-1.5 border border-[var(--border)] rounded-lg">
                   <svg className="w-4.5 h-4.5 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                    <path d={svgPaths.p3a6e7900} fill="#4A671E" />
+                    <path d={svgPathsOld.p3a6e7900} fill="#4A671E" />
                   </svg>
                   <p className="label-medium text-foreground">
                     Tidspunkt foreslått
@@ -616,7 +670,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
               {/* Comment */}
               <div className="flex gap-4 items-start p-2 w-full">
                 <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                  <path d={svgPaths.p1bbda200} fill="#44483B" />
+                  <path d={svgPathsOld.p1bbda200} fill="#44483B" />
                 </svg>
                 <div className="flex-1">
                   <p className="label-small text-muted-foreground">
@@ -635,7 +689,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
               {showProposedDate && (
                 <div className="flex gap-4 items-center px-2 min-h-[56px] w-full">
                   <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                    <path d={svgPaths.p13a8df70} fill="#44483B" />
+                    <path d={svgPathsOld.p13a8df70} fill="#44483B" />
                   </svg>
                   <div className="flex-1">
                     <p className="label-small text-muted-foreground">
@@ -676,7 +730,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
                       ) : (
                         <>
                           <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                            <path d={svgPaths.p217bb200} fill="white" />
+                            <path d={svgPathsOld.p217bb200} fill="white" />
                           </svg>
                           Godta tidspunkt
                         </>

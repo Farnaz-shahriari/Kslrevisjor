@@ -5,9 +5,12 @@ import { questionsData } from '../data/questions';
 import { ArrowLeft } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from './ui/sheet';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
+import svgPathsRevisjonCard from "../imports/svg-es1yhnytnq";
+import { ForetakHistorikkView } from './ForetakHistorikkView';
 
 // Mock data for checklists
 const checklists = [
+  { id: 'historiikk', name: 'Revisjonshistorikk og rapporter', icon: '📋' }, // Special item
   { id: '1', name: 'Generelle krav til gården', icon: '1' },
   { id: '10', name: 'Helse, miljø og sikkerhet', icon: '10' },
   { id: '15', name: 'Grovfôr, korn, frø, olje- og belgvekster', icon: '15' },
@@ -657,11 +660,15 @@ export function RevisjonsgrunnlagPage({
           </button>
 
           {/* Header */}
-          <div className="flex items-center gap-4 px-4 py-2">
+          <button
+            onClick={() => setSelectedChecklistId('historiikk')}
+            className="flex items-center justify-between gap-4 px-4 py-2 hover:bg-muted rounded-[var(--radius)] transition-colors w-full"
+          >
             <span className="body-large text-foreground">
               Revisjonshistorikk og rapporter
             </span>
-          </div>
+            <ChevronRight className="w-5 h-5 text-foreground" />
+          </button>
 
           {/* Divider with subheading */}
           <div className="relative">
@@ -803,159 +810,170 @@ export function RevisjonsgrunnlagPage({
                 {selectedChecklist?.name}
               </h2>
             </div>
-            {/* Add all questions button */}
-            <button
-              onClick={handleAddAllQuestions}
-              className="px-6 py-4 rounded-[100px] border border-[var(--border)] hover:bg-muted transition-colors flex items-center gap-2 max-[1400px]:hidden min-[600px]:order-2"
-            >
-              <Plus size={20} className="text-foreground" />
-              <span className="body-large text-foreground">
-                Legg til alle spørsmål
-              </span>
-            </button>
-          </div>
-
-          {/* Checkbox */}
-          <div className="flex items-center gap-4 py-2">
-            <button
-              onClick={() => setMarkedAsReviewed(!markedAsReviewed)}
-              className="w-14 h-14 rounded-[100px] flex items-center justify-center hover:bg-muted transition-colors"
-            >
-              <div className="w-[18px] h-[18px] rounded-[2px] border-2 border-[#44483b] flex items-center justify-center">
-                {markedAsReviewed && <Check size={14} className="text-[#44483b]" />}
-              </div>
-            </button>
-            <span className="body-large text-foreground">
-              Marker som gjennomgått
-            </span>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="border-b border-[var(--border)] pl-[52px] max-[1400px]:pl-6">
-          <div className="flex overflow-x-auto">
-            {[
-              { id: 'alle', label: 'Alle spørsmål' },
-              { id: 'avvik-ekstern', label: 'Avvik (ekstern)' },
-              { id: 'avvik-eget', label: 'Avvik (eget)' },
-              { id: 'forbedringspunkter', label: 'Forbedringspunkter' },
-              { id: 'positive', label: 'Positive observasjoner' },
-            ].map((tab) => (
+            {/* Add all questions button - Only show for regular checklists, not for historiikk */}
+            {selectedChecklistId !== 'historiikk' && (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
-                className={`px-4 py-[14px] label-medium relative whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                onClick={handleAddAllQuestions}
+                className="px-6 py-4 rounded-[100px] border border-[var(--border)] hover:bg-muted transition-colors flex items-center gap-2 max-[1400px]:hidden min-[600px]:order-2"
               >
-                {tab.label}
-                {activeTab === tab.id && (
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary" />
-                )}
+                <Plus size={20} className="text-foreground" />
+                <span className="body-large text-foreground">
+                  Legg til alle spørsmål
+                </span>
               </button>
-            ))}
+            )}
           </div>
+
+          {/* Checkbox - Only show for regular checklists, not for historiikk */}
+          {selectedChecklistId !== 'historiikk' && (
+            <div className="flex items-center gap-4 py-2">
+              <button
+                onClick={() => setMarkedAsReviewed(!markedAsReviewed)}
+                className="w-14 h-14 rounded-[100px] flex items-center justify-center hover:bg-muted transition-colors"
+              >
+                <div className="w-[18px] h-[18px] rounded-[2px] border-2 border-[#44483b] flex items-center justify-center">
+                  {markedAsReviewed && <Check size={14} className="text-[#44483b]" />}
+                </div>
+              </button>
+              <span className="body-large text-foreground">
+                Marker som gjennomgått
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Table */}
-        <div className="flex-1 overflow-auto">
-          <table className="w-full">
-            <thead className="sticky top-0 bg-surface-container-low border-b border-[var(--border)]">
-              <tr>
-                <th className="text-left px-4 py-2 label-medium text-foreground bg-surface-container-low">
-                  Sjekklistepunkt
-                </th>
-                <th className="text-left px-4 py-2 label-medium text-foreground w-[160px] bg-surface-container-low max-[1400px]:hidden">
-                  Tidligere avvik
-                </th>
-                <th className="text-left px-4 py-2 label-medium text-foreground w-[152px] bg-surface-container-low max-[1400px]:hidden">
-                  Foretakets svar
-                </th>
-                <th className="text-left px-4 py-2 label-medium text-foreground w-[154px] bg-surface-container-low">
-                  Del av grunnlaget
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {questionData.map((question) => {
-                // Get dynamic status based on whether question exists in Register Revisjon
-                const basisStatus = getPartOfBasisStatus(question.id);
-                const isFocus = basisStatus === 'focus';
-                const isAdded = basisStatus === 'added';
-                const isNotAdded = basisStatus === 'not-added';
-
-                return (
-                  <tr
-                    key={question.id}
-                    className={`border-b border-[var(--border)] ${
-                      question.isGroup ? 'bg-muted/30' : ''
+        {/* Conditional Content: Show ForetakHistorikkView OR Tabs + Table */}
+        {selectedChecklistId === 'historiikk' ? (
+          <ForetakHistorikkView />
+        ) : (
+          <>
+            {/* Tabs */}
+            <div className="border-b border-[var(--border)] pl-[52px] max-[1400px]:pl-6">
+              <div className="flex overflow-x-auto">
+                {[
+                  { id: 'alle', label: 'Alle spørsmål' },
+                  { id: 'avvik-ekstern', label: 'Avvik (ekstern)' },
+                  { id: 'avvik-eget', label: 'Avvik (eget)' },
+                  { id: 'forbedringspunkter', label: 'Forbedringspunkter' },
+                  { id: 'positive', label: 'Positive observasjoner' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as TabType)}
+                    className={`px-4 py-[14px] label-medium relative whitespace-nowrap ${
+                      activeTab === tab.id
+                        ? 'text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    {/* Question text */}
-                    <td className="px-4 py-4">
-                      <p className="body-medium text-foreground">
-                        {question.text}
-                      </p>
-                    </td>
+                    {tab.label}
+                    {activeTab === tab.id && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                    {/* Previous deviation - Hidden on mobile/tablet */}
-                    <td className="px-4 py-4 w-[160px] max-[1400px]:hidden">
-                      {question.previousDeviation && getDeviationChip(question.previousDeviation)}
-                    </td>
-
-                    {/* Company answer - Hidden on mobile/tablet */}
-                    <td className="px-4 py-4 w-[152px] max-[1400px]:hidden">
-                      {question.companyAnswer && (
-                        <p className="body-medium text-foreground">
-                          {question.companyAnswer}
-                        </p>
-                      )}
-                    </td>
-
-                    {/* Part of basis */}
-                    <td className="px-4 py-4 w-[154px]">
-                      {!question.isGroup && (
-                        <>
-                          {isFocus ? (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295]">
-                              <span className="label-medium">
-                                Fokusområde
-                              </span>
-                            </div>
-                          ) : isAdded ? (
-                            <button
-                              onClick={() => handleRemoveQuestion(question.id)}
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295] hover:bg-[#c5d5ff] transition-colors cursor-pointer"
-                              title="Klikk for å fjerne fra Register Revisjon"
-                            >
-                              <Check size={18} />
-                              <span className="label-medium">
-                                Lagt til
-                              </span>
-                            </button>
-                          ) : isNotAdded ? (
-                            <button
-                              onClick={() => onAddQuestionToRegister(question.id)}
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] border border-[var(--border)] hover:bg-muted transition-colors cursor-pointer"
-                              title="Klikk for å legge til i Register Revisjon"
-                            >
-                              <Plus size={18} className="text-foreground" />
-                              <span className="label-medium text-foreground">
-                                Legg til
-                              </span>
-                            </button>
-                          ) : null}
-                        </>
-                      )}
-                    </td>
+            {/* Table */}
+            <div className="flex-1 overflow-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-surface-container-low border-b border-[var(--border)]">
+                  <tr>
+                    <th className="text-left px-4 py-2 label-medium text-foreground bg-surface-container-low">
+                      Sjekklistepunkt
+                    </th>
+                    <th className="text-left px-4 py-2 label-medium text-foreground w-[160px] bg-surface-container-low max-[1400px]:hidden">
+                      Tidligere avvik
+                    </th>
+                    <th className="text-left px-4 py-2 label-medium text-foreground w-[152px] bg-surface-container-low max-[1400px]:hidden">
+                      Foretakets svar
+                    </th>
+                    <th className="text-left px-4 py-2 label-medium text-foreground w-[154px] bg-surface-container-low">
+                      Del av grunnlaget
+                    </th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {questionData.map((question) => {
+                    // Get dynamic status based on whether question exists in Register Revisjon
+                    const basisStatus = getPartOfBasisStatus(question.id);
+                    const isFocus = basisStatus === 'focus';
+                    const isAdded = basisStatus === 'added';
+                    const isNotAdded = basisStatus === 'not-added';
+
+                    return (
+                      <tr
+                        key={question.id}
+                        className={`border-b border-[var(--border)] ${
+                          question.isGroup ? 'bg-muted/30' : ''
+                        }`}
+                      >
+                        {/* Question text */}
+                        <td className="px-4 py-4">
+                          <p className="body-medium text-foreground">
+                            {question.text}
+                          </p>
+                        </td>
+
+                        {/* Previous deviation - Hidden on mobile/tablet */}
+                        <td className="px-4 py-4 w-[160px] max-[1400px]:hidden">
+                          {question.previousDeviation && getDeviationChip(question.previousDeviation)}
+                        </td>
+
+                        {/* Company answer - Hidden on mobile/tablet */}
+                        <td className="px-4 py-4 w-[152px] max-[1400px]:hidden">
+                          {question.companyAnswer && (
+                            <p className="body-medium text-foreground">
+                              {question.companyAnswer}
+                            </p>
+                          )}
+                        </td>
+
+                        {/* Part of basis */}
+                        <td className="px-4 py-4 w-[154px]">
+                          {!question.isGroup && (
+                            <>
+                              {isFocus ? (
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295]">
+                                  <span className="label-medium">
+                                    Fokusområde
+                                  </span>
+                                </div>
+                              ) : isAdded ? (
+                                <button
+                                  onClick={() => handleRemoveQuestion(question.id)}
+                                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295] hover:bg-[#c5d5ff] transition-colors cursor-pointer"
+                                  title="Klikk for å fjerne fra Register Revisjon"
+                                >
+                                  <Check size={18} />
+                                  <span className="label-medium">
+                                    Lagt til
+                                  </span>
+                                </button>
+                              ) : isNotAdded ? (
+                                <button
+                                  onClick={() => onAddQuestionToRegister(question.id)}
+                                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] border border-[var(--border)] hover:bg-muted transition-colors cursor-pointer"
+                                  title="Klikk for å legge til i Register Revisjon"
+                                >
+                                  <Plus size={18} className="text-foreground" />
+                                  <span className="label-medium text-foreground">
+                                    Legg til
+                                  </span>
+                                </button>
+                              ) : null}
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

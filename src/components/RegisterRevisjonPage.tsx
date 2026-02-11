@@ -28,6 +28,8 @@ interface RegisterRevisjonPageProps {
   manuallyRemovedQuestions: Set<string>;
   onNavigateToDocument?: (documentIndex: number) => void;
   deviationsLocked?: boolean;
+  onAddQuestionToRegister?: (questionId: string) => void;
+  onRemoveQuestionFromRegister?: (questionId: string) => void;
 }
 
 /**
@@ -48,7 +50,9 @@ export function RegisterRevisjonPage({
   manuallyAddedQuestions,
   manuallyRemovedQuestions,
   onNavigateToDocument,
-  deviationsLocked
+  deviationsLocked,
+  onAddQuestionToRegister,
+  onRemoveQuestionFromRegister
 }: RegisterRevisjonPageProps) {
   const [showingMenu, setShowingMenu] = useState(true);
 
@@ -82,6 +86,8 @@ export function RegisterRevisjonPage({
             questionsWithDeviations={questionsWithDeviations}
             manuallyAddedQuestions={manuallyAddedQuestions}
             manuallyRemovedQuestions={manuallyRemovedQuestions}
+            onAddQuestionToRegister={onAddQuestionToRegister}
+            onRemoveQuestionFromRegister={onRemoveQuestionFromRegister}
           />
         </div>
       )}
@@ -95,6 +101,8 @@ export function RegisterRevisjonPage({
           questionsWithDeviations={questionsWithDeviations}
           manuallyAddedQuestions={manuallyAddedQuestions}
           manuallyRemovedQuestions={manuallyRemovedQuestions}
+          onAddQuestionToRegister={onAddQuestionToRegister}
+          onRemoveQuestionFromRegister={onRemoveQuestionFromRegister}
         />
       </div>
 
@@ -114,6 +122,8 @@ export function RegisterRevisjonPage({
           deviationsLocked={deviationsLocked}
           showBackButton={!showingMenu}
           onBackToMenu={handleBackToMenu}
+          onAddQuestionToRegister={onAddQuestionToRegister}
+          onRemoveQuestionFromRegister={onRemoveQuestionFromRegister}
         />
       </div>
 

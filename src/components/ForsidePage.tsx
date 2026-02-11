@@ -321,161 +321,171 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
   };
 
   return (
-    <div className="bg-white content-stretch flex flex-col gap-[16px] items-start px-10 max-[1400px]:px-0 py-[32px] relative rounded-[12px] max-[1400px]:rounded-none flex-1 h-full max-[1400px]:h-auto overflow-y-auto max-[1400px]:overflow-visible" data-name="Upcoming audits">
-      {/* Title */}
-      <div className="title-large text-foreground max-[1400px]:px-6 max-[1400px]:pt-6">
-        <p>Planlagte revisjoner</p>
-      </div>
+    <div className="bg-white h-full max-[1400px]:h-auto inline-flex self-start rounded-[12px] max-[1400px]:rounded-none mr-[40px] max-[1400px]:w-full max-[1400px]:mr-0" data-name="Upcoming audits">
 
-      {/* View toggle buttons - Liste and Kalender */}
-      <div className="flex gap-[2px] overflow-clip rounded-2xl max-[1400px]:mx-6">
-        {/* Liste button */}
-        <button
-          onClick={() => setViewMode('list')}
-          className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
-            viewMode === 'list'
-              ? 'bg-[#365bae] rounded-l-2xl'
-              : 'bg-[#dae2ff] rounded-l'
-          }`}
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-            <path 
-              d="M4 10.5C3.17 10.5 2.5 11.17 2.5 12C2.5 12.83 3.17 13.5 4 13.5C4.83 13.5 5.5 12.83 5.5 12C5.5 11.17 4.83 10.5 4 10.5ZM4 4.5C3.17 4.5 2.5 5.17 2.5 6C2.5 6.83 3.17 7.5 4 7.5C4.83 7.5 5.5 6.83 5.5 6C5.5 5.17 4.83 4.5 4 4.5ZM4 16.5C3.17 16.5 2.5 17.18 2.5 18C2.5 18.82 3.18 19.5 4 19.5C4.82 19.5 5.5 18.82 5.5 18C5.5 17.18 4.83 16.5 4 16.5ZM7 19H21V17H7V19ZM7 13H21V11H7V13ZM7 5V7H21V5H7Z" 
-              fill={viewMode === 'list' ? 'white' : '#174295'}
-            />
-          </svg>
-          <span className={`label-medium ${viewMode === 'list' ? 'text-white' : 'text-[#174295]'}`}>
-            Liste
-          </span>
-        </button>
-
-        {/* Kalender button */}
-        <button
-          onClick={() => setViewMode('calendar')}
-          className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
-            viewMode === 'calendar'
-              ? 'bg-[#365bae] rounded-r-2xl'
-              : 'bg-[#dae2ff] rounded-r'
-          }`}
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-            <path 
-              d="M19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V10H19V20ZM19 8H5V6H19V8ZM12 13H17V18H12V13Z" 
-              fill={viewMode === 'calendar' ? 'white' : '#174295'}
-            />
-          </svg>
-          <span className={`label-medium ${viewMode === 'calendar' ? 'text-white' : 'text-[#174295]'}`}>
-            Kalender
-          </span>
-        </button>
-      </div>
-
-      {/* Calendar View */}
-      {viewMode === 'calendar' && (
-        <div className="bg-[#f4f4ea] rounded-xl p-6 w-full max-[1400px]:mx-6 max-[1400px]:mb-6">
-          {/* Calendar header with month navigation */}
-          <div className="flex items-center justify-center gap-4 py-2 mb-4">
-            <button 
-              onClick={goToPreviousMonth}
-              className="w-14 h-14 flex items-center justify-center hover:bg-muted/30 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <path d="M15.41 7.41L14 6L8 12L14 18L15.41 16.59L10.83 12L15.41 7.41Z" fill="var(--muted-foreground)" />
-              </svg>
-            </button>
-            
-            <h2 className="title-large text-foreground min-w-[200px] text-center">
-              {currentMonthName}
-            </h2>
-            
-            <button 
-              onClick={goToNextMonth}
-              className="w-14 h-14 flex items-center justify-center hover:bg-muted/30 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <path d="M10 6L8.59 7.41L13.17 12L8.59 16.59L10 18L16 12L10 6Z" fill="var(--muted-foreground)" />
-              </svg>
-            </button>
+      {/* Content container that hugs cards - scrollable on desktop */}
+      <div className="flex flex-col items-start py-[16px] relative h-full max-[1400px]:h-auto w-full max-[1400px]:w-full">
+        {/* Fixed Header - Title and View Toggle Buttons */}
+        <div className="flex flex-col gap-[16px] shrink-0 px-10 max-[1400px]:px-0 w-full">
+          {/* Title */}
+          <div className="title-large text-foreground max-[1400px]:px-6 max-[1400px]:pt-6">
+            <p>Planlagte revisjoner</p>
           </div>
 
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-4">
-            {/* Day headers */}
-            {['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map(day => (
-              <div key={day} className="title-medium text-foreground text-center pb-4">
-                {day}
-              </div>
-            ))}
+          {/* View toggle buttons - Liste and Kalender */}
+          <div className="flex gap-[2px] overflow-clip rounded-2xl max-[1400px]:mx-6 w-max">
+          {/* Liste button */}
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
+              viewMode === 'list'
+                ? 'bg-[#365bae] rounded-l-2xl'
+                : 'bg-[#dae2ff] rounded-l'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+              <path 
+                d="M4 10.5C3.17 10.5 2.5 11.17 2.5 12C2.5 12.83 3.17 13.5 4 13.5C4.83 13.5 5.5 12.83 5.5 12C5.5 11.17 4.83 10.5 4 10.5ZM4 4.5C3.17 4.5 2.5 5.17 2.5 6C2.5 6.83 3.17 7.5 4 7.5C4.83 7.5 5.5 6.83 5.5 6C5.5 5.17 4.83 4.5 4 4.5ZM4 16.5C3.17 16.5 2.5 17.18 2.5 18C2.5 18.82 3.18 19.5 4 19.5C4.82 19.5 5.5 18.82 5.5 18C5.5 17.18 4.83 16.5 4 16.5ZM7 19H21V17H7V19ZM7 13H21V11H7V13ZM7 5V7H21V5H7Z" 
+                fill={viewMode === 'list' ? 'white' : '#174295'}
+              />
+            </svg>
+            <span className={`label-medium ${viewMode === 'list' ? 'text-white' : 'text-[#174295]'}`}>
+              Liste
+            </span>
+          </button>
 
-            {/* Calendar days */}
-            {calendarDays.map((day, index) => {
-              const revisjoner = getRevisjonerForDate(day.fullDate);
-              const isCurrentMonth = day.month === 'current';
-              
-              return (
-                <div 
-                  key={index} 
-                  className={`bg-white p-2 min-h-[100px] flex flex-col gap-2 ${
-                    !isCurrentMonth ? 'opacity-40' : ''
-                  }`}
-                >
-                  <div className={`title-medium ${isCurrentMonth ? 'text-[var(--muted-foreground)]' : 'text-[var(--muted-foreground)]'} text-left`}>
-                    {day.date.toString().padStart(2, '0')}.
-                  </div>
-                  
-                  {/* Show revisjoner for this date */}
-                  {revisjoner.map((rev, idx) => {
-                    const time = rev.visitTime?.split(' - ')[0] || '';
-                    const foretakShort = rev.foretakName.split(' ').slice(0, 2).join(' ');
-                    
-                    return (
-                      <div 
-                        key={idx}
-                        className="bg-[#fafaf0] px-1 py-0.5 text-center"
-                        title={`${time} ${rev.foretakName}`}
-                      >
-                        <p className="label-medium text-[var(--muted-foreground)] truncate">
-                          {time}. {foretakShort}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
+          {/* Kalender button */}
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
+              viewMode === 'calendar'
+                ? 'bg-[#365bae] rounded-r-2xl'
+                : 'bg-[#dae2ff] rounded-r'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+              <path 
+                d="M19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V10H19V20ZM19 8H5V6H19V8ZM12 13H17V18H12V13Z" 
+                fill={viewMode === 'calendar' ? 'white' : '#174295'}
+              />
+            </svg>
+            <span className={`label-medium ${viewMode === 'calendar' ? 'text-white' : 'text-[#174295]'}`}>
+              Kalender
+            </span>
+          </button>
         </div>
-      )}
+      </div>
 
-      {/* List View */}
-      {viewMode === 'list' && (
-        <div className="w-full max-[1400px]:pb-4">
-          {/* Date groups and revisjon cards */}
-          {Array.from(groupedRevisjoner.entries()).map(([dateKey, revisjoner], groupIndex) => (
-            <div key={dateKey} className="flex flex-col w-full" style={{ marginTop: groupIndex === 0 ? 0 : '24px' }}>
-              {/* Date header - closer to cards below */}
-              <div className="label-medium text-foreground mb-2 max-[1400px]:px-6">
-                <p>{dateKey}</p>
+        {/* Scrollable Content Area - Only on desktop */}
+        <div className="flex-1 w-full overflow-y-auto max-[1400px]:overflow-visible mt-4 px-10 max-[1400px]:px-0">
+          {/* Calendar View */}
+          {viewMode === 'calendar' && (
+            <div className="bg-[#f4f4ea] rounded-xl p-6 w-full max-[1400px]:mx-6 max-[1400px]:mb-6">
+              {/* Calendar header with month navigation */}
+              <div className="flex items-center justify-center gap-4 py-2 mb-4">
+                <button 
+                  onClick={goToPreviousMonth}
+                  className="w-14 h-14 flex items-center justify-center hover:bg-muted/30 rounded-full transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                    <path d="M15.41 7.41L14 6L8 12L14 18L15.41 16.59L10.83 12L15.41 7.41Z" fill="var(--muted-foreground)" />
+                  </svg>
+                </button>
+                
+                <h2 className="title-large text-foreground min-w-[200px] text-center">
+                  {currentMonthName}
+                </h2>
+                
+                <button 
+                  onClick={goToNextMonth}
+                  className="w-14 h-14 flex items-center justify-center hover:bg-muted/30 rounded-full transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                    <path d="M10 6L8.59 7.41L13.17 12L8.59 16.59L10 18L16 12L10 6Z" fill="var(--muted-foreground)" />
+                  </svg>
+                </button>
               </div>
 
-              {/* Revisjon cards */}
-              <div className="flex flex-col gap-4 max-[1400px]:px-6">
-                {revisjoner.map((revisjon) => (
-                  <RevisjonCard 
-                    key={revisjon.id} 
-                    revisjon={revisjon}
-                    onCardClick={() => {
-                      if (onRevisionClick) {
-                        onRevisionClick(revisjon.id);
-                      }
-                    }}
-                  />
+              {/* Calendar grid */}
+              <div className="grid grid-cols-7 gap-4">
+                {/* Day headers */}
+                {['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map(day => (
+                  <div key={day} className="title-medium text-foreground text-center pb-4">
+                    {day}
+                  </div>
                 ))}
+
+                {/* Calendar days */}
+                {calendarDays.map((day, index) => {
+                  const revisjoner = getRevisjonerForDate(day.fullDate);
+                  const isCurrentMonth = day.month === 'current';
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`bg-white p-2 min-h-[100px] flex flex-col gap-2 ${
+                        !isCurrentMonth ? 'opacity-40' : ''
+                      }`}
+                    >
+                      <div className={`title-medium ${isCurrentMonth ? 'text-[var(--muted-foreground)]' : 'text-[var(--muted-foreground)]'} text-left`}>
+                        {day.date.toString().padStart(2, '0')}.
+                      </div>
+                      
+                      {/* Show revisjoner for this date */}
+                      {revisjoner.map((rev, idx) => {
+                        const time = rev.visitTime?.split(' - ')[0] || '';
+                        const foretakShort = rev.foretakName.split(' ').slice(0, 2).join(' ');
+                        
+                        return (
+                          <div 
+                            key={idx}
+                            className="bg-[#fafaf0] px-1 py-0.5 text-center"
+                            title={`${time} ${rev.foretakName}`}
+                          >
+                            <p className="label-medium text-[var(--muted-foreground)] truncate">
+                              {time}. {foretakShort}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* List View */}
+          {viewMode === 'list' && (
+            <div className="w-full max-[1400px]:pb-4">
+              {/* Date groups and revisjon cards */}
+              {Array.from(groupedRevisjoner.entries()).map(([dateKey, revisjoner], groupIndex) => (
+                <div key={dateKey} className="flex flex-col w-full" style={{ marginTop: groupIndex === 0 ? 0 : '24px' }}>
+                  {/* Date header - closer to cards below */}
+                  <div className="label-medium text-foreground mb-2 max-[1400px]:px-6">
+                    <p>{dateKey}</p>
+                  </div>
+
+                  {/* Revisjon cards */}
+                  <div className="flex flex-col gap-4 max-[1400px]:px-6">
+                    {revisjoner.map((revisjon) => (
+                      <RevisjonCard 
+                        key={revisjon.id} 
+                        revisjon={revisjon}
+                        onCardClick={() => {
+                          if (onRevisionClick) {
+                            onRevisionClick(revisjon.id);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -497,128 +507,134 @@ function Section3SidePanelToDoList() {
   console.log('ForsidePage - Todo items:', todoItems.map(d => ({ id: d.id, foretak: d.foretakName, status: d.status })));
 
   return (
-    <div className="bg-background flex flex-col h-full max-[1400px]:h-auto px-10 py-[32px] relative shrink-0 w-[520px] max-[1400px]:w-full gap-6 overflow-y-auto" data-name="Section 3 - Side panel to-do list">
-      {/* Header with badge */}
-      <div className="flex items-center gap-2">
-        <div className="title-large text-foreground">
-          <p>Klar for oppfølging</p>
+    <div className="bg-background flex h-full max-[1400px]:h-auto shrink-0 w-[520px] max-[1400px]:w-full" data-name="Section 3 - Side panel to-do list">
+      {/* Content container that hugs cards - scrollable on desktop */}
+      <div className="flex flex-col py-[16px] relative h-full max-[1400px]:h-auto w-full max-[1400px]:w-full min-[1400px]:max-w-max">
+        {/* Fixed Header - Title with badge */}
+        <div className="flex items-center gap-2 shrink-0 px-10">
+          <div className="title-large text-foreground">
+            <p>Klar for oppfølging</p>
+          </div>
+          {/* Badge showing count */}
+          <div className="bg-[var(--error)] rounded-full min-w-6 h-6 px-2 flex items-center justify-center">
+            <span className="label-xsmall text-[var(--error-foreground)]">{todoItems.length}</span>
+          </div>
         </div>
-        {/* Badge showing count */}
-        <div className="bg-[var(--error)] rounded-full min-w-6 h-6 px-2 flex items-center justify-center">
-          <span className="label-xsmall text-[var(--error-foreground)]">{todoItems.length}</span>
-        </div>
-      </div>
 
-      {/* To-do cards */}
-      <div className="flex flex-col gap-4 w-full">
-        {todoItems.map((deviation) => {
-          const severityConfig = getSeverityConfig(deviation.severity);
-          const actionText = getActionText(deviation.status, deviation.confirmationMethod);
-          const isVisit = deviation.confirmationMethod !== 'dokumentasjon';
-          
-          return (
-            <div 
-              key={deviation.id} 
-              className="bg-card border border-border rounded-xl shadow-sm w-full"
-            >
-              {/* List item header */}
-              <div className="flex gap-4 items-start px-4 py-3 min-h-[88px]">
-                {/* Content */}
-                <div className="flex-1 flex flex-col gap-0 min-w-0">
-                  {/* Overline - Farm name */}
-                  <div className="label-medium text-muted-foreground">
-                    <p>{deviation.foretakName}</p>
+        {/* Scrollable Content Area - Only on desktop */}
+        <div className="flex-1 w-full overflow-y-auto max-[1400px]:overflow-visible mt-6 px-10">
+        {/* To-do cards */}
+        <div className="flex flex-col gap-4 w-full max-[1400px]:pb-4">
+          {todoItems.map((deviation) => {
+            const severityConfig = getSeverityConfig(deviation.severity);
+            const actionText = getActionText(deviation.status, deviation.confirmationMethod);
+            const isVisit = deviation.confirmationMethod !== 'dokumentasjon';
+            
+            return (
+              <div 
+                key={deviation.id} 
+                className="bg-card border border-border rounded-xl shadow-sm w-full"
+              >
+                {/* List item header */}
+                <div className="flex gap-4 items-start px-4 py-3 min-h-[88px]">
+                  {/* Content */}
+                  <div className="flex-1 flex flex-col gap-0 min-w-0">
+                    {/* Overline - Farm name */}
+                    <div className="label-medium text-muted-foreground">
+                      <p>{deviation.foretakName}</p>
+                    </div>
+                    
+                    {/* Main text - Action required */}
+                    <div className="body-large text-foreground">
+                      <p>{actionText}</p>
+                    </div>
+                    
+                    {/* Supporting text - Severity + Question */}
+                    <div className="flex flex-col">
+                      <span 
+                        className="label-medium inline-block"
+                        style={{ color: severityConfig.text }}
+                      >
+                        {severityConfig.label}
+                      </span>
+                      <p className="label-medium text-muted-foreground truncate">
+                        {deviation.checklist}
+                      </p>
+                    </div>
                   </div>
-                  
-                  {/* Main text - Action required */}
-                  <div className="body-large text-foreground">
-                    <p>{actionText}</p>
-                  </div>
-                  
-                  {/* Supporting text - Severity + Question */}
-                  <div className="flex flex-col">
-                    <span 
-                      className="label-medium inline-block"
-                      style={{ color: severityConfig.text }}
-                    >
-                      {severityConfig.label}
-                    </span>
-                    <p className="label-medium text-muted-foreground truncate">
-                      {deviation.checklist}
-                    </p>
-                  </div>
+
+                  {/* Trailing element - Open in new icon */}
+                  <button
+                    onClick={() => handleOpenAvvik(deviation.id)}
+                    className="flex items-center justify-center w-6 h-6 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Åpne avvik"
+                  >
+                    <ExternalLink className="w-6 h-6" />
+                  </button>
                 </div>
 
-                {/* Trailing element - Open in new icon */}
-                <button
-                  onClick={() => handleOpenAvvik(deviation.id)}
-                  className="flex items-center justify-center w-6 h-6 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Åpne avvik"
-                >
-                  <ExternalLink className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* Content section */}
-              <div className="px-4 py-2">
-                {isVisit ? (
-                  // Visit section with date
-                  <div className="flex gap-4 items-center h-14 w-full">
-                    <Calendar className="w-6 h-6 text-muted-foreground shrink-0" />
-                    <div className="flex-1 flex flex-col justify-center min-w-0">
-                      <p className="label-medium text-muted-foreground">
-                        Forslag til {deviation.confirmationMethod === 'digitalt-besok' ? 'digitalt' : 'fysisk'} besøk
-                      </p>
-                      <p className="body-large text-muted-foreground">
-                        {formatNorwegianDate(deviation.deadline)}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  // Document section with attachment
-                  <div className="flex gap-4 items-center h-14 w-full">
-                    <Paperclip className="w-6 h-6 text-muted-foreground shrink-0" />
-                    <div className="flex-1 flex flex-col justify-center min-w-0">
-                      <p className="label-medium text-muted-foreground">
-                        Attachment
-                      </p>
-                      <p className="body-large text-muted-foreground truncate">
-                        kontrollrapport.jpg
-                      </p>
-                    </div>
-                    <button className="text-muted-foreground hover:text-foreground transition-colors">
-                      <Download className="w-6 h-6" />
-                    </button>
-                  </div>
-                )}
-
-                {/* Action buttons */}
-                <div className="flex gap-2 mt-2 w-full">
+                {/* Content section */}
+                <div className="px-4 py-2">
                   {isVisit ? (
-                    <>
-                      <Button variant="secondary" className="flex-1">
-                        Foreslå nytt tidspunkt
-                      </Button>
-                      <Button variant="secondary" className="flex-1">
-                        <Check className="w-5 h-5" />
-                        Godta tidspunkt
-                      </Button>
-                    </>
+                    // Visit section with date
+                    <div className="flex gap-4 items-center h-14 w-full">
+                      <Calendar className="w-6 h-6 text-muted-foreground shrink-0" />
+                      <div className="flex-1 flex flex-col justify-center min-w-0">
+                        <p className="label-medium text-muted-foreground">
+                          Forslag til {deviation.confirmationMethod === 'digitalt-besok' ? 'digitalt' : 'fysisk'} besøk
+                        </p>
+                        <p className="body-large text-muted-foreground">
+                          {formatNorwegianDate(deviation.deadline)}
+                        </p>
+                      </div>
+                    </div>
                   ) : (
-                    <>
-                      <Button variant="secondary" className="flex-1">
-                        Avvis dokument og be om nytt
-                      </Button>
-                      <Button variant="secondary" className="flex-1">
-                        Lukk avviket
-                      </Button>
-                    </>
+                    // Document section with attachment
+                    <div className="flex gap-4 items-center h-14 w-full">
+                      <Paperclip className="w-6 h-6 text-muted-foreground shrink-0" />
+                      <div className="flex-1 flex flex-col justify-center min-w-0">
+                        <p className="label-medium text-muted-foreground">
+                          Attachment
+                        </p>
+                        <p className="body-large text-muted-foreground truncate">
+                          kontrollrapport.jpg
+                        </p>
+                      </div>
+                      <button className="text-muted-foreground hover:text-foreground transition-colors">
+                        <Download className="w-6 h-6" />
+                      </button>
+                    </div>
                   )}
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2 mt-2 w-full">
+                    {isVisit ? (
+                      <>
+                        <Button variant="secondary" className="flex-1">
+                          Foreslå nytt tidspunkt
+                        </Button>
+                        <Button variant="secondary" className="flex-1">
+                          <Check className="w-5 h-5" />
+                          Godta tidspunkt
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="secondary" className="flex-1">
+                          Avvis dokument og be om nytt
+                        </Button>
+                        <Button variant="secondary" className="flex-1">
+                          Lukk avviket
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        </div>
       </div>
     </div>
   );
@@ -626,7 +642,7 @@ function Section3SidePanelToDoList() {
 
 function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onNavigateToAvvikoversikt }: Section2Props) {
   return (
-    <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[24px] py-[24px] relative w-full" data-name="Profile Details">
+    <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[24px] py-[16px] relative w-full" data-name="Profile Details">
       {/* Information - User greeting and action buttons */}
       <div className="content-center flex flex-wrap gap-[8px] items-center justify-between py-[8px] relative shrink-0 w-full" data-name="information">
         {/* User greeting */}
@@ -681,7 +697,7 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
         >
           <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[16px] max-[900px]:rounded-[12px]" />
           <div className="flex flex-col items-center max-w-[inherit] min-w-[inherit] size-full">
-            <div className="content-stretch flex flex-col items-center max-w-[inherit] min-w-[inherit] p-[12px] max-[900px]:px-[24px] max-[900px]:py-[16px] relative w-full">
+            <div className="content-stretch flex flex-col items-center max-w-[inherit] min-w-[inherit] p-[12px] max-[900px]:px-[16px] max-[900px]:py-[16px] relative w-full">
               <div className="content-stretch flex flex-col gap-[16px] max-[900px]:gap-[8px] items-center justify-center relative shrink-0" data-name="Container">
                 {/* Icon with larger badge */}
                 <div className="relative shrink-0">
@@ -700,10 +716,9 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
 
                 {/* Text */}
                 <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Assigned Audits">
-                  <div className="label-large max-[900px]:label-small text-foreground w-full">
+                  <div className="title-medium text-foreground w-full">
                     <p>Tildelte revisjoner</p>
                   </div>
-                  <p className="body-medium text-muted-foreground h-[20px] leading-[20px] overflow-hidden relative shrink-0 text-ellipsis w-full max-[900px]:hidden">Venter på at du skal ta stilling</p>
                 </div>
               </div>
             </div>
@@ -737,10 +752,9 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
 
                 {/* Text */}
                 <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Waiting for Planning">
-                  <div className="label-large max-[900px]:label-small text-foreground w-full">
+                  <div className="title-medium text-foreground w-full">
                     <p>Venter på planlegging</p>
                   </div>
-                  <p className="body-medium text-muted-foreground h-[20px] leading-[20px] overflow-hidden relative shrink-0 text-ellipsis w-full max-[900px]:hidden">Tidspunkt er ikke satt</p>
                 </div>
               </div>
             </div>
@@ -773,10 +787,9 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
 
                 {/* Text */}
                 <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Ready for Report">
-                  <div className="label-large max-[900px]:label-small text-foreground w-full">
+                  <div className="title-medium text-foreground w-full">
                     <p>Klar for rapport</p>
                   </div>
-                  <p className="body-medium text-muted-foreground h-[20px] leading-[20px] overflow-hidden relative shrink-0 text-ellipsis w-full max-[900px]:hidden">Rapport må ferdigstilles</p>
                 </div>
               </div>
             </div>
@@ -810,10 +823,9 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
 
                 {/* Text */}
                 <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Ready for Follow-up">
-                  <div className="label-large max-[900px]:label-small text-foreground w-full">
+                  <div className="title-medium text-foreground w-full">
                     <p>Klar for oppfølging</p>
                   </div>
-                  <p className="body-medium text-muted-foreground h-[20px] leading-[20px] overflow-hidden relative shrink-0 text-ellipsis w-full max-[900px]:hidden">Avvik gjenstår etter besøk</p>
                 </div>
               </div>
             </div>
@@ -826,9 +838,9 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
 
 function MainContentArea({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick }: Section2Props) {
   return (
-    <div className="bg-background content-stretch flex flex-1 items-start justify-start relative w-full h-full overflow-y-auto max-[1400px]:h-auto max-[1400px]:overflow-visible" data-name="Main Content Area">
+    <div className="bg-background content-stretch flex flex-1 items-start justify-start relative w-full h-full max-[1400px]:overflow-y-auto max-[1400px]:h-auto overflow-hidden" data-name="Main Content Area">
       {/* Container with max gap between sections */}
-      <div className="flex items-start w-full h-full max-[1400px]:h-auto max-[1400px]:flex-col max-[1400px]:gap-6">
+      <div className="flex items-start w-full h-full max-[1400px]:h-auto max-[1400px]:flex-col max-[1400px]:gap-0">
         {/* Section 2 - Planned Revisjoner - Full width on mobile, constrained on desktop */}
         <div className="h-full max-[1400px]:h-auto w-full min-[1400px]:flex-1 min-[1400px]:min-w-0">
           <Section2PlanlagteRevisjoner 
@@ -842,7 +854,7 @@ function MainContentArea({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaP
         <div className="shrink-0 max-[1400px]:hidden" style={{ width: '32px' }} />
 
         {/* Section 3 - To-do list - shown only on desktop (≥1400px), hidden on mobile/tablet */}
-        <div className="max-[1399px]:hidden min-[1400px]:block">
+        <div className="max-[1399px]:hidden min-[1400px]:block h-full">
           <Section3SidePanelToDoList />
         </div>
       </div>
@@ -859,15 +871,12 @@ interface ForsidePageProps {
 
 function ForsidePage({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick, onNavigateToAvvikoversikt }: ForsidePageProps) {
   return (
-    <div className="bg-background content-stretch flex flex-col items-start relative size-full max-[1400px]:h-auto max-[1400px]:overflow-y-auto" data-name="Forside Page">
+    <div className="bg-background content-stretch flex flex-col items-start relative size-full max-w-[1680px] mx-auto max-[1400px]:h-auto max-[1400px]:overflow-y-auto" data-name="Forside Page">
       <Section1HomeHeading 
         onNavigateToTildelteRevisjoner={onNavigateToTildelteRevisjoner}
         onNavigateToVenterPaPlanlegging={onNavigateToVenterPaPlanlegging}
         onNavigateToAvvikoversikt={onNavigateToAvvikoversikt}
       />
-      
-      {/* Divider between header and content */}
-      <div className="w-full h-px bg-border" />
       
       <MainContentArea 
         onNavigateToTildelteRevisjoner={onNavigateToTildelteRevisjoner}

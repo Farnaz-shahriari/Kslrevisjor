@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { SlidersHorizontal, Search, Plus } from 'lucide-react';
+import { SlidersHorizontal, Search, Plus, ChevronLeft } from 'lucide-react';
 import { BottomSheet } from './ui/bottom-sheet';
 import { Button } from './ui/button';
 import { MaterialCheckbox } from './ui/material-checkbox';
@@ -31,6 +31,7 @@ export function FakturagrunnlagPage() {
   const [showResizeHandle, setShowResizeHandle] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [panelWidth, setPanelWidth] = useState(400);
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false); // New state for toggling advanced search
   
   // State for creating new trip
   const [isCreatingNewTrip, setIsCreatingNewTrip] = useState(false);
@@ -52,6 +53,15 @@ export function FakturagrunnlagPage() {
   const [endDateTo, setEndDateTo] = useState<Date | null>(null);
   const [amountFrom, setAmountFrom] = useState('');
   const [amountTo, setAmountTo] = useState('');
+
+  // State for resizable detail panel
+  const [detailPanelWidth, setDetailPanelWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth * 0.5; // Default to 50% of screen width
+    }
+    return 600;
+  });
+  const [isResizingDetail, setIsResizingDetail] = useState(false);
 
   // Convert allTrips to state so we can update trip status
   const [allTrips, setAllTrips] = useState<Trip[]>([
@@ -417,13 +427,6 @@ export function FakturagrunnlagPage() {
     ? [newTripData, ...filteredTrips]
     : filteredTrips;
 
-  // Auto-select first trip on desktop
-  useEffect(() => {
-    if (displayedTrips.length > 0 && !selectedTripId && window.innerWidth >= 1400) {
-      setSelectedTripId(displayedTrips[0].id);
-    }
-  }, [displayedTrips.length, selectedTripId]);
-
   const getStatusLabel = (status: TripStatus): string => {
     switch (status) {
       case 'kladd':
@@ -561,6 +564,34 @@ export function FakturagrunnlagPage() {
       setAmountTo('');
     }
   };
+
+  // Handle mouse move and mouse up for resizing detail panel
+  useEffect(() => {
+    if (!isResizingDetail) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      
+      // Constrain width between 30% and 70% of screen width
+      const minWidth = window.innerWidth * 0.30; // 30%
+      const maxWidth = window.innerWidth * 0.70; // 70%
+      
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setDetailPanelWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingDetail(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingDetail]);
 
   // Render filter panel content
   const renderFilterPanel = () => (
@@ -728,13 +759,28 @@ export function FakturagrunnlagPage() {
         <div className="px-6 pt-6 pb-4 flex items-center justify-between">
           <h1 className="headline-small text-foreground">Fakturagrunnlag</h1>
           
-          {/* Only show button if NOT creating a new unsaved trip */}
-          {!(isCreatingNewTrip && !isNewTripSaved) && (
-            <Button onClick={handleCreateNewTrip}>
-              <Plus className="w-5 h-5" />
-              Opprett ny reise
-            </Button>
-          )}
+          {/* Desktop only: Advanced Search toggle button and Create button */}
+          <div className="flex items-center gap-4">
+            {/* Advanced Search toggle button - Desktop only */}
+            {!isAdvancedSearchOpen && (
+              <Button 
+                variant="secondary"
+                onClick={() => setIsAdvancedSearchOpen(true)}
+                className="max-[1400px]:hidden"
+              >
+                <SlidersHorizontal className="w-5 h-5 mr-2" />
+                Avansert søk
+              </Button>
+            )}
+            
+            {/* Only show create button if NOT creating a new unsaved trip */}
+            {!(isCreatingNewTrip && !isNewTripSaved) && (
+              <Button onClick={handleCreateNewTrip}>
+                <Plus className="w-5 h-5" />
+                Opprett ny reise
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}
@@ -770,55 +816,72 @@ export function FakturagrunnlagPage() {
 
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* DESKTOP: Advanced Search Panel */}
-        <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            {renderFilterPanel()}
+        {/* DESKTOP: Advanced Search Panel - Conditionally visible */}
+        {isAdvancedSearchOpen && (
+          <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
+            {/* Close button at the top */}
+            <div className="px-4 py-4 border-b border-[var(--border)]">
+              <Button 
+                variant="tertiary"
+                onClick={() => setIsAdvancedSearchOpen(false)}
+                className="w-full justify-start"
+              >
+                <ChevronLeft className="w-5 h-5 mr-2" />
+                Lukk søkepanel
+              </Button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {renderFilterPanel()}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Table Section */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Filter Chip Bar */}
-          <FakturaFilterChipBar
-            selectedStatus={selectedStatus}
-            selectedForetak={selectedForetak}
-            startDateFrom={startDateFrom}
-            startDateTo={startDateTo}
-            endDateFrom={endDateFrom}
-            endDateTo={endDateTo}
-            amountFrom={amountFrom}
-            amountTo={amountTo}
-            onRemoveStatus={handleRemoveStatus}
-            onRemoveForetak={handleRemoveForetak}
-            onRemoveDateFilter={handleRemoveDateFilter}
-            onRemoveAmountFilter={handleRemoveAmountFilter}
-            onClearAll={handleClearFilters}
-            resultCount={displayedTrips.length}
-          />
+        {/* Table Panel */}
+        <div 
+          className="h-full flex flex-col max-[1200px]:w-full flex-1 relative"
+        >
+          {/* Table content */}
+          <div className="flex-1 overflow-auto bg-background flex flex-col">
+            {/* Filter Chip Bar */}
+            <FakturaFilterChipBar
+              selectedStatus={selectedStatus}
+              selectedForetak={selectedForetak}
+              startDateFrom={startDateFrom}
+              startDateTo={startDateTo}
+              endDateFrom={endDateFrom}
+              endDateTo={endDateTo}
+              amountFrom={amountFrom}
+              amountTo={amountTo}
+              onRemoveStatus={handleRemoveStatus}
+              onRemoveForetak={handleRemoveForetak}
+              onRemoveDateFilter={handleRemoveDateFilter}
+              onRemoveAmountFilter={handleRemoveAmountFilter}
+              onClearAll={handleClearFilters}
+              resultCount={displayedTrips.length}
+            />
 
-          <div className="flex-1 overflow-hidden">
             <div className="flex-1 overflow-auto">
-              <table className="w-full">
+              {/* Desktop Table - Shows on wide screens (≥1600px) or when detail panel is not shown, OR on tablet (768-1199px) */}
+              <table className={`w-full ${selectedTripId ? 'min-[1200px]:max-[1599px]:hidden max-[768px]:hidden' : 'max-[768px]:hidden'}`}>
                 <thead className="bg-surface-container-low sticky top-0 z-10">
                   <tr className="border-b border-[var(--border)]">
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium">Reisenr.</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium">Dato</span>
                     </th>
                     <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium max-[768px]:hidden">Reisebeskrivelse</span>
-                      <span className="label-medium min-[768px]:hidden">Reise</span>
+                      <span className="label-medium">Reisebeskrivelse</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium">Foretak</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium">Beløp</span>
                     </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low max-[768px]:hidden">
+                    <th className="px-6 py-3 text-left bg-surface-container-low">
                       <span className="label-medium">Status</span>
                     </th>
                   </tr>
@@ -838,12 +901,12 @@ export function FakturagrunnlagPage() {
                         }`}
                       >
                         {/* Desktop: Trip Number column */}
-                        <td className="px-6 py-4 max-[768px]:hidden">
+                        <td className="px-6 py-4">
                           <span className="body-medium text-foreground">{trip.tripNumber}</span>
                         </td>
 
                         {/* Desktop: Date column (combined start/end dates) */}
-                        <td className="px-6 py-4 max-[768px]:hidden">
+                        <td className="px-6 py-4">
                           {isDayTrip ? (
                             // Day trip: Show single date
                             <span className="body-medium text-foreground">
@@ -859,52 +922,25 @@ export function FakturagrunnlagPage() {
                           )}
                         </td>
 
-                        {/* Responsive column - different content on mobile vs desktop */}
+                        {/* Desktop: Description */}
                         <td className="px-6 py-4">
-                          {/* Desktop: Description from newTripData or generateTripData */}
-                          <span className="body-medium text-foreground max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
                             {trip.id.startsWith('new-') ? trip.description || '—' : generateTripData(trip.id).description}
                           </span>
-
-                          {/* Mobile: Condensed two-line format */}
-                          <div className="flex flex-col gap-2 min-[768px]:hidden">
-                            {/* Line 1: Status badge and amount with gap-1 */}
-                            <div className="flex flex-row items-center gap-1 flex-wrap">
-                              {getStatusBadge(trip.status)}
-                              <span className="label-small text-muted-foreground">
-                                {formatAmount(trip.amount)} kr
-                              </span>
-                            </div>
-
-                            {/* Line 2: Trip details */}
-                            <div className="flex flex-col gap-0.5">
-                              <span className="body-medium text-foreground">
-                                {trip.tripNumber} • {getForetakForTrip(trip)}
-                              </span>
-                              {trip.startDate && trip.endDate && (
-                                <span className="label-small text-muted-foreground">
-                                  {formatNorwegianDate(new Date(trip.startDate))} - {formatNorwegianDate(new Date(trip.endDate))}
-                                </span>
-                              )}
-                              <span className="body-medium text-foreground">
-                                {trip.id.startsWith('new-') ? trip.description || '—' : generateTripData(trip.id).description}
-                              </span>
-                            </div>
-                          </div>
                         </td>
 
                         {/* Desktop: Foretak column */}
-                        <td className="px-6 py-4 max-[768px]:hidden">
+                        <td className="px-6 py-4">
                           <span className="body-medium text-foreground">{getForetakForTrip(trip)}</span>
                         </td>
 
                         {/* Desktop: Amount column */}
-                        <td className="px-6 py-4 max-[768px]:hidden">
+                        <td className="px-6 py-4">
                           <span className="body-medium text-foreground">{formatAmount(trip.amount)}</span>
                         </td>
 
                         {/* Desktop: Status column */}
-                        <td className="px-6 py-4 max-[768px]:hidden">
+                        <td className="px-6 py-4">
                           {getStatusBadge(trip.status)}
                         </td>
                       </tr>
@@ -912,6 +948,62 @@ export function FakturagrunnlagPage() {
                   })}
                 </tbody>
               </table>
+
+              {/* Condensed List View - Shows on mobile (<768px) OR on desktop when detail panel is open and screen is narrow (1200-1599px) */}
+              <div className={`flex flex-col ${selectedTripId ? 'min-[768px]:max-[1199px]:hidden min-[1600px]:hidden' : 'min-[768px]:hidden'}`}>
+                <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
+                  <span className="label-medium text-foreground">Reise</span>
+                </div>
+                {displayedTrips.map((trip) => {
+                  const isDayTrip = trip.startDate && trip.endDate && 
+                    new Date(trip.startDate).toDateString() === new Date(trip.endDate).toDateString();
+                  
+                  return (
+                    <div
+                      key={trip.id}
+                      onClick={() => {
+                        setSelectedTripId(trip.id);
+                        // On mobile/tablet, open bottom sheet
+                        if (window.innerWidth < 1200) {
+                          setIsDetailBottomSheetOpen(true);
+                        }
+                      }}
+                      className={`px-6 py-4 border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
+                        selectedTripId === trip.id ? 'bg-secondary-container' : ''
+                      }`}
+                    >
+                      <div className="flex flex-col gap-2">
+                        {/* Line 1: Status badge and amount with gap-1 */}
+                        <div className="flex flex-row items-center gap-1 flex-wrap">
+                          {getStatusBadge(trip.status)}
+                          <span className="label-small text-muted-foreground">
+                            {formatAmount(trip.amount)} kr
+                          </span>
+                        </div>
+
+                        {/* Line 2: Trip details */}
+                        <div className="flex flex-col gap-0.5">
+                          <span className="body-medium text-foreground">
+                            {trip.tripNumber} • {getForetakForTrip(trip)}
+                          </span>
+                          {trip.startDate && trip.endDate && (
+                            <span className="label-small text-muted-foreground">
+                              {isDayTrip ? (
+                                formatNorwegianDate(new Date(trip.startDate))
+                              ) : (
+                                `${formatNorwegianDate(new Date(trip.startDate))} - ${formatNorwegianDate(new Date(trip.endDate))}`
+                              )}
+                            </span>
+                          )}
+                          <span className="body-medium text-foreground">
+                            {trip.id.startsWith('new-') ? trip.description || '—' : generateTripData(trip.id).description}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
 
               {/* Empty state */}
               {displayedTrips.length === 0 && (
@@ -923,41 +1015,48 @@ export function FakturagrunnlagPage() {
           </div>
         </div>
 
-        {/* DESKTOP: Detail Panel - Shows selected trip */}
+        {/* DESKTOP: Detail Panel - Shows selected trip with resizable width */}
         {selectedTripId && (
-          <>
-            {/* Resize handle */}
+          <div 
+            className="max-[1200px]:hidden h-full bg-background overflow-hidden flex flex-row relative"
+            style={{ width: `${detailPanelWidth}px` }}
+          >
+            {/* Resize Handle - Left Edge */}
             <div
-              className="max-[1400px]:hidden w-1 h-full bg-[var(--border)] hover:bg-primary cursor-col-resize relative group"
-              onMouseDown={handleMouseDown}
-              onMouseEnter={() => setShowResizeHandle(true)}
-              onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setIsResizingDetail(true);
+              }}
+              className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary transition-colors z-10 ${
+                isResizingDetail ? 'bg-primary' : 'bg-transparent'
+              }`}
+              style={{
+                touchAction: 'none',
+              }}
             >
-              {(showResizeHandle || isResizing) && (
-                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-1 bg-[var(--border)]" />
-              )}
+              {/* Wider invisible hit area for easier grabbing */}
+              <div className="absolute -left-1 -right-1 top-0 bottom-0" />
             </div>
 
-            <div 
-              className="max-[1400px]:hidden h-full bg-background overflow-hidden flex flex-col"
-              style={{ width: `${panelWidth}px` }}
-            >
+            {/* Detail Panel Content */}
+            <div className="flex-1 flex flex-col border-l border-[var(--border)]">
               <TripDetailPanel 
                 trip={(isCreatingNewTrip && newTripData?.id === selectedTripId) ? newTripData : allTrips.find(t => t.id === selectedTripId)!} 
                 onUpdate={handleUpdateTripData}
                 onSave={handleSaveTrip}
                 onDelete={handleDeleteTrip}
                 isSaved={isNewTripSaved}
+                onClose={() => setSelectedTripId(null)}
               />
             </div>
-          </>
+          </div>
         )}
       </div>
 
       {/* Floating Action Button (FAB) - Mobile/Tablet only */}
       <button
         onClick={() => setIsFilterSheetOpen(true)}
-        className="min-[1400px]:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center z-50"
+        className="min-[1200px]:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all flex items-center justify-center z-50"
         aria-label="Filtrer"
       >
         <SlidersHorizontal className="w-6 h-6" />

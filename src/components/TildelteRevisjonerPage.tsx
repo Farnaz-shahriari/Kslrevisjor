@@ -40,7 +40,7 @@ interface TildelteRevisjonerPageProps {
 }
 
 export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPageProps) {
-  const [showingMenu, setShowingMenu] = useState(true);
+  const [showingMenu, setShowingMenu] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list'); // New state for view toggle
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set()); // Track accepted revisjoner
   const [searchFilters, setSearchFilters] = useState<TildeltRevisjonSearchFilters>({});
@@ -255,10 +255,6 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
       },
     },
   ];
-
-  const handleBackToMenu = () => {
-    setShowingMenu(true);
-  };
 
   // Sorting function
   const getSortedRevisjoner = () => {
@@ -636,20 +632,6 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
 
         {/* MOBILE/TABLET & DESKTOP: Main Content Area */}
         <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full`}>
-          {/* Back button - visible only on mobile/tablet */}
-          {!showingMenu && (
-            <div className="px-6 pt-4 pb-2 min-[1400px]:hidden">
-              <button
-                onClick={handleBackToMenu}
-                className="flex items-center gap-2 label-large text-foreground hover:opacity-70 transition-opacity"
-                aria-label="Tilbake til søk"
-              >
-                <ChevronLeft className="w-5 h-5" />
-                Tilbake
-              </button>
-            </div>
-          )}
-
           {/* Main content - Placeholder for list of tildelte revisjoner */}
           <div className="flex-1 overflow-y-auto px-4 py-4 pr-10 min-[1500px]:pr-[200px]">
             {/* Sorting and Bulk Actions Bar */}
@@ -697,9 +679,19 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
                 </div>
               </div>
               
-              {/* RIGHT GROUP: Sorting - only show in list view */}
+              {/* RIGHT GROUP: Sorting + Filter button - only show in list view */}
               {viewMode === 'list' && (
-                <div className="flex items-center gap-1 min-w-0 relative">
+                <div className="flex items-center gap-4 min-w-0 relative">
+                  {/* \"Filtrer listen\" button - Mobile/Tablet only */}
+                  <Button 
+                    variant="secondary"
+                    onClick={() => setShowingMenu(true)}
+                    className="min-[1400px]:hidden"
+                  >
+                    <SlidersHorizontal className="w-5 h-5" />
+                    Filtrer listen
+                  </Button>
+
                   <div className="label-large text-foreground whitespace-nowrap">
                     Sortering:
                   </div>

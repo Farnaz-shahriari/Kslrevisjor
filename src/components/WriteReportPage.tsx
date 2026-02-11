@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import svgPaths from '../imports/svg-lebuxrzm9d';
 import svgPathsChip from '../imports/svg-cne2b5etox';
 import { ExpandableInput } from './ExpandableInput';
@@ -51,6 +51,10 @@ export function WriteReportPage({
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1400;
   const [currentStep, setCurrentStep] = useState<number | null>(isDesktop ? 0 : null);
   const [showingMenu, setShowingMenu] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  // Ref for sidebar to detect clicks outside
+  const sidebarRef = useRef<HTMLDivElement>(null);
   
   // Step 0: Informasjon om foretaket
   const [aboutCompanyText, setAboutCompanyText] = useState('');
@@ -260,6 +264,24 @@ export function WriteReportPage({
     }
   }, [previousRevisionTab]);
 
+  // Click outside sidebar to collapse it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Only collapse if sidebar is expanded
+      if (!isSidebarCollapsed && sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setIsSidebarCollapsed(true);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('mousedown', handleClickOutside);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSidebarCollapsed]);
+
   // Check if a step is completed based on its required fields
   const isStepComplete = (stepId: number): boolean => {
     switch (stepId) {
@@ -313,6 +335,13 @@ export function WriteReportPage({
 
   const handleBackToMenu = () => {
     setShowingMenu(true);
+  };
+
+  const handleContentClick = () => {
+    // Collapse sidebar when user clicks in content area (desktop only)
+    if (window.innerWidth >= 1400 && !isSidebarCollapsed) {
+      setIsSidebarCollapsed(true);
+    }
   };
 
   return (
@@ -425,7 +454,33 @@ export function WriteReportPage({
       )}
 
       {/* DESKTOP: Left sidebar - Steps - Always visible */}
-      <div className="max-[1400px]:hidden box-border content-stretch flex flex-col gap-[8px] h-full items-start overflow-x-clip overflow-y-auto p-[16px] relative shrink-0 w-[392px] z-[3]" data-name="Report steps">
+      <div 
+        ref={sidebarRef}
+        className={`max-[1400px]:hidden box-border content-stretch flex flex-col gap-[8px] h-full items-start overflow-x-clip overflow-y-auto p-[16px] relative shrink-0 z-[3] transition-all ${isSidebarCollapsed ? 'w-[88px] cursor-pointer' : 'w-[392px]'}`} 
+        data-name="Report steps"
+        onClick={() => {
+          if (isSidebarCollapsed) {
+            setIsSidebarCollapsed(false);
+          }
+        }}
+      >
+        {/* Toggle button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsSidebarCollapsed(!isSidebarCollapsed);
+          }}
+          className={`flex items-center gap-2 px-2 py-2 label-medium text-foreground hover:bg-muted rounded-[var(--radius)] transition-colors w-full mb-2 ${isSidebarCollapsed ? 'justify-center' : ''}`}
+        >
+          {isSidebarCollapsed ? (
+            <ChevronRight className="w-5 h-5" />
+          ) : (
+            <>
+              <ChevronLeft className="w-5 h-5" />
+              <span>Skjul rapportseksjoner</span>
+            </>
+          )}
+        </button>
         {steps.map((step) => {
           const isComplete = isStepComplete(step.id);
           const isActive = currentStep === step.id;
@@ -433,109 +488,130 @@ export function WriteReportPage({
           return (
             <div
               key={step.id}
-              onClick={() => setCurrentStep(step.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentStep(step.id);
+              }}
               className={`${
                 isActive ? 'bg-[#dae2ff]' : 'bg-white'
-              } box-border content-stretch cursor-pointer flex gap-[16px] items-center min-h-[64px] px-0 py-[8px] relative rounded-[12px] shrink-0 w-full ${
+              } box-border content-stretch cursor-pointer flex gap-[16px] items-center ${isSidebarCollapsed ? 'min-h-[56px]' : 'min-h-[64px]'} px-0 py-[8px] relative rounded-[12px] shrink-0 w-full ${
                 !isActive && 'hover:bg-[#f4f4ea]'
               } transition-colors`}
               data-name="checklist Question"
             >
-              <div className="basis-0 grow h-[64px] min-h-px min-w-px relative shrink-0">
-                <div className="flex flex-col justify-center size-full">
-                  <div className="box-border content-stretch flex flex-col gap-[8px] h-[64px] items-start justify-center px-[8px] py-0 relative w-full">
-                    <div className="content-stretch flex flex-col h-[72px] items-center justify-center min-h-[56px] relative shrink-0 w-full" data-name="List item/List Item: 0 Density">
-                      <div className="absolute inset-0" data-name="state-layer overlay" />
-                      <div className="basis-0 box-border content-stretch flex gap-[16px] grow items-center min-h-px min-w-px px-0 py-[8px] relative shrink-0 w-full" data-name="state-layer">
-                        <div className="content-stretch flex flex-col items-start justify-center overflow-clip relative shrink-0" data-name="Leading element">
-                          <div className="bg-[#eff1e7] overflow-clip relative rounded-[100px] shrink-0 size-[40px]" data-name=".Building Blocks/Monogram">
-                            <div className="absolute body-large left-1/2 size-[40px] text-[#284000] text-center top-1/2 translate-x-[-50%] translate-y-[-50%] flex items-center justify-center">
-                              <p className="m-0">{step.id + 1}</p>
+              {isSidebarCollapsed ? (
+                /* Collapsed view - Only number */
+                <div className="flex items-center justify-center w-full">
+                  <div className="bg-[#eff1e7] overflow-clip relative rounded-[100px] shrink-0 size-[40px]">
+                    <div className="absolute body-large left-1/2 size-[40px] text-[#284000] text-center top-1/2 translate-x-[-50%] translate-y-[-50%] flex items-center justify-center">
+                      <p className="m-0">{step.id + 1}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Expanded view - Number + Labels */
+                <div className="basis-0 grow h-[64px] min-h-px min-w-px relative shrink-0">
+                  <div className="flex flex-col justify-center size-full">
+                    <div className="box-border content-stretch flex flex-col gap-[8px] h-[64px] items-start justify-center px-[8px] py-0 relative w-full">
+                      <div className="content-stretch flex flex-col h-[72px] items-center justify-center min-h-[56px] relative shrink-0 w-full" data-name="List item/List Item: 0 Density">
+                        <div className="absolute inset-0" data-name="state-layer overlay" />
+                        <div className="basis-0 box-border content-stretch flex gap-[16px] grow items-center min-h-px min-w-px px-0 py-[8px] relative shrink-0 w-full" data-name="state-layer">
+                          <div className="content-stretch flex flex-col items-start justify-center overflow-clip relative shrink-0" data-name="Leading element">
+                            <div className="bg-[#eff1e7] overflow-clip relative rounded-[100px] shrink-0 size-[40px]" data-name=".Building Blocks/Monogram">
+                              <div className="absolute body-large left-1/2 size-[40px] text-[#284000] text-center top-1/2 translate-x-[-50%] translate-y-[-50%] flex items-center justify-center">
+                                <p className="m-0">{step.id + 1}</p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className={`basis-0 content-stretch flex flex-col grow h-full items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 ${
-                          isComplete ? 'leading-[0] tracking-[0.5px]' : ''
-                        }`} data-name="Content">
-                          {isComplete && (
-                            <div className="label-small text-muted-foreground w-full">
-                              <p className="m-0">Fullført</p>
+                          <div className={`basis-0 content-stretch flex flex-col grow h-full items-start justify-center min-h-px min-w-px overflow-clip relative shrink-0 ${
+                            isComplete ? 'leading-[0] tracking-[0.5px]' : ''
+                          }`} data-name="Content">
+                            {isComplete && (
+                              <div className="label-small text-muted-foreground w-full">
+                                <p className="m-0">Fullført</p>
+                              </div>
+                            )}
+                            <div className={`body-large w-full ${
+                              isActive ? 'text-secondary-container-foreground' : 'text-foreground'
+                            }`}>
+                              <p className="m-0">{step.label}</p>
                             </div>
-                          )}
-                          <div className={`body-large w-full ${
-                            isActive ? 'text-secondary-container-foreground' : 'text-foreground'
-                          }`}>
-                            <p className="m-0">{step.label}</p>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
 
-        {/* Lock report button */}
-        <div className="relative shrink-0 w-full" data-name="Summary">
-          <div className="size-full">
-            <div className="box-border content-stretch flex flex-col items-start px-[16px] py-[24px] relative w-full">
-              <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
-                <div className="content-stretch flex items-center justify-center relative shrink-0" data-name="Button">
-                  <button
-                    disabled={!isReportComplete() || reportLocked}
-                    onClick={() => {
-                      if (isReportComplete() && !reportLocked && onLockReport) {
-                        onLockReport();
-                      }
-                    }}
-                    className={`content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 transition-all ${
-                      isReportComplete() && !reportLocked
-                        ? 'bg-[#4a671e] hover:bg-[#3d5618] cursor-pointer shadow-sm' 
-                        : 'bg-[rgba(26,28,22,0.12)] cursor-not-allowed'
-                    }`}
-                    data-name="Content"
-                  >
-                    <div className="box-border content-stretch flex gap-[8px] items-center justify-center px-[24px] py-[16px] relative shrink-0" data-name="State-layer">
-                      <div className="relative shrink-0 size-[24px]" data-name="Icon">
-                        <div className="absolute inset-0 overflow-clip" data-name="lock">
-                          <div className="absolute inset-[6.25%_16.67%]" data-name="Vector">
-                            <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 21">
-                              <path d={svgPaths.p29f40100} fill="white" id="Vector" />
-                            </svg>
+        {/* Lock report button - Hide when collapsed */}
+        {!isSidebarCollapsed && (
+          <div className="relative shrink-0 w-full" data-name="Summary">
+            <div className="size-full">
+              <div className="box-border content-stretch flex flex-col items-start px-[16px] py-[24px] relative w-full">
+                <div className="content-stretch flex flex-col gap-[4px] items-start relative shrink-0 w-full">
+                  <div className="content-stretch flex items-center justify-center relative shrink-0" data-name="Button">
+                    <button
+                      disabled={!isReportComplete() || reportLocked}
+                      onClick={() => {
+                        if (isReportComplete() && !reportLocked && onLockReport) {
+                          onLockReport();
+                        }
+                      }}
+                      className={`content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 transition-all ${
+                        isReportComplete() && !reportLocked
+                          ? 'bg-[#4a671e] hover:bg-[#3d5618] cursor-pointer shadow-sm' 
+                          : 'bg-[rgba(26,28,22,0.12)] cursor-not-allowed'
+                      }`}
+                      data-name="Content"
+                    >
+                      <div className="box-border content-stretch flex gap-[8px] items-center justify-center px-[24px] py-[16px] relative shrink-0" data-name="State-layer">
+                        <div className="relative shrink-0 size-[24px]" data-name="Icon">
+                          <div className="absolute inset-0 overflow-clip" data-name="lock">
+                            <div className="absolute inset-[6.25%_16.67%]" data-name="Vector">
+                              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 16 21">
+                                <path d={svgPaths.p29f40100} fill="white" id="Vector" />
+                              </svg>
+                            </div>
                           </div>
                         </div>
+                        <div className="body-large text-white">
+                          <p className="m-0 whitespace-pre">{reportLocked ? 'Rapport låst' : 'Lås rapport'}</p>
+                        </div>
                       </div>
-                      <div className="body-large text-white">
-                        <p className="m-0 whitespace-pre">{reportLocked ? 'Rapport låst' : 'Lås rapport'}</p>
-                      </div>
+                    </button>
+                  </div>
+                  {!isReportComplete() && !reportLocked && (
+                    <div className="body-medium text-muted-foreground">
+                      <p className="m-0">Rapporten inneholder ufullstendige deler</p>
                     </div>
-                  </button>
+                  )}
+                  {reportLocked && (
+                    <div className="body-medium text-primary">
+                      <p className="m-0">Rapporten er låst. Se avvik under fanen "Avvik"</p>
+                    </div>
+                  )}
                 </div>
-                {!isReportComplete() && !reportLocked && (
-                  <div className="body-medium text-muted-foreground">
-                    <p className="m-0">Rapporten inneholder ufullstendige deler</p>
-                  </div>
-                )}
-                {reportLocked && (
-                  <div className="body-medium text-primary">
-                    <p className="m-0">Rapporten er låst. Se avvik under fanen "Avvik"</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Vertical divider - Desktop only */}
       <div className="max-[1400px]:hidden h-full w-px shrink-0 z-[2]" style={{ backgroundColor: 'var(--border)' }} data-name="Vertical divider" />
 
       {/* MOBILE/TABLET & DESKTOP: Content area */}
-      <div className={`content-stretch flex flex-col h-full items-start relative shrink-0 flex-1 z-[1] overflow-y-auto ${
-        showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex max-[1400px]:w-full'
-      } min-[1400px]:flex`} data-name="Content area">
+      <div 
+        className={`content-stretch flex flex-col h-full items-start relative shrink-0 flex-1 z-[1] overflow-y-auto ${
+          showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex max-[1400px]:w-full'
+        } min-[1400px]:flex`} 
+        data-name="Content area"
+        onClick={handleContentClick}
+      >
         {/* Back button for mobile/tablet */}
         {!showingMenu && currentStep !== null && (
           <div className="px-6 pt-4 pb-2 min-[1400px]:hidden">
@@ -988,19 +1064,37 @@ export function WriteReportPage({
               <div className="flex items-center justify-between max-[1400px]:hidden">
                 <h2 className="title-large text-foreground m-0">Hovedkonklusjon</h2>
                 
-                {/* Navigation buttons - always enabled */}
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="tertiary"
-                    onClick={() => setCurrentStep(3)}
-                  >
-                    Forrige
-                  </Button>
-                  <Button
-                    variant={isStepComplete(4) ? "primary" : "tertiary"}
-                  >
-                    Fullfør
-                  </Button>
+                {/* Navigation buttons */}
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant="tertiary"
+                      onClick={() => setCurrentStep(3)}
+                    >
+                      Forrige
+                    </Button>
+                    <Button
+                      variant={isReportComplete() && !reportLocked ? "primary" : "secondary"}
+                      disabled={!isReportComplete() || reportLocked}
+                      onClick={() => {
+                        if (isReportComplete() && !reportLocked && onLockReport) {
+                          onLockReport();
+                        }
+                      }}
+                    >
+                      {reportLocked ? 'Rapport låst' : 'Lås rapport'}
+                    </Button>
+                  </div>
+                  {!isReportComplete() && !reportLocked && (
+                    <div className="body-medium text-muted-foreground">
+                      <p className="m-0">Rapporten inneholder ufullstendige deler</p>
+                    </div>
+                  )}
+                  {reportLocked && (
+                    <div className="body-medium text-primary">
+                      <p className="m-0">Rapporten er låst. Se avvik under fanen "Avvik"</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
