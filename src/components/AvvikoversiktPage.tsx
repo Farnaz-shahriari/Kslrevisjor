@@ -1,18 +1,16 @@
-import { Badge } from './ui/badge';
-import { AdvancedSearchPanel, SearchFilters } from './AdvancedSearchPanel';
-import { FilterChipBar } from './FilterChipBar';
-import { formatNorwegianDate } from '../utils/dateFormat';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, SlidersHorizontal, Download, ChevronDown, AlertTriangle, ChevronLeft } from 'lucide-react';
+import { DeviationDetailPanel } from './DeviationDetailPanel';
+import { TabLarge } from './ui/tabs';
 import { Button } from './ui/button';
 import { BottomSheet } from './ui/bottom-sheet';
-import { useState, useRef, useEffect } from 'react';
-import { Search, AlertTriangle, ChevronLeft, User, Calendar as CalendarIcon, Plus, Edit2, SlidersHorizontal } from 'lucide-react';
-import svgPaths from '../imports/svg-8axi0x1eud';
-import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
-import { DeviationDetailPanel } from './DeviationDetailPanel';
+import { FilterChipBar } from './FilterChipBar';
+import { AdvancedSearchPanel, SearchFilters } from './AdvancedSearchPanel';
+import { formatNorwegianDate } from '../utils/dateFormat';
 
 type TabType = 'apne' | 'tilHandling' | 'besokPlanlagt' | 'lukket';
 type SeverityType = 'kritisk' | 'avvik' | 'lite';
-type StatusType = 'tidspunkt-foreslatt' | 'besok-planlagt' | 'venter-godkjenning' | 'onsker-fristforlengelse' | 'dokument-levert' | 'avventer-moteforslag' | 'avventer-dokumentasjon';
+type StatusType = 'tidspunkt-foreslatt' | 'besok-planlagt' | 'venter-godkjenning' | 'onsker-fristforlengelse' | 'dokument-levert' | 'avventer-moteforslag' | 'avventer-dokumentasjon' | 'lukket';
 type ConfirmationMethod = 'dokumentasjon' | 'digitalt-besok' | 'fysisk-besok';
 
 interface RejectedDocument {
@@ -253,9 +251,23 @@ function StatusBadge({ status, requiresAction }: { status: StatusType; requiresA
     'avventer-dokumentasjon': {
       label: 'Avventer dokumentasjon',
     },
+    'lukket': {
+      label: 'Lukket',
+    },
   };
 
   const { label } = config[status];
+
+  // Special styling for lukket status
+  if (status === 'lukket') {
+    return (
+      <div className="flex items-center justify-center bg-[var(--primary-container)] rounded-[12px] px-3 py-1.5">
+        <span className="label-medium text-[var(--primary-container-foreground)]">
+          {label}
+        </span>
+      </div>
+    );
+  }
 
   if (requiresAction) {
     return (
@@ -286,8 +298,12 @@ export function AvvikoversiktPage() {
   // Manage deviations as state so they can be updated
   const [deviations, setDeviations] = useState<Deviation[]>(allDeviations);
   
-  // Track initial sort order - only updated on tab/foretak change, not on status updates
-  const [sortedDeviationIds, setSortedDeviationIds] = useState<string[]>([]);
+  // CRITICAL: displayedDeviations is what's shown in the list
+  // It only updates when tab/foretak changes, NOT when status updates
+  const [displayedDeviations, setDisplayedDeviations] = useState<Deviation[]>([]);
+  
+  // Track pending changes flag
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
   
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     severities: [],
@@ -308,6 +324,7 @@ export function AvvikoversiktPage() {
 
   // Handler to update deviation status
   const handleDeviationStatusUpdate = (deviationId: string, newStatus: StatusType) => {
+    // Update the main deviations state
     setDeviations(prevDeviations => 
       prevDeviations.map(dev => 
         dev.id === deviationId 
@@ -315,6 +332,18 @@ export function AvvikoversiktPage() {
           : dev
       )
     );
+    
+    // ALSO update the displayed deviations in place
+    setDisplayedDeviations(prevDisplayed =>
+      prevDisplayed.map(dev =>
+        dev.id === deviationId
+          ? { ...dev, status: newStatus, requiresAction: newStatus === 'tidspunkt-foreslatt' || newStatus === 'dokument-levert' || newStatus === 'onsker-fristforlengelse' }
+          : dev
+      )
+    );
+    
+    // Flag that we have pending changes
+    setHasPendingChanges(true);
   };
 
   // Handler to add rejected documents to a specific deviation
@@ -322,6 +351,15 @@ export function AvvikoversiktPage() {
     setDeviations(prevDeviations => 
       prevDeviations.map(dev => 
         dev.id === deviationId 
+          ? { ...dev, rejectedDocuments: [...(dev.rejectedDocuments || []), ...documents] }
+          : dev
+      )
+    );
+    
+    // ALSO update displayed deviations
+    setDisplayedDeviations(prevDisplayed =>
+      prevDisplayed.map(dev =>
+        dev.id === deviationId
           ? { ...dev, rejectedDocuments: [...(dev.rejectedDocuments || []), ...documents] }
           : dev
       )
@@ -335,16 +373,21 @@ export function AvvikoversiktPage() {
     'lite': 3,
   };
 
-  // Filter deviations by tab
-  const filteredDeviations = deviations.filter(deviation => {
-    if (activeTab === 'apne') return true; // All deviations
-    if (activeTab === 'tilHandling') return deviation.requiresAction;
-    if (activeTab === 'besokPlanlagt') return deviation.status === 'besok-planlagt';
-    return false; // lukket - no mock data for closed deviations
-  });
+  // Filter deviations by tab - this is used to load fresh data
+  const getFilteredDeviations = (devs: Deviation[], tab: TabType) => {
+    return devs.filter(deviation => {
+      if (tab === 'apne') return deviation.status !== 'lukket'; // All deviations except closed ones
+      if (tab === 'tilHandling') return deviation.requiresAction && deviation.status !== 'lukket';
+      if (tab === 'besokPlanlagt') return deviation.status === 'besok-planlagt';
+      if (tab === 'lukket') return deviation.status === 'lukket'; // Only closed deviations
+      return false;
+    });
+  };
 
-  // Compute initial sort order only when tab or foretak changes (not on status updates)
+  // Reorganize displayed deviations when tab or foretak changes
   useEffect(() => {
+    const filteredDeviations = getFilteredDeviations(deviations, activeTab);
+    
     const toSort = selectedForetakId === 'alle' 
       ? filteredDeviations 
       : filteredDeviations.filter(d => d.foretakName === foretakList.find(f => f.id === selectedForetakId)?.name);
@@ -360,17 +403,15 @@ export function AvvikoversiktPage() {
       return severityOrder[a.severity] - severityOrder[b.severity];
     });
     
-    // Save the sorted IDs
-    setSortedDeviationIds(sorted.map(d => d.id));
-  }, [activeTab, selectedForetakId]); // Only re-sort when tab or foretak changes
+    // Update displayed deviations with fresh filtered data
+    setDisplayedDeviations(sorted);
+    
+    // Clear pending changes flag
+    setHasPendingChanges(false);
+  }, [activeTab, selectedForetakId]); // Reorganize when tab or foretak changes
 
-  // Apply the saved sort order to displayed deviations
-  const displayedDeviations = (selectedForetakId === 'alle' 
-    ? filteredDeviations 
-    : filteredDeviations.filter(d => d.foretakName === foretakList.find(f => f.id === selectedForetakId)?.name)
-  )
-  // Apply search filters
-  .filter(dev => {
+  // Apply search filters to displayed deviations
+  const finalDisplayedDeviations = displayedDeviations.filter(dev => {
     // Filter by severity
     if (searchFilters.severities.length > 0 && !searchFilters.severities.includes(dev.severity)) {
       return false;
@@ -390,35 +431,20 @@ export function AvvikoversiktPage() {
     }
     
     // Filter by foretak
-    if (searchFilters.foretak.length >0 && !searchFilters.foretak.includes(dev.foretakName)) {
+    if (searchFilters.foretak.length > 0 && !searchFilters.foretak.includes(dev.foretakName)) {
       return false;
     }
     
     return true;
-  })
-  // Sort by the saved order instead of computing it dynamically
-  .sort((a, b) => {
-    const indexA = sortedDeviationIds.indexOf(a.id);
-    const indexB = sortedDeviationIds.indexOf(b.id);
-    
-    // If either ID is not in the sorted list, put it at the end
-    if (indexA === -1 && indexB === -1) return 0;
-    if (indexA === -1) return 1;
-    if (indexB === -1) return -1;
-    
-    return indexA - indexB;
   });
 
   const handleForetakClick = (foretakId: string) => {
     setSelectedForetakId(foretakId);
-    // On mobile, navigate to table view
-    if (window.innerWidth < 1400) {
-      setShowingMenu(false);
-    }
+    // Navigation logic removed - not applicable for this page
   };
 
   const handleBackToMenu = () => {
-    setShowingMenu(true);
+    // Navigation logic removed - not applicable for this page
   };
 
   const handleRemoveFilter = (type: 'severity' | 'status' | 'foretak', value: string) => {
@@ -479,80 +505,40 @@ export function AvvikoversiktPage() {
   }, [isResizingDetail]);
 
   return (
-    <div className="flex h-full w-full overflow-hidden flex-col bg-background">
-      {/* Header with title and tabs */}
-      <div className="flex flex-col border-b border-[var(--border)] bg-background">
-        {/* Title and Search button */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h2 className="headline-small text-foreground">Avvikoversikt</h2>
-          
-          {/* Desktop only: Advanced Search toggle button */}
-          {!isAdvancedSearchOpen && (
-            <Button 
-              variant="secondary"
-              onClick={() => setIsAdvancedSearchOpen(true)}
-              className="max-[1400px]:hidden"
-            >
-              <SlidersHorizontal className="w-5 h-5 mr-2" />
-              Avansert søk
-            </Button>
-          )}
+    <div className="flex flex-col flex-1 w-full bg-background">
+
+      {/* Header with tabs */}
+      <div className="border-b border-border">
+        <div className={`flex items-center justify-between pt-6 pb-0 ${selectedDeviationId ? 'px-6' : 'px-6'}`}>
+          <h1 className="headline-small">Avviksoversikt</h1>
         </div>
 
-        {/* Tabs - Horizontal scroll on mobile */}
-        <div className="max-[1400px]:overflow-x-auto max-[1400px]:overflow-y-hidden min-[1400px]:flex gap-1 px-6 max-[1400px]:flex max-[1400px]:flex-nowrap">
-          <button
+        {/* Tabs */}
+        <div className={`flex items-center gap-0 ${selectedDeviationId ? 'px-6' : 'px-6'}`}>
+          <TabLarge
+            active={activeTab === 'apne'}
             onClick={() => setActiveTab('apne')}
-            className={`px-4 py-3 label-large transition-colors relative whitespace-nowrap ${
-              activeTab === 'apne'
-                ? 'text-primary'
-                : 'text-foreground hover:bg-muted'
-            }`}
           >
             Åpne avvik
-            {activeTab === 'apne' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
-            )}
-          </button>
-          <button
+          </TabLarge>
+          <TabLarge
+            active={activeTab === 'tilHandling'}
             onClick={() => setActiveTab('tilHandling')}
-            className={`px-4 py-3 label-large transition-colors relative whitespace-nowrap ${
-              activeTab === 'tilHandling'
-                ? 'text-primary'
-                : 'text-foreground hover:bg-muted'
-            }`}
           >
             Til handling nå
-            {activeTab === 'tilHandling' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
-            )}
-          </button>
-          <button
+          </TabLarge>
+          <TabLarge
+            active={activeTab === 'besokPlanlagt'}
             onClick={() => setActiveTab('besokPlanlagt')}
-            className={`px-4 py-3 label-large transition-colors relative whitespace-nowrap ${
-              activeTab === 'besokPlanlagt'
-                ? 'text-primary'
-                : 'text-foreground hover:bg-muted'
-            }`}
           >
             Besøk planlagt
-            {activeTab === 'besokPlanlagt' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
-            )}
-          </button>
-          <button
+          </TabLarge>
+          <TabLarge
+            active={activeTab === 'lukket'}
             onClick={() => setActiveTab('lukket')}
-            className={`px-4 py-3 label-large transition-colors relative whitespace-nowrap ${
-              activeTab === 'lukket'
-                ? 'text-primary'
-                : 'text-foreground hover:bg-muted'
-            }`}
           >
             Lukket avvik
-            {activeTab === 'lukket' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
-            )}
-          </button>
+          </TabLarge>
         </div>
       </div>
 
@@ -578,7 +564,7 @@ export function AvvikoversiktPage() {
                 // On desktop, reset filters on back
                 handleClearAllFilters();
               }} 
-              allDeviations={filteredDeviations}
+              allDeviations={deviations}
               onFilterChange={setSearchFilters}
               currentFilters={searchFilters}
             />
@@ -586,97 +572,41 @@ export function AvvikoversiktPage() {
         )}
 
         {/* Table Panel - Uses flex-1 to fill remaining space */}
-        <div 
-          className="h-full flex flex-col max-[1200px]:w-full flex-1 relative"
-        >
-          {/* Table content */}
-          <div className="flex-1 overflow-auto bg-background flex flex-col">
-            {/* Filter chip bar - only shows when filters are active */}
-            <FilterChipBar 
-              filters={searchFilters}
-              onRemoveFilter={handleRemoveFilter}
-              onClearAll={handleClearAllFilters}
-              resultCount={displayedDeviations.length}
-            />
-            
-            <div className="flex-1 overflow-auto">
-              {/* Desktop Table - Shows on wide screens (≥1600px) or when detail panel is not shown, OR on tablet (768-1199px) */}
-              <table className={`w-full ${selectedDeviationId ? 'min-[1200px]:max-[1599px]:hidden max-[768px]:hidden' : 'max-[768px]:hidden'}`}>
-                <thead className="bg-surface-container-low sticky top-0 z-10">
-                  <tr className="border-b border-[var(--border)]">
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium text-foreground">Alvorlighetsgrad</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium text-foreground">Produsent</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium text-foreground">Sjekklistespørsmål</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium text-foreground">Oppfølging</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium text-foreground">Status</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedDeviations.map((deviation) => (
-                    <tr
-                      key={deviation.id}
-                      onClick={() => {
-                        setSelectedDeviationId(deviation.id);
-                        // On mobile/tablet, open bottom sheet
-                        if (window.innerWidth < 1200) {
-                          setIsDetailBottomSheetOpen(true);
-                        }
-                      }}
-                      className={`border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
-                        selectedDeviationId === deviation.id ? 'bg-secondary-container' : ''
-                      }`}
-                    >
-                      {/* Severity column */}
-                      <td className="px-6 py-4">
-                        <SeverityBadge severity={deviation.severity} />
-                      </td>
-                      
-                      {/* Producer column */}
-                      <td className="px-6 py-4">
-                        <span className="body-medium text-foreground">{deviation.foretakName}</span>
-                      </td>
-                      
-                      {/* Checklist question column */}
-                      <td className="px-6 py-4">
-                        <span className="body-medium text-foreground">
-                          {deviation.checklist}
-                        </span>
-                      </td>
-                      
-                      {/* Follow-up column */}
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="body-medium text-foreground">{getConfirmationMethodLabel(getConfirmationMethod(deviation))}</span>
-                          <span className="label-small text-muted-foreground">Frist: {formatNorwegianDate(deviation.deadline)}</span>
-                        </div>
-                      </td>
-                      
-                      {/* Status column */}
-                      <td className="px-6 py-4">
-                        <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Condensed List View - Shows on mobile (<768px) OR on desktop when detail panel is open and screen is narrow (1200-1599px) */}
-              <div className={`flex flex-col ${selectedDeviationId ? 'min-[768px]:max-[1199px]:hidden min-[1600px]:hidden' : 'min-[768px]:hidden'}`}>
-                <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
-                  <span className="label-medium text-foreground">Avvik</span>
-                </div>
-                {displayedDeviations.map((deviation) => (
-                  <div
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Filter chip bar - only shows when filters are active */}
+          <FilterChipBar 
+            filters={searchFilters}
+            onRemoveFilter={handleRemoveFilter}
+            onClearAll={handleClearAllFilters}
+            resultCount={finalDisplayedDeviations.length}
+          />
+          
+          {/* Scrollable table container */}
+          <div className="flex-1 overflow-auto">
+            {/* Desktop Table - Shows on wide screens (≥1600px) or when detail panel is not shown, OR on tablet (768-1199px) */}
+            <table className={`w-full ${selectedDeviationId ? 'min-[1200px]:max-[1599px]:hidden max-[768px]:hidden' : 'max-[768px]:hidden'}`}>
+              <thead className="bg-surface-container-low sticky top-0 z-10">
+                <tr className="border-b border-[var(--border)]">
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium text-foreground">Alvorlighetsgrad</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium text-foreground">Produsent</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium text-foreground">Sjekklistespørsmål</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium text-foreground">Oppfølging</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium text-foreground">Status</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {finalDisplayedDeviations.map((deviation) => (
+                  <tr
                     key={deviation.id}
                     onClick={() => {
                       setSelectedDeviationId(deviation.id);
@@ -685,41 +615,93 @@ export function AvvikoversiktPage() {
                         setIsDetailBottomSheetOpen(true);
                       }
                     }}
-                    className={`px-6 py-4 border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
+                    className={`border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
                       selectedDeviationId === deviation.id ? 'bg-secondary-container' : ''
                     }`}
                   >
-                    <div className="flex flex-col gap-2">
-                      {/* Line 1: Chips and badges with gap-1 */}
-                      <div className="flex flex-row items-center gap-1 flex-wrap">
-                        <SeverityBadge severity={deviation.severity} />
-                        <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
-                        <span className="label-small text-muted-foreground">
-                          Frist: {formatNorwegianDate(deviation.deadline)}
-                        </span>
-                      </div>
-                      
-                      {/* Line 2: Producer */}
-                      <span className="body-medium text-foreground">
-                        {deviation.foretakName}
-                      </span>
-                      
-                      {/* Line 3: Checklist question */}
+                    {/* Severity column */}
+                    <td className="px-6 py-4">
+                      <SeverityBadge severity={deviation.severity} />
+                    </td>
+                    
+                    {/* Producer column */}
+                    <td className="px-6 py-4">
+                      <span className="body-medium text-foreground">{deviation.foretakName}</span>
+                    </td>
+                    
+                    {/* Checklist question column */}
+                    <td className="px-6 py-4">
                       <span className="body-medium text-foreground">
                         {deviation.checklist}
                       </span>
-                    </div>
-                  </div>
+                    </td>
+                    
+                    {/* Follow-up column */}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="body-medium text-foreground">{getConfirmationMethodLabel(getConfirmationMethod(deviation))}</span>
+                        <span className="label-small text-muted-foreground">Frist: {formatNorwegianDate(deviation.deadline)}</span>
+                      </div>
+                    </td>
+                    
+                    {/* Status column */}
+                    <td className="px-6 py-4">
+                      <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
+                    </td>
+                  </tr>
                 ))}
-              </div>
+              </tbody>
+            </table>
 
-              {/* Empty state */}
-              {displayedDeviations.length === 0 && (
-                <div className="flex items-center justify-center h-64">
-                  <p className="body-large text-muted-foreground">Ingen avvik å vise</p>
+            {/* Condensed List View - Shows on mobile (<768px) OR on desktop when detail panel is open and screen is narrow (1200-1599px) */}
+            <div className={`flex flex-col ${selectedDeviationId ? 'min-[768px]:max-[1199px]:hidden min-[1600px]:hidden' : 'min-[768px]:hidden'}`}>
+              <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
+                <span className="label-medium text-foreground">Avvik</span>
+              </div>
+              {finalDisplayedDeviations.map((deviation) => (
+                <div
+                  key={deviation.id}
+                  onClick={() => {
+                    setSelectedDeviationId(deviation.id);
+                    // On mobile/tablet, open bottom sheet
+                    if (window.innerWidth < 1200) {
+                      setIsDetailBottomSheetOpen(true);
+                    }
+                  }}
+                  className={`px-6 py-4 border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
+                    selectedDeviationId === deviation.id ? 'bg-secondary-container' : ''
+                  }`}
+                >
+                  <div className="flex flex-col gap-2">
+                    {/* Line 1: Chips and badges with gap-1 */}
+                    <div className="flex flex-row items-center gap-1 flex-wrap">
+                      <SeverityBadge severity={deviation.severity} />
+                      <StatusBadge status={deviation.status} requiresAction={deviation.requiresAction} />
+                      <span className="label-small text-muted-foreground">
+                        Frist: {formatNorwegianDate(deviation.deadline)}
+                      </span>
+                    </div>
+                    
+                    {/* Line 2: Producer */}
+                    <span className="body-medium text-foreground">
+                      {deviation.foretakName}
+                    </span>
+                    
+                    {/* Line 3: Checklist question */}
+                    <span className="body-medium text-foreground">
+                      {deviation.checklist}
+                    </span>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
+
+            {/* Empty state */}
+            {finalDisplayedDeviations.length === 0 && (
+              <div className="flex items-center justify-center h-64">
+                <p className="body-large text-muted-foreground">Ingen avvik å vise</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -778,7 +760,7 @@ export function AvvikoversiktPage() {
           <div className="flex-1 overflow-y-auto">
             <AdvancedSearchPanel 
               onBack={() => setIsFilterSheetOpen(false)}
-              allDeviations={filteredDeviations}
+              allDeviations={deviations}
               onFilterChange={setSearchFilters}
               currentFilters={searchFilters}
             />
@@ -790,7 +772,7 @@ export function AvvikoversiktPage() {
               onClick={() => setIsFilterSheetOpen(false)}
               className="w-full"
             >
-              Se resultater ({displayedDeviations.length})
+              Se resultater ({finalDisplayedDeviations.length})
             </Button>
           </div>
         </div>

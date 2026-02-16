@@ -7,13 +7,13 @@ import svgPathsPostpone from '../imports/svg-1q9ydsa8k6';
 import { KravVeilederSection } from './KravVeilederSection';
 import { getQuestionById } from '../data/questions';
 import { Button } from './ui/button';
-import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { ListItem } from './ui/list-item';
 import { AlertTriangle } from 'lucide-react';
 
 type SeverityType = 'kritisk' | 'avvik' | 'lite';
-type StatusType = 'tidspunkt-foreslatt' | 'besok-planlagt' | 'venter-godkjenning' | 'onsker-fristforlengelse' | 'dokument-levert' | 'avventer-moteforslag' | 'avventer-dokumentasjon';
+type StatusType = 'tidspunkt-foreslatt' | 'besok-planlagt' | 'venter-godkjenning' | 'onsker-fristforlengelse' | 'dokument-levert' | 'avventer-moteforslag' | 'avventer-dokumentasjon' | 'lukket';
 type ConfirmationMethod = 'dokumentasjon' | 'digitalt-besok' | 'fysisk-besok';
 
 interface Deviation {
@@ -26,6 +26,7 @@ interface Deviation {
   requiresAction: boolean;
   confirmationMethod?: ConfirmationMethod;
   rejectedDocuments?: RejectedDocument[];
+  closedDate?: Date;
   extensionRequest?: {
     requestedDate: Date;
     reason: string;
@@ -129,6 +130,8 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
   const [showRejectedDocs, setShowRejectedDocs] = useState(false);
+  const [showConfirmCloseDialog, setShowConfirmCloseDialog] = useState(false);
+  const [closedDate, setClosedDate] = useState<Date | undefined>(deviation.closedDate);
   
   // Use rejected documents from the parent deviation object
   const rejectedDocuments = deviation.rejectedDocuments || [];
@@ -229,19 +232,83 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background">
       <div className="px-6 py-4 space-y-4">
-        {/* Question Header */}
-        <div className="flex gap-2 items-center justify-between">
+        {/* Question Header with Actions - Desktop */}
+        <div className="hidden min-[768px]:flex gap-4 items-center justify-between">
           <h3 className="title-large">
             {questionId}
           </h3>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            aria-label="Lukk panel"
-          >
-            <X className="w-6 h-6" />
-          </Button>
+          {currentStatus === 'lukket' ? (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 bg-[var(--primary-container)] rounded-[12px] px-4 py-3">
+                <Check className="w-6 h-6 text-[var(--primary-container-foreground)]" />
+                <div className="flex flex-col">
+                  <span className="label-medium text-[var(--primary-container-foreground)]">
+                    Avviket er lukket
+                  </span>
+                  {closedDate && (
+                    <span className="label-small text-[var(--primary-container-foreground)]">
+                      {formatNorwegianDate(closedDate)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                aria-label="Lukk panel"
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <Button
+                variant="secondary"
+                onClick={() => setShowConfirmCloseDialog(true)}
+              >
+                Bekreft lukking av avviket
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                aria-label="Lukk panel"
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Question Header with Actions - Mobile */}
+        <div className="flex min-[768px]:hidden gap-2 items-center justify-between">
+          <h3 className="title-large">
+            {questionId}
+          </h3>
+          {currentStatus === 'lukket' ? (
+            <div className="flex items-center gap-2 bg-[var(--primary-container)] rounded-[12px] px-3 py-2 flex-1 shrink-0">
+              <Check className="w-5 h-5 text-[var(--primary-container-foreground)]" />
+              <div className="flex flex-col">
+                <span className="label-small text-[var(--primary-container-foreground)]">
+                  Avviket er lukket
+                </span>
+                {closedDate && (
+                  <span className="label-xsmall text-[var(--primary-container-foreground)]">
+                    {formatNorwegianDate(closedDate)}
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => setShowConfirmCloseDialog(true)}
+              className="shrink-0"
+            >
+              Bekreft lukking av avviket
+            </Button>
+          )}
         </div>
 
         {/* Question Text */}
@@ -364,18 +431,13 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
         </div>
 
         {/* Deadline */}
-        <div className="flex gap-4 items-start p-2 w-full">
-          <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-            <path d={svgPathsOld.p2c046200} fill="#44483B" />
-          </svg>
-          <div className="flex-1">
-            <p className="label-small text-muted-foreground">
-              Tidsfrist for lukking av avvik
-            </p>
-            <p className="body-large text-foreground">
-              {formatNorwegianDate(deviation.deadline)}
-            </p>
-          </div>
+        <div className="w-full">
+          <p className="label-small text-muted-foreground">
+            Tidsfrist for lukking av avvik
+          </p>
+          <p className="body-large text-foreground">
+            {formatNorwegianDate(deviation.deadline)}
+          </p>
         </div>
 
         {/* Extension Request - Only show when status is 'onsker-fristforlengelse' */}
@@ -424,24 +486,14 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
         )}
 
         {/* Ansvarlig */}
-        <div className="flex gap-4 items-start p-2 w-full">
-          <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-            <path d={svgPathsOld.p3e89b580} fill="#44483B" />
-          </svg>
-          <div className="flex-1">
-            <p className="label-small text-muted-foreground">
-              Ansvarlig for lukking:
-            </p>
-            <p className="body-large text-foreground">
-              {responsible}
-            </p>
-          </div>
+        <div className="w-full">
+          <p className="label-small text-muted-foreground">
+            Ansvarlig for lukking:
+          </p>
+          <p className="body-large text-foreground">
+            {responsible}
+          </p>
         </div>
-
-        {/* Bekreft lukking av avviket Button */}
-        <Button variant="secondary" className="w-full">
-          Bekreft lukking av avviket
-        </Button>
 
         {/* Closing Avvik Container */}
         <div className="bg-[#fafaf0] border border-[var(--border)] rounded-[var(--radius-lg)] p-6 space-y-2">
@@ -820,6 +872,68 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
               className="flex-1"
             >
               Avvis og be om nytt
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Close Avvik Dialog */}
+      <Dialog open={showConfirmCloseDialog} onOpenChange={setShowConfirmCloseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="title-large text-foreground">Bekreft lukking av avvik</DialogTitle>
+            <DialogDescription className="body-medium text-muted-foreground pt-2">
+              Er du sikker på at du vil bekrefte lukking av følgende avvik?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Deviation details */}
+          <div className="space-y-4 py-2">
+            {/* Question */}
+            <div>
+              <p className="label-small text-muted-foreground">Sjekklistespørsmål</p>
+              <p className="body-large text-foreground">
+                {questionId} – {deviation.checklist.split('–')[1]?.trim() || deviation.checklist}
+              </p>
+            </div>
+            
+            {/* Foretak */}
+            <div>
+              <p className="label-small text-muted-foreground">Foretak</p>
+              <p className="body-large text-foreground">{deviation.foretakName}</p>
+            </div>
+            
+            {/* Mangel */}
+            <div>
+              <p className="label-small text-muted-foreground">Mangel</p>
+              <p className="body-large text-foreground">{mangel}</p>
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowConfirmCloseDialog(false)}
+              className="flex-1"
+            >
+              Avbryt
+            </Button>
+            <Button 
+              variant="primary"
+              onClick={() => {
+                const currentDate = new Date();
+                setClosedDate(currentDate);
+                setCurrentStatus('lukket');
+                setShowConfirmCloseDialog(false);
+                
+                // Notify parent component to update the table status
+                if (onStatusUpdate) {
+                  onStatusUpdate(deviation.id, 'lukket');
+                }
+              }}
+              className="flex-1"
+            >
+              Bekreft lukking
             </Button>
           </DialogFooter>
         </DialogContent>

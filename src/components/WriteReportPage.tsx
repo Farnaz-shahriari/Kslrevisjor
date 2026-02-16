@@ -10,6 +10,8 @@ import { PreviousRevisionTable } from './PreviousRevisionTable';
 import { PreviousRevisionQuestionDetail } from './PreviousRevisionQuestionDetail';
 import { ExternalRevisionAvvikView } from './ExternalRevisionAvvikView';
 import { PreviousRevisionImprovementPoints } from './PreviousRevisionImprovementPoints';
+import { PreviousAvvikTable } from './PreviousAvvikTable';
+import { AuditCard, AuditCardData } from './AuditCard';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
 
@@ -67,7 +69,7 @@ export function WriteReportPage({
   
   // Step 1: Tidligere revisjon
   const [previousRevisionNotes, setPreviousRevisionNotes] = useState('');
-  const [previousRevisionTab, setPreviousRevisionTab] = useState<'ekstern' | 'egen' | 'forbedring' | 'positive'>('ekstern');
+  const [previousRevisionTab, setPreviousRevisionTab] = useState<'avvik' | 'ekstern' | 'egen' | 'forbedring' | 'positive'>('avvik');
   const [selectedPreviousQuestion, setSelectedPreviousQuestion] = useState<string | null>('1.3.5');
   const [selectedExternalDeviation, setSelectedExternalDeviation] = useState<string | null>('ext-1');
 
@@ -212,6 +214,274 @@ export function WriteReportPage({
       revisionType: 'Egenrevisjon'
     }
   ];
+
+  // External audit history - Same as in Revisjonhistorikk og rapporter
+  const externalAuditHistory: AuditCardData[] = [
+    {
+      id: 'hist-2026',
+      ordning: 'KSL',
+      status: 'rapport-editerbar',
+      revisjonDato: 'Torsdag 30. januar 2025',
+      rapportLastDato: 'Torsdag 13. februar 2025',
+      produksjon: [
+        { name: 'Korn', count: 245 },
+        { name: 'Storfe', count: 87 }
+      ],
+      foretakName: 'Haugseter Gård',
+      address: 'Haugseterveien 12, 2350 Nes på Hedmarken',
+      kommune: 'Nes',
+      avvikCount: 3,
+      avvikOpen: 2,
+      avvikClosed: 1,
+      kortRapport: 'Revisjonen ble gjennomført den 30. januar 2026. Gården viste god etterlevelse av regelverket innenfor de fleste områder. Det ble identifisert ett kritisk avvik knyttet til gjødselplan og lagringskapasitet, samt to mindre avvik relatert til dokumentasjon. Oppfølging er planlagt gjennom fysisk besøk og dokumentasjon.',
+      deviations: [
+        {
+          id: 'dev-1',
+          severity: 'kritisk',
+          question: '1.2.1 – Har du en gyldig gjødslingsplan og skiftekart for året?',
+          mangel: 'Gjødslingsplanen for 2026 var ikke oppdatert med de nye arealene som ble tatt i bruk i fjor høst. Skiftekartet manglet også registrering av 15 dekar nytt kornområde.',
+          status: 'dokument-levert',
+          deadline: 'Tirsdag 25. mars 2026'
+        },
+        {
+          id: 'dev-2',
+          severity: 'lite-avvik',
+          question: '1.3.6 – Har du nok lagringskapasitet (min. 8 måneder)?',
+          mangel: 'Beregninger viste at lagringskapasiteten kun dekker 7,2 måneder basert på gjeldende dyretall. Kravet er minimum 8 måneder.',
+          status: 'tidspunkt-foreslatt',
+          deadline: 'Lørdag 5. april 2026'
+        },
+        {
+          id: 'dev-3',
+          severity: 'avvik',
+          question: '2.1.3 – Er produksjonsregistreringene oppdatert og korrekte?',
+          mangel: 'Det manglet registreringer for 3 måneder i 2025. Registreringene for september, oktober og november var ikke ført inn i systemet.',
+          status: 'lukket',
+          deadline: 'Torsdag 13. mars 2026'
+        }
+      ]
+    },
+    {
+      id: 'hist-2024',
+      ordning: 'KSL',
+      status: 'rapport-last',
+      revisjonDato: 'Onsdag 15. mars 2024',
+      rapportLastDato: 'Onsdag 29. mars 2024',
+      produksjon: [
+        { name: 'Korn', count: 238 },
+        { name: 'Storfe', count: 82 }
+      ],
+      foretakName: 'Haugseter Gård',
+      address: 'Haugseterveien 12, 2350 Nes på Hedmarken',
+      kommune: 'Nes',
+      avvikCount: 2,
+      avvikOpen: 0,
+      avvikClosed: 2,
+      kortRapport: 'Revisjonen ble gjennomført i mars 2024. To mindre avvik knyttet til dokumentasjon ble identifisert og lukket før fristen. Gården viste generelt god etterlevelse av regelverket.',
+      deviations: [
+        {
+          id: 'dev-4',
+          severity: 'lite-avvik',
+          question: '1.4.2 – Er registreringene for sprøytemidler komplette?',
+          mangel: 'Spredejournalen for våren 2024 manglet dokumentasjon for to behandlinger i mai måned. Riktig produkt var oppgitt, men tidspunkt og dosering var ikke registrert.',
+          status: 'lukket',
+          deadline: 'Mandag 25. mars 2024'
+        },
+        {
+          id: 'dev-5',
+          severity: 'lite-avvik',
+          question: '2.3.1 – Er kalibreringsdokumentasjon for utstyr oppdatert?',
+          mangel: 'Siste kalibrering av sprøyteutstyr ble utført i 2022. Kravet er årlig kalibrering, så dokumentasjonen for 2023 manglet.',
+          status: 'lukket',
+          deadline: 'Onsdag 27. mars 2024'
+        }
+      ]
+    },
+    {
+      id: 'hist-2023',
+      ordning: 'KSL',
+      status: 'rapport-last',
+      revisjonDato: 'Tirsdag 10. januar 2023',
+      rapportLastDato: 'Tirsdag 24. januar 2023',
+      produksjon: [
+        { name: 'Korn', count: 220 },
+        { name: 'Storfe', count: 75 }
+      ],
+      foretakName: 'Haugseter Gård',
+      address: 'Haugseterveien 12, 2350 Nes på Hedmarken',
+      kommune: 'Nes',
+      avvikCount: 0,
+      avvikOpen: 0,
+      avvikClosed: 0,
+      kortRapport: 'Revisjonen ble gjennomført i januar 2023. Ingen avvik ble identifisert. Gården viste god etterlevelse av alle kravpunkter i regelverket.',
+      deviations: []
+    }
+  ];
+
+  // Internal audit history (Egenrevisjoner) - Same as in Revisjonhistorikk og rapporter
+  const internalAuditHistory: AuditCardData[] = [
+    {
+      id: 'egen-2025',
+      ordning: 'LokalMat',
+      status: 'rapport-last',
+      revisjonDato: 'Mandag 15. desember 2025',
+      rapportLastDato: 'Mandag 29. desember 2025',
+      produksjon: [
+        { name: 'Korn', count: 245 },
+        { name: 'Storfe', count: 87 }
+      ],
+      foretakName: 'Haugseter Gård',
+      address: 'Haugseterveien 12, 2350 Nes på Hedmarken',
+      kommune: 'Nes',
+      avvikCount: 1,
+      avvikOpen: 1,
+      avvikClosed: 0,
+      kortRapport: 'Egenrevisjon gjennomført i desember 2025. Ett avvik ble identifisert og er under behandling.',
+      deviations: [
+        {
+          id: 'egen-dev-1',
+          severity: 'avvik',
+          question: '1.2.4 – Er planteverndokumentasjonen fullstendig?',
+          mangel: 'Dokumentasjonen for behandling med soppmiddel i september manglet. Det var ikke registrert dosering eller værforhold for sprøytingen.',
+          status: 'apent',
+          deadline: 'Fredag 20. desember 2025'
+        }
+      ]
+    },
+    {
+      id: 'egen-2024-2',
+      ordning: 'Spesialitet',
+      status: 'rapport-last',
+      revisjonDato: 'Torsdag 20. juni 2024',
+      rapportLastDato: 'Torsdag 4. juli 2024',
+      produksjon: [
+        { name: 'Korn', count: 238 },
+        { name: 'Storfe', count: 82 }
+      ],
+      foretakName: 'Haugseter Gård',
+      address: 'Haugseterveien 12, 2350 Nes på Hedmarken',
+      kommune: 'Nes',
+      avvikCount: 3,
+      avvikOpen: 0,
+      avvikClosed: 3,
+      kortRapport: 'Egenrevisjon gjennomført i juni 2024. Tre avvik ble identifisert og håndtert før ekstern revisjon.',
+      deviations: [
+        {
+          id: 'egen-dev-2',
+          severity: 'avvik',
+          question: '1.1.2 – Er alle dyrehelsekort oppdatert?',
+          mangel: 'To dyrehelsekort for kalver født i mars manglet oppføring av vaccinasjonsdato. Dokumentene var ellers komplette.',
+          status: 'lukket',
+          deadline: 'Mandag 1. juli 2024'
+        },
+        {
+          id: 'egen-dev-3',
+          severity: 'avvik',
+          question: '2.2.1 – Er lagerbeholdningen korrekt registrert?',
+          mangel: 'Lagertelling i april viste avvik mellom registrert og faktisk beholdning av mineralfôr. Differansen var på 3 sekker.',
+          status: 'lukket',
+          deadline: 'Onsdag 3. juli 2024'
+        },
+        {
+          id: 'egen-dev-4',
+          severity: 'avvik',
+          question: '1.3.5 – Er gjødsellagerets kapasitet dokumentert?',
+          mangel: 'Dokumentasjon av gjødsellagerets totale volum manglet. Kun bredde og lengde var oppgitt, men ikke dybde.',
+          status: 'lukket',
+          deadline: 'Tirsdag 2. juli 2024'
+        }
+      ]
+    },
+    {
+      id: 'egen-2024-1',
+      ordning: 'KSL',
+      status: 'rapport-last',
+      revisjonDato: 'Mandag 8. januar 2024',
+      rapportLastDato: 'Mandag 22. januar 2024',
+      produksjon: [
+        { name: 'Korn', count: 230 },
+        { name: 'Storfe', count: 80 }
+      ],
+      foretakName: 'Haugseter Gård',
+      address: 'Haugseterveien 12, 2350 Nes på Hedmarken',
+      kommune: 'Nes',
+      avvikCount: 2,
+      avvikOpen: 0,
+      avvikClosed: 2,
+      kortRapport: 'Egenrevisjon gjennomført i januar 2024. To avvik ble identifisert og lukket før frist.',
+      deviations: [
+        {
+          id: 'egen-dev-5',
+          severity: 'avvik',
+          question: '1.4.3 – Er sikkerhetsdatablad tilgjengelig for alle kjemikalier?',
+          mangel: 'Sikkerhetsdatablad for desinfeksjonsmiddel brukt i fjøset var ikke tilgjengelig ved kontrollpunktet. Produktet var merket men ikke dokumentert.',
+          status: 'lukket',
+          deadline: 'Fredag 19. januar 2024'
+        },
+        {
+          id: 'egen-dev-6',
+          severity: 'avvik',
+          question: '2.1.5 – Er maskiner og utstyr jevnlig vedlikeholdt?',
+          mangel: 'Servicelogg for traktoren viste at årlig service ikke ble utført i 2023. Siste registrerte service var fra januar 2022.',
+          status: 'lukket',
+          deadline: 'Lørdag 20. januar 2024'
+        }
+      ]
+    },
+    {
+      id: 'egen-2023',
+      ordning: 'LokalMat',
+      status: 'rapport-last',
+      revisjonDato: 'Onsdag 10. mai 2023',
+      rapportLastDato: 'Onsdag 24. mai 2023',
+      produksjon: [
+        { name: 'Korn', count: 220 },
+        { name: 'Storfe', count: 75 }
+      ],
+      foretakName: 'Haugseter Gård',
+      address: 'Haugseterveien 12, 2350 Nes på Hedmarken',
+      kommune: 'Nes',
+      avvikCount: 0,
+      avvikOpen: 0,
+      avvikClosed: 0,
+      kortRapport: 'Egenrevisjon gjennomført i mai 2023. Alle kravpunkter var i orden.',
+      deviations: []
+    }
+  ];
+
+  // Combined avvik from both external and internal revisions for the "Tidligere avvik" tab
+  // Extract all avvik from external audit history
+  const externalAvvik = externalAuditHistory.flatMap(audit => 
+    audit.deviations?.map(dev => ({
+      id: `ext-${dev.id}`,
+      severity: dev.severity === 'kritisk' ? 'kritisk' as const :
+                dev.severity === 'lite-avvik' ? 'lite' as const :
+                'avvik' as const,
+      questionNumber: dev.question.split('–')[0].trim(),
+      questionText: dev.question.split('–')[1]?.trim() || dev.question,
+      status: dev.status === 'lukket' ? 'lukket' as const : 'apent' as const,
+      source: 'ekstern' as const,
+      revisionDate: audit.revisjonDato
+    })) || []
+  );
+
+  // Extract all avvik from internal audit history
+  const internalAvvik = internalAuditHistory.flatMap(audit => 
+    audit.deviations?.map(dev => ({
+      id: `int-${dev.id}`,
+      severity: dev.severity === 'kritisk' ? 'kritisk' as const :
+                dev.severity === 'lite-avvik' ? 'lite' as const :
+                'avvik' as const,
+      questionNumber: dev.question.split('–')[0].trim(),
+      questionText: dev.question.split('–')[1]?.trim() || dev.question,
+      status: dev.status === 'lukket' ? 'lukket' as const : 'apent' as const,
+      source: 'egen' as const,
+      revisionDate: audit.revisjonDato
+    })) || []
+  );
+
+  // Combine all avvik
+  const combinedPreviousAvvik = [...externalAvvik, ...internalAvvik];
   
   // Step 2: Svaroversikt
   const [answerOverviewConfirmed, setAnswerOverviewConfirmed] = useState(false);
@@ -248,15 +518,23 @@ export function WriteReportPage({
 
   // Update selected question/deviation when tab changes
   useEffect(() => {
-    if (previousRevisionTab === 'ekstern') {
+    if (previousRevisionTab === 'avvik') {
+      // Handled by PreviousAvvikTable component
+      setSelectedPreviousQuestion(null);
+      setSelectedExternalDeviation(null);
+    } else if (previousRevisionTab === 'ekstern') {
       if (externalRevisionDeviations.length > 0) {
         setSelectedExternalDeviation(externalRevisionDeviations[0].id);
       } else {
         setSelectedExternalDeviation(null);
       }
       setSelectedPreviousQuestion(null);
-    } else if (previousRevisionData[previousRevisionTab].length > 0) {
-      setSelectedPreviousQuestion(previousRevisionData[previousRevisionTab][0].id);
+    } else if (previousRevisionTab === 'egen' || previousRevisionTab === 'forbedring' || previousRevisionTab === 'positive') {
+      if (previousRevisionData[previousRevisionTab].length > 0) {
+        setSelectedPreviousQuestion(previousRevisionData[previousRevisionTab][0].id);
+      } else {
+        setSelectedPreviousQuestion(null);
+      }
       setSelectedExternalDeviation(null);
     } else {
       setSelectedPreviousQuestion(null);
@@ -876,10 +1154,32 @@ export function WriteReportPage({
                 <div className="relative shrink-0 w-full" data-name="Tab group">
                   <div className="size-full">
                     <div className="box-border content-stretch cursor-pointer flex items-start pl-[52px] pr-0 py-0 relative w-full">
+                      {/* Tab 1: Tidligere avvik (NEW - First tab) */}
+                      <button
+                        onClick={() => setPreviousRevisionTab('avvik')}
+                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0 hover:bg-muted transition-colors cursor-pointer"
+                        data-name="Tab 1"
+                      >
+                        <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full" data-name="State-layer">
+                          <div className="flex flex-col items-center justify-center overflow-clip rounded-[inherit] size-full">
+                            <div className="box-border content-stretch flex flex-col items-center justify-center px-[16px] py-[14px] relative size-full">
+                              <div className="basis-0 content-stretch flex gap-[4px] grow items-center justify-center min-h-px min-w-px relative shrink-0" data-name="Tab Contents">
+                                <div className={`label-medium text-center ${previousRevisionTab === 'avvik' ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                  <p className="m-0 whitespace-pre">Tidligere avvik</p>
+                                </div>
+                              </div>
+                              {previousRevisionTab === 'avvik' && (
+                                <div className="absolute bg-[#4a671e] bottom-0 h-[2px] left-0 right-0" data-name="Indicator" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                      {/* Tab 2: Ekstern revisjon (Empty placeholder) */}
                       <button
                         onClick={() => setPreviousRevisionTab('ekstern')}
-                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0"
-                        data-name="Tab 1"
+                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0 hover:bg-muted transition-colors cursor-pointer"
+                        data-name="Tab 2"
                       >
                         <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full" data-name="State-layer">
                           <div className="flex flex-col items-center justify-center overflow-clip rounded-[inherit] size-full">
@@ -896,10 +1196,11 @@ export function WriteReportPage({
                           </div>
                         </div>
                       </button>
+                      {/* Tab 3: Egenrevisjon (Empty placeholder) */}
                       <button
                         onClick={() => setPreviousRevisionTab('egen')}
-                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0"
-                        data-name="Tab 2"
+                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0 hover:bg-muted transition-colors cursor-pointer"
+                        data-name="Tab 3"
                       >
                         <div className="basis-0 box-border content-stretch flex flex-col grow items-center justify-center min-h-px min-w-px overflow-clip px-[16px] py-[14px] relative shrink-0" data-name="State-layer">
                           <div className="basis-0 content-stretch flex gap-[4px] grow items-center justify-center min-h-px min-w-px relative shrink-0" data-name="Tab Contents">
@@ -914,7 +1215,7 @@ export function WriteReportPage({
                       </button>
                       <button
                         onClick={() => setPreviousRevisionTab('forbedring')}
-                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0"
+                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0 hover:bg-muted transition-colors cursor-pointer"
                         data-name="Tab 4"
                       >
                         <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full" data-name="State-layer">
@@ -934,7 +1235,7 @@ export function WriteReportPage({
                       </button>
                       <button
                         onClick={() => setPreviousRevisionTab('positive')}
-                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0"
+                        className="bg-white content-stretch flex flex-col h-[48px] items-center justify-end overflow-clip relative shrink-0 hover:bg-muted transition-colors cursor-pointer"
                         data-name="Tab 5"
                       >
                         <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full" data-name="State-layer">
@@ -968,15 +1269,52 @@ export function WriteReportPage({
 
               {/* Tab content - Table and Detail Panel */}
               <div className="flex h-full w-full overflow-hidden" data-name="Content">
-                {previousRevisionTab === 'ekstern' && (
-                  <ExternalRevisionAvvikView deviations={externalRevisionDeviations} />
+                {/* Tidligere avvik tab - Combined avvik table */}
+                {previousRevisionTab === 'avvik' && (
+                  <PreviousAvvikTable deviations={combinedPreviousAvvik} />
                 )}
 
+                {/* Ekstern revisjon tab - Show external audit history cards */}
+                {previousRevisionTab === 'ekstern' && (
+                  <div className="flex-1 overflow-y-auto px-6 py-6">
+                    <div className="flex flex-col gap-2">
+                      {externalAuditHistory.map((audit) => (
+                        <AuditCard
+                          key={audit.id}
+                          audit={audit}
+                          showExpandButton={true}
+                          defaultExpanded={false}
+                          variant="external"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Egenrevisjon tab - Show internal audit history cards */}
+                {previousRevisionTab === 'egen' && (
+                  <div className="flex-1 overflow-y-auto px-6 py-6">
+                    <div className="flex flex-col gap-2">
+                      {internalAuditHistory.map((audit) => (
+                        <AuditCard
+                          key={audit.id}
+                          audit={audit}
+                          showExpandButton={true}
+                          defaultExpanded={false}
+                          variant="self"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Forbedringspunkter tab */}
                 {previousRevisionTab === 'forbedring' && (
                   <PreviousRevisionImprovementPoints improvementPoints={improvementPointsData} />
                 )}
 
-                {previousRevisionTab !== 'ekstern' && previousRevisionTab !== 'forbedring' && (
+                {/* Positive observasjoner tab */}
+                {previousRevisionTab === 'positive' && (
                   <>
                     {/* Table */}
                     <PreviousRevisionTable

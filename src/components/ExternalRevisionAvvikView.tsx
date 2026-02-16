@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
 import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
 import { getQuestionById } from '../data/questions';
@@ -35,6 +35,15 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
   );
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
+  // State for resizable detail panel
+  const [detailPanelWidth, setDetailPanelWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth * 0.5; // Default to 50% of screen width
+    }
+    return 600;
+  });
+  const [isResizingDetail, setIsResizingDetail] = useState(false);
+
   const selectedDeviation = deviations.find(d => d.id === selectedQuestionId);
 
   const handleDeviationSelect = (id: string) => {
@@ -46,6 +55,34 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
   const handleCloseBottomSheet = () => {
     setIsBottomSheetOpen(false);
   };
+
+  // Handle mouse move and mouse up for resizing detail panel
+  useEffect(() => {
+    if (!isResizingDetail) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      
+      // Constrain width between 30% and 70% of screen width
+      const minWidth = window.innerWidth * 0.30; // 30%
+      const maxWidth = window.innerWidth * 0.70; // 70%
+      
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setDetailPanelWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingDetail(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingDetail]);
 
   const getSeverityChip = (severity: SeverityType) => {
     switch (severity) {
@@ -132,9 +169,14 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
       <>
         {/* Question Header */}
         <div className="px-6 py-4 border-b border-[var(--border)]">
-          <h3 className="body-large text-foreground mb-3">
-            {deviation.questionNumber} {deviation.questionText}
-          </h3>
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <h3 className="body-large text-foreground flex-1">
+              {deviation.questionText}
+            </h3>
+            <span className="label-large text-muted-foreground shrink-0">
+              {deviation.questionNumber}
+            </span>
+          </div>
           
           {/* Krav & Veileder Section */}
           {questionInfo && (
@@ -332,13 +374,7 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
                 </div>
               </th>
               <th className="px-4 py-2 text-left bg-surface-container-low">
-                <div className="flex items-center gap-2">
-                  <Search className="w-6 h-6 text-foreground" />
-                  <span className="label-medium text-foreground">Sjekklistepunkt</span>
-                </div>
-              </th>
-              <th className="px-4 py-2 text-left w-auto bg-surface-container-low">
-                <span className="label-medium text-foreground whitespace-nowrap">Status</span>
+                <span className="label-medium text-foreground">Sjekklistepunkt</span>
               </th>
             </tr>
           </thead>
@@ -365,9 +401,6 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
                     {deviation.questionNumber} {deviation.questionText}
                   </span>
                 </td>
-                <td className="px-4 py-4 w-auto">
-                  <span className="body-medium text-foreground whitespace-nowrap">Lukket</span>
-                </td>
               </tr>
             ))}
           </tbody>
@@ -377,11 +410,34 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
       {/* Vertical Divider - Desktop only */}
       <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
 
-      {/* DESKTOP: Detail Panel - Always visible on desktop */}
+      {/* DESKTOP: Detail Panel - Shows selected deviation with resizable width */}
       {selectedDeviation && (
-        <div className="bg-background flex-col overflow-hidden max-[1400px]:hidden min-[1400px]:flex" style={{ width: 520 }}>
-          <div className="overflow-auto flex-1">
-            <DetailContent deviation={selectedDeviation} />
+        <div 
+          className="max-[1400px]:hidden h-full bg-background overflow-hidden flex flex-row relative"
+          style={{ width: `${detailPanelWidth}px` }}
+        >
+          {/* Resize Handle - Left Edge */}
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizingDetail(true);
+            }}
+            className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary transition-colors z-10 ${
+              isResizingDetail ? 'bg-primary' : 'bg-transparent'
+            }`}
+            style={{
+              touchAction: 'none',
+            }}
+          />
+
+          {/* Vertical Divider */}
+          <div className="w-px h-full bg-border shrink-0" />
+
+          {/* Detail Content */}
+          <div className="flex-1 overflow-hidden">
+            <div className="overflow-auto h-full">
+              <DetailContent deviation={selectedDeviation} />
+            </div>
           </div>
         </div>
       )}

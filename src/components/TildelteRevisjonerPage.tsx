@@ -633,9 +633,9 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
         {/* MOBILE/TABLET & DESKTOP: Main Content Area */}
         <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full`}>
           {/* Main content - Placeholder for list of tildelte revisjoner */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 pr-10 min-[1500px]:pr-[200px]">
+          <div className="flex-1 overflow-y-auto px-4 pt-2 pr-10 min-[1500px]:pr-[200px]">
             {/* Sorting and Bulk Actions Bar */}
-            <div className="flex items-center justify-between gap-4 py-0 mb-6 flex-wrap max-w-[1040px]">
+            <div className="flex items-center justify-between gap-4 py-0 mb-2 flex-wrap max-w-[1040px]">
               {/* LEFT GROUP: View toggle + Bulk action */}
               <div className="flex items-center gap-4 flex-wrap">
                 {/* View Mode Toggle - Liste/Kart - FIRST */}
@@ -767,7 +767,7 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
             {/* Conditional rendering: List or Map view */}
             {viewMode === 'list' ? (
               /* Cards list */
-              <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-1">
                 {getSortedRevisjoner().map((revisjon) => (
                   <TildeltRevisjonCard key={revisjon.id} revisjon={revisjon} />
                 ))}

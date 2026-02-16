@@ -45,7 +45,7 @@ export function GuidancePanel({
       {/* Documentation Required Button */}
       {requiresDocumentation && (
         <div>
-          <Button className="bg-[#4a671e] text-white hover:bg-[#3d5619]">
+          <Button className="bg-secondary-container text-on-secondary-container hover:opacity-80">
             <FileText className="w-5 h-5" />
             Dokumentasjon kreves
           </Button>

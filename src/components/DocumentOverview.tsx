@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import svgPaths from '../imports/svg-jn8ghpuyc1';
 import searchSvgPaths from '../imports/svg-fww0ywnfzv';
 import { Download, X, ChevronLeft } from 'lucide-react';
@@ -6,6 +6,7 @@ import pdfPreviewImage from 'figma:asset/65c764fac4feecaa7cd096c4015c7181beaf1bf
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from './ui/sheet';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
+import { Tab } from './ui/tabs';
 
 const documents = [
   'Sporingssystem for driftsmidler og produkter',
@@ -390,7 +391,7 @@ export function DocumentOverview({ initialSelectedIndex = null }: DocumentOvervi
                 <div className="content-stretch cursor-pointer flex items-start relative shrink-0">
                   <div 
                     onClick={() => setActiveTab('attachments')}
-                    className="bg-white content-stretch flex flex-col h-12 items-center justify-end overflow-clip relative shrink-0 w-[120px]"
+                    className="bg-white content-stretch flex flex-col h-12 items-center justify-end overflow-clip relative shrink-0 w-[120px] cursor-pointer hover:bg-muted transition-colors"
                   >
                     <div className="basis-0 grow min-h-px min-w-px relative shrink-0 w-full">
                       <div className="flex flex-col items-center justify-center overflow-clip rounded-[inherit] size-full">
@@ -409,7 +410,7 @@ export function DocumentOverview({ initialSelectedIndex = null }: DocumentOvervi
                   </div>
                   <div 
                     onClick={() => setActiveTab('questions')}
-                    className="bg-white content-stretch flex flex-col h-12 items-center justify-end overflow-clip relative shrink-0"
+                    className="bg-white content-stretch flex flex-col h-12 items-center justify-end overflow-clip relative shrink-0 cursor-pointer hover:bg-muted transition-colors"
                   >
                     <div className="basis-0 box-border content-stretch flex flex-col grow items-center justify-center min-h-px min-w-px overflow-clip px-4 py-[14px] relative shrink-0">
                       <div className="basis-0 content-stretch flex gap-1 grow items-center justify-center min-h-px min-w-px relative shrink-0">

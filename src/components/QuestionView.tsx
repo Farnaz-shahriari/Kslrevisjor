@@ -191,14 +191,14 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
 
         {/* Information chips */}
         <div className="flex gap-2 items-center w-full mb-2">{questionInfo.requiresDocumentation && (
-            <div className="bg-secondary h-8 flex items-center justify-center rounded-[8px]">
+            <div className="bg-secondary-container h-8 flex items-center justify-center rounded-[8px]">
               <div className="flex gap-2 items-center justify-center pl-2 pr-3 py-1.5">
                 <div className="w-[18px] h-[18px] flex items-center justify-center">
                   <svg className="w-[15px] h-3" fill="none" viewBox="0 0 20 16">
-                    <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" fill="white" />
+                    <path d="M18 2H10L8 0H2C0.9 0 0.00999999 0.9 0.00999999 2L0 14C0 15.1 0.9 16 2 16H18C19.1 16 20 15.1 20 14V4C20 2.9 19.1 2 18 2ZM18 14H2V2H7.17L9.17 4H18V14ZM15.5 8.12V11.5H12.5V6.5H13.88L15.5 8.12ZM11 5V13H17V7.5L14.5 5H11Z" fill="currentColor" className="text-on-secondary-container" />
                   </svg>
                 </div>
-                <p className="label-medium text-secondary-foreground m-0">Dokumentasjon kreves</p>
+                <p className="label-medium text-on-secondary-container m-0">Dokumentasjon kreves</p>
               </div>
             </div>
           )}

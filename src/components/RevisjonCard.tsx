@@ -3,10 +3,15 @@ import svgPathsRevisjonCard from "../imports/svg-es1yhnytnq";
 import { ChevronUp, ChevronDown, StickyNote } from "lucide-react";
 import { Button } from './ui/button';
 
+export interface ProductionItem {
+  name: string;
+  count?: number; // Optional count to display after production name
+}
+
 interface RevisjonData {
   ordning: string;
   revisjonsfrist: string;
-  produksjon: string[];
+  produksjon: ProductionItem[]; // Updated to support production counts
   kommune: string;
   address: string;
   isPriority: boolean;
@@ -316,7 +321,7 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
                     </div>
                     <div className="body-large text-foreground">
                       {data.produksjon.map((prod, idx) => (
-                        <p key={idx} className={idx < data.produksjon.length - 1 ? 'mb-0' : ''}>{prod}</p>
+                        <p key={idx} className={idx < data.produksjon.length - 1 ? 'mb-0' : ''}>{prod.name}{prod.count !== undefined ? ` (${prod.count})` : ''}</p>
                       ))}
                     </div>
                   </div>
@@ -364,10 +369,10 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
         </div>
         
         {/* Actions - Column 3 - min-width for wrapping */}
-        <div className="content-stretch hidden md:flex flex-[1_0_0] flex-col gap-[10px] items-end max-w-[280px] min-w-[200px] relative" data-name="Actions">
+        <div className="content-stretch hidden md:flex flex-[1_0_0] flex-col gap-[10px] items-start max-w-[280px] min-w-[200px] relative" data-name="Actions">
           <button 
             onClick={onCardClick}
-            className="content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 hover:opacity-70 transition-opacity w-full"
+            className="content-stretch flex items-center justify-start overflow-clip relative rounded-[100px] shrink-0 hover:opacity-70 transition-opacity w-full"
           >
             <div className="content-stretch flex gap-[8px] items-center justify-center px-[24px] py-[16px] relative shrink-0">
               <div className="relative shrink-0 size-[24px]">
@@ -471,6 +476,18 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
               '3.1.2 – Er hygienekravene i produksjonslokaler oppfylt?'
             ];
             
+            // Mangel descriptions matching each question
+            const mangelPool = [
+              'Gjødslingsplanen for inneværende år var ikke oppdatert med nye arealer som ble tatt i bruk i fjor. Skiftekartet manglet også registrering av nytt dyrkningsområde.',
+              'Beregninger viste at lagringskapasiteten kun dekker 7,1 måneder basert på gjeldende dyretall. Kravet er minimum 8 måneder.',
+              'Det manglet registreringer for flere måneder. Registreringene var ikke ført inn i systemet ved tidspunkt for revisjon.',
+              'Plantevernmidler ble lagret i samme rom som fôrvarer. Dette er ikke i tråd med forskriftenes krav til separat og låst oppbevaring.',
+              'Internkontrollsystemet manglet oppdatering med dato for siste revisjon. Systemet hadde ikke blitt oppdatert siden forrige revisjonssyklus.',
+              'Avløpssystemet for husdyrgjødsel hadde utilstrekkelig kapasitet og viste tegn til lekkasje ved inspeksjon.',
+              'Sporbarhetsdokumentasjonen var ufullstendig. Det manglet dokumentasjon for opprinnelse av enkelte fôrinnsatsfaktorer.',
+              'Produksjonslokalene manglet dokumentasjon på renholdsrutiner. Rengjøringsplan var ikke oppdatert og det fantes ingen loggføring av utført renhold.'
+            ];
+            
             // Status options for open deviations
             const openStatusOptions = [
               { status: 'Dokument levert', dot: '#ba1a1a' },
@@ -523,6 +540,12 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
                     
                     {/* Question text */}
                     <p className="body-medium text-foreground">{question}</p>
+                    
+                    {/* Mangel description */}
+                    <div className="flex flex-col gap-1 w-full">
+                      <span className="label-small text-muted-foreground">Mangel:</span>
+                      <p className="body-medium text-foreground">{mangelPool[i % mangelPool.length]}</p>
+                    </div>
                   </div>
                 </div>
               );
@@ -531,6 +554,7 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
             // Add one closed deviation
             const closedSeverity = severityOptions[openCount % severityOptions.length];
             const closedQuestion = questionPool[(openCount + 1) % questionPool.length];
+            const closedMangel = mangelPool[(openCount + 1) % mangelPool.length];
             const closedDeadline = deadlines[(openCount + 1) % deadlines.length];
             
             deviations.push(
@@ -561,6 +585,12 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
                   
                   {/* Question text */}
                   <p className="body-medium text-foreground">{closedQuestion}</p>
+                  
+                  {/* Mangel description */}
+                  <div className="flex flex-col gap-1 w-full">
+                    <span className="label-small text-muted-foreground">Mangel:</span>
+                    <p className="body-medium text-foreground">{closedMangel}</p>
+                  </div>
                 </div>
               </div>
             );

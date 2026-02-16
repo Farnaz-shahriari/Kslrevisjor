@@ -1,16 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
-import { SlidersHorizontal, Search, Plus, ChevronLeft } from 'lucide-react';
-import { BottomSheet } from './ui/bottom-sheet';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Download, SlidersHorizontal, ChevronLeft, Search } from 'lucide-react';
+import { TripDetailPanel } from './TripDetailPanel';
+import { TabLarge } from './ui/tabs';
+import { FakturaFilterChipBar } from './FakturaFilterChipBar';
+import { formatNorwegianDate } from '../utils/dateFormat';
 import { Button } from './ui/button';
+import { BottomSheet } from './ui/bottom-sheet';
 import { MaterialCheckbox } from './ui/material-checkbox';
 import { DatePicker } from './ui/date-picker';
-import { formatNorwegianDate } from '../utils/dateFormat';
-import { FakturaFilterChipBar } from './FakturaFilterChipBar';
-import { TripDetailPanel, generateTripData, MOCK_REVISIONS } from './TripDetailPanel';
 import { imgVector12 } from '../imports/svg-djl4p';
 
-type TripStatus = 'kladd' | 'klar-til-fakturering' | 'fakturert' | 'godkjent';
 type TabType = 'ufakturerte' | 'alle';
+type TripStatus = 'kladd' | 'klar-til-fakturering' | 'fakturert' | 'godkjent';
 
 interface Trip {
   id: string;
@@ -240,37 +241,8 @@ export function FakturagrunnlagPage() {
 
   // Helper function to get unique foretak for a trip based on its date range
   const getForetakForTrip = (trip: Trip): string => {
-    // If trip has no dates, return empty
-    if (!trip.startDate || !trip.endDate) {
-      return '—';
-    }
-    
-    const startDate = new Date(trip.startDate);
-    const endDate = new Date(trip.endDate);
-    
-    // Find all revisions within the trip's date range
-    const revisionsInRange = MOCK_REVISIONS.filter(rev => {
-      const revDate = new Date(rev.date);
-      revDate.setHours(0, 0, 0, 0);
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(endDate);
-      end.setHours(0, 0, 0, 0);
-      
-      return revDate >= start && revDate <= end;
-    });
-    
-    // Get unique foretak
-    const uniqueForetakSet = new Set(revisionsInRange.map(rev => rev.foretak));
-    const uniqueForetakArray = Array.from(uniqueForetakSet);
-    
-    if (uniqueForetakArray.length === 0) {
-      return '—';
-    } else if (uniqueForetakArray.length === 1) {
-      return uniqueForetakArray[0];
-    } else {
-      return `${uniqueForetakArray.length} foretak`;
-    }
+    // Return the foretak from the trip data
+    return trip.foretak || '—';
   };
 
   // Helper function to generate next trip number
@@ -753,64 +725,27 @@ export function FakturagrunnlagPage() {
   );
 
   return (
-    <div className="flex flex-col h-full w-full bg-background overflow-hidden">
-      {/* Header with Tabs */}
-      <div className="flex flex-col border-b border-[var(--border)]">
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between">
-          <h1 className="headline-small text-foreground">Fakturagrunnlag</h1>
-          
-          {/* Desktop only: Advanced Search toggle button and Create button */}
-          <div className="flex items-center gap-4">
-            {/* Advanced Search toggle button - Desktop only */}
-            {!isAdvancedSearchOpen && (
-              <Button 
-                variant="secondary"
-                onClick={() => setIsAdvancedSearchOpen(true)}
-                className="max-[1400px]:hidden"
-              >
-                <SlidersHorizontal className="w-5 h-5 mr-2" />
-                Avansert søk
-              </Button>
-            )}
-            
-            {/* Only show create button if NOT creating a new unsaved trip */}
-            {!(isCreatingNewTrip && !isNewTripSaved) && (
-              <Button onClick={handleCreateNewTrip}>
-                <Plus className="w-5 h-5" />
-                Opprett ny reise
-              </Button>
-            )}
-          </div>
+    <div className="flex flex-col flex-1 w-full bg-background">
+      {/* Header with tabs */}
+      <div className="border-b border-border">
+        <div className="flex items-center justify-between px-6 pt-6 pb-0">
+          <h1 className="headline-small">Fakturagrunnlag</h1>
         </div>
 
         {/* Tabs */}
-        <div className="flex px-6 gap-0 overflow-x-auto scrollbar-hide">
-          <button
+        <div className="flex items-center gap-0 px-6">
+          <TabLarge
+            active={activeTab === 'ufakturerte'}
             onClick={() => setActiveTab('ufakturerte')}
-            className={`px-4 py-3 label-large whitespace-nowrap transition-colors relative ${
-              activeTab === 'ufakturerte'
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
           >
             Ufakturerte reiser
-            {activeTab === 'ufakturerte' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </button>
-          <button
+          </TabLarge>
+          <TabLarge
+            active={activeTab === 'alle'}
             onClick={() => setActiveTab('alle')}
-            className={`px-4 py-3 label-large whitespace-nowrap transition-colors relative ${
-              activeTab === 'alle'
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
           >
             Alle reiser
-            {activeTab === 'alle' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </button>
+          </TabLarge>
         </div>
       </div>
 
@@ -838,180 +773,176 @@ export function FakturagrunnlagPage() {
         )}
 
         {/* Table Panel */}
-        <div 
-          className="h-full flex flex-col max-[1200px]:w-full flex-1 relative"
-        >
-          {/* Table content */}
-          <div className="flex-1 overflow-auto bg-background flex flex-col">
-            {/* Filter Chip Bar */}
-            <FakturaFilterChipBar
-              selectedStatus={selectedStatus}
-              selectedForetak={selectedForetak}
-              startDateFrom={startDateFrom}
-              startDateTo={startDateTo}
-              endDateFrom={endDateFrom}
-              endDateTo={endDateTo}
-              amountFrom={amountFrom}
-              amountTo={amountTo}
-              onRemoveStatus={handleRemoveStatus}
-              onRemoveForetak={handleRemoveForetak}
-              onRemoveDateFilter={handleRemoveDateFilter}
-              onRemoveAmountFilter={handleRemoveAmountFilter}
-              onClearAll={handleClearFilters}
-              resultCount={displayedTrips.length}
-            />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Filter Chip Bar */}
+          <FakturaFilterChipBar
+            selectedStatus={selectedStatus}
+            selectedForetak={selectedForetak}
+            startDateFrom={startDateFrom}
+            startDateTo={startDateTo}
+            endDateFrom={endDateFrom}
+            endDateTo={endDateTo}
+            amountFrom={amountFrom}
+            amountTo={amountTo}
+            onRemoveStatus={handleRemoveStatus}
+            onRemoveForetak={handleRemoveForetak}
+            onRemoveDateFilter={handleRemoveDateFilter}
+            onRemoveAmountFilter={handleRemoveAmountFilter}
+            onClearAll={handleClearFilters}
+            resultCount={displayedTrips.length}
+          />
 
-            <div className="flex-1 overflow-auto">
-              {/* Desktop Table - Shows on wide screens (≥1600px) or when detail panel is not shown, OR on tablet (768-1199px) */}
-              <table className={`w-full ${selectedTripId ? 'min-[1200px]:max-[1599px]:hidden max-[768px]:hidden' : 'max-[768px]:hidden'}`}>
-                <thead className="bg-surface-container-low sticky top-0 z-10">
-                  <tr className="border-b border-[var(--border)]">
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium">Reisenr.</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium">Dato</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium">Reisebeskrivelse</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium">Foretak</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium">Beløp</span>
-                    </th>
-                    <th className="px-6 py-3 text-left bg-surface-container-low">
-                      <span className="label-medium">Status</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedTrips.map((trip) => {
-                    // Check if it's a day trip (same date) or overnight (different dates)
-                    const isDayTrip = trip.startDate && trip.endDate && 
-                      new Date(trip.startDate).toDateString() === new Date(trip.endDate).toDateString();
-                    
-                    return (
-                      <tr
+          {/* Scrollable table container */}
+          <div className="flex-1 overflow-auto">
+            {/* Desktop Table - Shows on wide screens (≥1600px) or when detail panel is not shown, OR on tablet (768-1199px) */}
+            <table className={`w-full ${selectedTripId ? 'min-[1200px]:max-[1599px]:hidden max-[768px]:hidden' : 'max-[768px]:hidden'}`}>
+              <thead className="bg-surface-container-low sticky top-0 z-10">
+                <tr className="border-b border-[var(--border)]">
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium">Reisenr.</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium">Dato</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium">Reisebeskrivelse</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium">Foretak</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium">Beløp</span>
+                  </th>
+                  <th className="px-6 py-3 text-left bg-surface-container-low">
+                    <span className="label-medium">Status</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayedTrips.map((trip) => {
+                  // Check if it's a day trip (same date) or overnight (different dates)
+                  const isDayTrip = trip.startDate && trip.endDate && 
+                    new Date(trip.startDate).toDateString() === new Date(trip.endDate).toDateString();
+                  
+                  return (
+                    <tr
                         key={trip.id}
                         onClick={() => handleTripClick(trip.id)}
                         className={`border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
                           selectedTripId === trip.id ? 'bg-secondary-container' : ''
                         }`}
-                      >
-                        {/* Desktop: Trip Number column */}
-                        <td className="px-6 py-4">
-                          <span className="body-medium text-foreground">{trip.tripNumber}</span>
-                        </td>
-
-                        {/* Desktop: Date column (combined start/end dates) */}
-                        <td className="px-6 py-4">
-                          {isDayTrip ? (
-                            // Day trip: Show single date
-                            <span className="body-medium text-foreground">
-                              {trip.startDate ? formatNorwegianDate(new Date(trip.startDate)) : '—'}
-                            </span>
-                          ) : (
-                            // Overnight: Show both dates on one line with "-" between
-                            <span className="body-medium text-foreground">
-                              {trip.startDate ? formatNorwegianDate(new Date(trip.startDate)) : '—'}
-                              {' - '}
-                              {trip.endDate ? formatNorwegianDate(new Date(trip.endDate)) : '—'}
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Desktop: Description */}
-                        <td className="px-6 py-4">
-                          <span className="body-medium text-foreground">
-                            {trip.id.startsWith('new-') ? trip.description || '—' : generateTripData(trip.id).description}
-                          </span>
-                        </td>
-
-                        {/* Desktop: Foretak column */}
-                        <td className="px-6 py-4">
-                          <span className="body-medium text-foreground">{getForetakForTrip(trip)}</span>
-                        </td>
-
-                        {/* Desktop: Amount column */}
-                        <td className="px-6 py-4">
-                          <span className="body-medium text-foreground">{formatAmount(trip.amount)}</span>
-                        </td>
-
-                        {/* Desktop: Status column */}
-                        <td className="px-6 py-4">
-                          {getStatusBadge(trip.status)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {/* Condensed List View - Shows on mobile (<768px) OR on desktop when detail panel is open and screen is narrow (1200-1599px) */}
-              <div className={`flex flex-col ${selectedTripId ? 'min-[768px]:max-[1199px]:hidden min-[1600px]:hidden' : 'min-[768px]:hidden'}`}>
-                <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
-                  <span className="label-medium text-foreground">Reise</span>
-                </div>
-                {displayedTrips.map((trip) => {
-                  const isDayTrip = trip.startDate && trip.endDate && 
-                    new Date(trip.startDate).toDateString() === new Date(trip.endDate).toDateString();
-                  
-                  return (
-                    <div
-                      key={trip.id}
-                      onClick={() => {
-                        setSelectedTripId(trip.id);
-                        // On mobile/tablet, open bottom sheet
-                        if (window.innerWidth < 1200) {
-                          setIsDetailBottomSheetOpen(true);
-                        }
-                      }}
-                      className={`px-6 py-4 border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
-                        selectedTripId === trip.id ? 'bg-secondary-container' : ''
-                      }`}
                     >
-                      <div className="flex flex-col gap-2">
-                        {/* Line 1: Status badge and amount with gap-1 */}
-                        <div className="flex flex-row items-center gap-1 flex-wrap">
-                          {getStatusBadge(trip.status)}
-                          <span className="label-small text-muted-foreground">
-                            {formatAmount(trip.amount)} kr
-                          </span>
-                        </div>
+                      {/* Desktop: Trip Number column */}
+                      <td className="px-6 py-4">
+                        <span className="body-medium text-foreground">{trip.tripNumber}</span>
+                      </td>
 
-                        {/* Line 2: Trip details */}
-                        <div className="flex flex-col gap-0.5">
+                      {/* Desktop: Date column (combined start/end dates) */}
+                      <td className="px-6 py-4">
+                        {isDayTrip ? (
+                          // Day trip: Show single date
                           <span className="body-medium text-foreground">
-                            {trip.tripNumber} • {getForetakForTrip(trip)}
+                            {trip.startDate ? formatNorwegianDate(new Date(trip.startDate)) : '—'}
                           </span>
-                          {trip.startDate && trip.endDate && (
-                            <span className="label-small text-muted-foreground">
-                              {isDayTrip ? (
-                                formatNorwegianDate(new Date(trip.startDate))
-                              ) : (
-                                `${formatNorwegianDate(new Date(trip.startDate))} - ${formatNorwegianDate(new Date(trip.endDate))}`
-                              )}
-                            </span>
-                          )}
+                        ) : (
+                          // Overnight: Show both dates on one line with "-" between
                           <span className="body-medium text-foreground">
-                            {trip.id.startsWith('new-') ? trip.description || '—' : generateTripData(trip.id).description}
+                            {trip.startDate ? formatNorwegianDate(new Date(trip.startDate)) : '—'}
+                            {' - '}
+                            {trip.endDate ? formatNorwegianDate(new Date(trip.endDate)) : '—'}
                           </span>
-                        </div>
-                      </div>
-                    </div>
+                        )}
+                      </td>
+
+                      {/* Desktop: Description */}
+                      <td className="px-6 py-4">
+                        <span className="body-medium text-foreground">
+                          {trip.description || '—'}
+                        </span>
+                      </td>
+
+                      {/* Desktop: Foretak column */}
+                      <td className="px-6 py-4">
+                        <span className="body-medium text-foreground">{getForetakForTrip(trip)}</span>
+                      </td>
+
+                      {/* Desktop: Amount column */}
+                      <td className="px-6 py-4">
+                        <span className="body-medium text-foreground">{formatAmount(trip.amount)}</span>
+                      </td>
+
+                      {/* Desktop: Status column */}
+                      <td className="px-6 py-4">
+                        {getStatusBadge(trip.status)}
+                      </td>
+                    </tr>
                   );
                 })}
-              </div>
+              </tbody>
+            </table>
 
-              {/* Empty state */}
-              {displayedTrips.length === 0 && (
-                <div className="flex items-center justify-center h-64">
-                  <p className="body-large text-muted-foreground">Ingen reiser å vise</p>
-                </div>
-              )}
+            {/* Condensed List View - Shows on mobile (<768px) OR on desktop when detail panel is open and screen is narrow (1200-1599px) */}
+            <div className={`flex flex-col ${selectedTripId ? 'min-[768px]:max-[1199px]:hidden min-[1600px]:hidden' : 'min-[768px]:hidden'}`}>
+              <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
+                <span className="label-medium text-foreground">Reise</span>
+              </div>
+              {displayedTrips.map((trip) => {
+                const isDayTrip = trip.startDate && trip.endDate && 
+                  new Date(trip.startDate).toDateString() === new Date(trip.endDate).toDateString();
+                
+                return (
+                  <div
+                    key={trip.id}
+                    onClick={() => {
+                      setSelectedTripId(trip.id);
+                      // On mobile/tablet, open bottom sheet
+                      if (window.innerWidth < 1200) {
+                        setIsDetailBottomSheetOpen(true);
+                      }
+                    }}
+                    className={`px-6 py-4 border-b border-[var(--border)] hover:bg-muted cursor-pointer transition-colors ${
+                      selectedTripId === trip.id ? 'bg-secondary-container' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col gap-2">
+                      {/* Line 1: Status badge and amount with gap-1 */}
+                      <div className="flex flex-row items-center gap-1 flex-wrap">
+                        {getStatusBadge(trip.status)}
+                        <span className="label-small text-muted-foreground">
+                          {formatAmount(trip.amount)} kr
+                        </span>
+                      </div>
+
+                      {/* Line 2: Trip details */}
+                      <div className="flex flex-col gap-0.5">
+                        <span className="body-medium text-foreground">
+                          {trip.tripNumber} • {getForetakForTrip(trip)}
+                        </span>
+                        {trip.startDate && trip.endDate && (
+                          <span className="label-small text-muted-foreground">
+                            {isDayTrip ? (
+                              formatNorwegianDate(new Date(trip.startDate))
+                            ) : (
+                              `${formatNorwegianDate(new Date(trip.startDate))} - ${formatNorwegianDate(new Date(trip.endDate))}`
+                            )}
+                          </span>
+                        )}
+                        <span className="body-medium text-foreground">
+                          {trip.description || '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+
+            {/* Empty state */}
+            {displayedTrips.length === 0 && (
+              <div className="flex items-center justify-center h-64">
+                <p className="body-large text-muted-foreground">Ingen reiser å vise</p>
+              </div>
+            )}
           </div>
         </div>
 

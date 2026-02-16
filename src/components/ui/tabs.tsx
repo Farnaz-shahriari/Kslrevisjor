@@ -1,66 +1,195 @@
-"use client";
+import React from 'react';
 
-import * as React from "react";
-import * as TabsPrimitive from "@radix-ui/react-tabs@1.1.3";
+/**
+ * Tab Component System
+ * 
+ * A Material Design-inspired tab component with consistent hover states:
+ * - Cursor changes to pointer on hover
+ * - Background color appears on hover (bg-muted)
+ * - Smooth color transitions
+ * - Active tab shows primary underline and foreground text color
+ * - Inactive tabs show muted-foreground text color
+ * 
+ * Usage:
+ * 
+ * <TabGroup>
+ *   <Tab 
+ *     active={activeTab === 'tab1'} 
+ *     onClick={() => setActiveTab('tab1')}
+ *   >
+ *     Tab 1
+ *   </Tab>
+ *   <Tab 
+ *     active={activeTab === 'tab2'} 
+ *     onClick={() => setActiveTab('tab2')}
+ *   >
+ *     Tab 2
+ *   </Tab>
+ * </TabGroup>
+ */
 
-import { cn } from "./utils";
-
-function Tabs({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Root>) {
-  return (
-    <TabsPrimitive.Root
-      data-slot="tabs"
-      className={cn("flex flex-col gap-2", className)}
-      {...props}
-    />
-  );
+interface TabProps {
+  /** Whether this tab is currently active */
+  active?: boolean;
+  /** Click handler */
+  onClick?: () => void;
+  /** Tab label/content */
+  children: React.ReactNode;
+  /** Additional CSS classes */
+  className?: string;
+  /** Disabled state */
+  disabled?: boolean;
 }
 
-function TabsList({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.List>) {
+/**
+ * Individual Tab button component
+ * 
+ * Features:
+ * - Height: 48px (h-12)
+ * - Padding: px-4 py-[14px]
+ * - Typography: label-medium
+ * - Hover: cursor-pointer + bg-muted
+ * - Active: primary underline + foreground text
+ * - Inactive: muted-foreground text
+ */
+export function Tab({ 
+  active = false, 
+  onClick, 
+  children, 
+  className = '',
+  disabled = false 
+}: TabProps) {
   return (
-    <TabsPrimitive.List
-      data-slot="tabs-list"
-      className={cn(
-        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-xl p-[3px] flex",
-        className,
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        relative h-12 px-4 py-[14px]
+        flex items-center justify-center
+        whitespace-nowrap
+        label-medium
+        transition-colors
+        cursor-pointer
+        hover:bg-muted
+        ${active ? 'text-foreground' : 'text-muted-foreground'}
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        ${className}
+      `}
+    >
+      {/* Tab content */}
+      <span className="relative z-10">{children}</span>
+      
+      {/* Active indicator - 2px primary line at bottom */}
+      {active && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary" />
       )}
-      {...props}
-    />
+    </button>
   );
 }
 
-function TabsTrigger({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+interface TabGroupProps {
+  /** Tab buttons as children */
+  children: React.ReactNode;
+  /** Additional CSS classes for the container */
+  className?: string;
+  /** Whether tabs should scroll horizontally on overflow */
+  scrollable?: boolean;
+}
+
+/**
+ * TabGroup container component
+ * 
+ * Wraps multiple Tab components and provides consistent layout.
+ * Optional horizontal scrolling for many tabs.
+ */
+export function TabGroup({ 
+  children, 
+  className = '',
+  scrollable = true 
+}: TabGroupProps) {
   return (
-    <TabsPrimitive.Trigger
-      data-slot="tabs-trigger"
-      className={cn(
-        "data-[state=active]:bg-card dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className,
+    <div 
+      className={`
+        flex items-center gap-0
+        ${scrollable ? 'overflow-x-auto scrollbar-hide' : ''}
+        ${className}
+      `}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Alternative: Compact Tab variant for smaller spaces
+ * Height: 40px, smaller padding
+ */
+export function TabCompact({ 
+  active = false, 
+  onClick, 
+  children, 
+  className = '',
+  disabled = false 
+}: TabProps) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        relative h-10 px-3 py-2
+        flex items-center justify-center
+        whitespace-nowrap
+        label-small
+        transition-colors
+        cursor-pointer
+        hover:bg-muted
+        ${active ? 'text-foreground' : 'text-muted-foreground'}
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        ${className}
+      `}
+    >
+      <span className="relative z-10">{children}</span>
+      
+      {active && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary" />
       )}
-      {...props}
-    />
+    </button>
   );
 }
 
-function TabsContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+/**
+ * Alternative: Large Tab variant for prominent navigation
+ * Height: 56px, larger text
+ */
+export function TabLarge({ 
+  active = false, 
+  onClick, 
+  children, 
+  className = '',
+  disabled = false 
+}: TabProps) {
   return (
-    <TabsPrimitive.Content
-      data-slot="tabs-content"
-      className={cn("flex-1 outline-none", className)}
-      {...props}
-    />
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        relative h-14 px-6 py-4
+        flex items-center justify-center
+        whitespace-nowrap
+        label-large
+        transition-colors
+        cursor-pointer
+        hover:bg-muted
+        ${active ? 'text-primary' : 'text-foreground'}
+        ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        ${className}
+      `}
+    >
+      <span className="relative z-10">{children}</span>
+      
+      {active && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary rounded-t-full" />
+      )}
+    </button>
   );
 }
-
-export { Tabs, TabsList, TabsTrigger, TabsContent };

@@ -70,7 +70,7 @@ export function TildeltRevisjonCard({ revisjon, onAccept, onReject }: TildeltRev
       <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[12px]" />
       
       {/* Info chips - at the top */}
-      <div className="content-stretch flex flex-wrap gap-[10px] items-start relative shrink-0 w-full" data-name="Info chips">
+      <div className="content-stretch flex flex-wrap gap-[8px] items-start relative shrink-0 w-full" data-name="Info chips">
         {/* Priority chip */}
         {data.isPriority && (
           <div className="bg-[var(--error-container)] h-[32px] relative rounded-[8px] shrink-0">

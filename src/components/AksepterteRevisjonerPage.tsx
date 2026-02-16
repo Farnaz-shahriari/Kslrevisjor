@@ -811,11 +811,11 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
           )}
 
           {/* Main content */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 pr-10 min-[1500px]:pr-[200px]">
+          <div className="flex-1 overflow-y-auto px-4 pt-2 pr-10 min-[1500px]:pr-[200px]">
             {/* Sorting and Bulk Actions Bar */}
-            <div className="flex items-center justify-between gap-4 py-0 mb-6 flex-wrap max-w-[1040px]">
+            <div className="flex items-center justify-between gap-2 py-0 mb-2 flex-wrap max-w-[1040px]">
               {/* LEFT GROUP: View toggle */}
-              <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                 {/* View Mode Toggle */}
                 <div className="flex gap-[2px] overflow-clip rounded-2xl">
                   <button
@@ -944,7 +944,7 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
             
             {/* Conditional rendering: List or Map view */}
             {viewMode === 'list' ? (
-              <div className="flex flex-col gap-6 pt-2">
+              <div className="flex flex-col gap-1">
                 {getSortedRevisjoner().map((revisjon) => (
                   <RevisjonCard 
                     key={revisjon.id} 

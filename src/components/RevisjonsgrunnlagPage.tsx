@@ -7,10 +7,12 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from './ui/sheet';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 import svgPathsRevisjonCard from "../imports/svg-es1yhnytnq";
 import { ForetakHistorikkView } from './ForetakHistorikkView';
+import { DividerWithSubtitle } from './ui/divider-with-subtitle';
+import { imgVector7 } from '../imports/svg-djl4p';
+import { RevisjonsgrunnlagQuestionDetailPanel } from './RevisjonsgrunnlagQuestionDetailPanel';
 
 // Mock data for checklists
 const checklists = [
-  { id: 'historiikk', name: 'Revisjonshistorikk og rapporter', icon: '📋' }, // Special item
   { id: '1', name: 'Generelle krav til gården', icon: '1' },
   { id: '10', name: 'Helse, miljø og sikkerhet', icon: '10' },
   { id: '15', name: 'Grovfôr, korn, frø, olje- og belgvekster', icon: '15' },
@@ -483,7 +485,7 @@ export function RevisjonsgrunnlagPage({
   onAddQuestionToRegister,
   onRemoveQuestionFromRegister,
 }: RevisjonsgrunnlagPageProps) {
-  const [selectedChecklistId, setSelectedChecklistId] = useState(checklists[0].id);
+  const [selectedChecklistId, setSelectedChecklistId] = useState('historiikk');
   const [activeTab, setActiveTab] = useState<TabType>('alle');
   const [markedAsReviewed, setMarkedAsReviewed] = useState(false);
   const [addedToBasics, setAddedToBasics] = useState<Set<string>>(
@@ -492,6 +494,16 @@ export function RevisjonsgrunnlagPage({
   // Mobile/Tablet state - true = showing menu, false = showing detail
   const [showingMenu, setShowingMenu] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
+
+  // State for selected question and resizable detail panel
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const [detailPanelWidth, setDetailPanelWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth * 0.5; // Default to 50% of screen width
+    }
+    return 600;
+  });
+  const [isResizingDetail, setIsResizingDetail] = useState(false);
 
   const selectedChecklist = checklists.find((c) => c.id === selectedChecklistId);
 
@@ -589,6 +601,39 @@ export function RevisjonsgrunnlagPage({
     }, 300);
   };
 
+  // Handle mouse move and mouse up for resizing detail panel
+  useEffect(() => {
+    if (!isResizingDetail) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      
+      // Constrain width between 30% and 70% of screen width
+      const minWidth = window.innerWidth * 0.30; // 30%
+      const maxWidth = window.innerWidth * 0.70; // 70%
+      
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setDetailPanelWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingDetail(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingDetail]);
+
+  // Get the selected question object
+  const selectedQuestion = selectedQuestionId 
+    ? questionData.find(q => q.id === selectedQuestionId)
+    : null;
+
   const getDeviationChip = (type: string | null) => {
     if (!type) return null;
 
@@ -659,28 +704,27 @@ export function RevisjonsgrunnlagPage({
             </span>
           </button>
 
-          {/* Header */}
+          {/* Revisjonshistorikk og rapporter button - Above divider */}
           <button
-            onClick={() => setSelectedChecklistId('historiikk')}
+            onClick={() => handleNavigateToDetail('historiikk')}
             className="flex items-center justify-between gap-4 px-4 py-2 hover:bg-muted rounded-[var(--radius)] transition-colors w-full"
           >
-            <span className="body-large text-foreground">
-              Revisjonshistorikk og rapporter
-            </span>
+            <div className="flex items-center gap-4">
+              {/* HistoryIcon */}
+              <div className="relative w-6 h-6 text-on-surface-variant">
+                <div className="absolute inset-[12.5%_6.25%]">
+                  <img alt="" className="block max-w-none size-full" src={imgVector7} style={{ filter: 'brightness(0) saturate(100%)' }} />
+                </div>
+              </div>
+              <span className="body-large text-foreground">
+                Revisjonshistorikk og rapporter
+              </span>
+            </div>
             <ChevronRight className="w-5 h-5 text-foreground" />
           </button>
 
-          {/* Divider with subheading */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[var(--border)]" />
-            </div>
-            <div className="relative flex justify-start">
-              <span className="bg-background pr-3 label-medium text-muted-foreground">
-                Sjekklister for foretaket
-              </span>
-            </div>
-          </div>
+          {/* Divider with subtitle */}
+          <DividerWithSubtitle subtitle="Sjekklister for foretaket" />
 
           {/* Checklist items */}
           <div className="flex flex-col gap-2">
@@ -734,24 +778,32 @@ export function RevisjonsgrunnlagPage({
           </span>
         </button>
 
-        {/* Header */}
-        <div className="flex items-center gap-4 px-4 py-2">
-          <span className="body-large text-foreground">
+        {/* Revisjonshistorikk og rapporter button - Above divider */}
+        <button
+          onClick={() => setSelectedChecklistId('historiikk')}
+          className={`flex items-center gap-4 px-4 py-4 rounded-[12px] transition-colors w-full ${
+            selectedChecklistId === 'historiikk'
+              ? 'bg-secondary-container'
+              : 'hover:bg-muted'
+          }`}
+        >
+          {/* HistoryIcon */}
+          <div className="relative w-6 h-6 shrink-0" style={{ color: 'var(--on-surface-variant)' }}>
+            <div className="absolute inset-[12.5%_6.25%]">
+              <img alt="" className="block max-w-none size-full" src={imgVector7} style={{ filter: 'brightness(0) saturate(100%)' }} />
+            </div>
+          </div>
+          <span className={`body-large text-left flex-1 ${
+            selectedChecklistId === 'historiikk'
+              ? 'text-secondary-container-foreground'
+              : 'text-foreground'
+          }`}>
             Revisjonshistorikk og rapporter
           </span>
-        </div>
+        </button>
 
-        {/* Divider with subheading */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-[var(--border)]" />
-          </div>
-          <div className="relative flex justify-start">
-            <span className="bg-background pr-3 label-medium text-muted-foreground">
-              Sjekklister for foretaket
-            </span>
-          </div>
-        </div>
+        {/* Divider with subtitle */}
+        <DividerWithSubtitle subtitle="Sjekklister for foretaket" />
 
         {/* Checklist items */}
         <div className="flex flex-col gap-2">
@@ -789,29 +841,17 @@ export function RevisjonsgrunnlagPage({
 
       {/* MOBILE/TABLET & DESKTOP: Detail Panel - Shows when NOT showingMenu on mobile/tablet */}
       <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full`}>
-        {/* Back button for mobile/tablet */}
-        <div className="px-6 pt-4 pb-2 min-[1400px]:hidden border-b border-[var(--border)]">
-          <button
-            onClick={handleBackToMenu}
-            className="flex items-center gap-2 label-large text-foreground hover:opacity-70 transition-opacity"
-            aria-label="Tilbake til kategorimeny"
-          >
-            <ArrowLeft size={20} className="text-foreground" />
-            Tilbake
-          </button>
-        </div>
-
-        {/* Header */}
-        <div className="border-b border-[var(--border)] px-10 max-[1400px]:px-6 py-3">
-          <div className="flex flex-col gap-3 w-full mb-2 min-[600px]:flex-row min-[600px]:items-center min-[600px]:justify-between">
-            <div className="flex items-center gap-3 flex-1 min-[600px]:order-1">
-              {/* Title */}
-              <h2 className="title-large text-foreground">
-                {selectedChecklist?.name}
-              </h2>
-            </div>
-            {/* Add all questions button - Only show for regular checklists, not for historiikk */}
-            {selectedChecklistId !== 'historiikk' && (
+        {/* Header - Only show for regular checklists, not for historiikk */}
+        {selectedChecklistId !== 'historiikk' && (
+          <div className="border-b border-[var(--border)] px-10 max-[1400px]:px-6 py-3">
+            <div className="flex flex-col gap-3 w-full mb-2 min-[600px]:flex-row min-[600px]:items-center min-[600px]:justify-between">
+              <div className="flex items-center gap-3 flex-1 min-[600px]:order-1">
+                {/* Title */}
+                <h2 className="title-large text-foreground">
+                  {selectedChecklist?.name}
+                </h2>
+              </div>
+              {/* Add all questions button - Only show for regular checklists, not for historiikk */}
               <button
                 onClick={handleAddAllQuestions}
                 className="px-6 py-4 rounded-[100px] border border-[var(--border)] hover:bg-muted transition-colors flex items-center gap-2 max-[1400px]:hidden min-[600px]:order-2"
@@ -821,11 +861,9 @@ export function RevisjonsgrunnlagPage({
                   Legg til alle spørsmål
                 </span>
               </button>
-            )}
-          </div>
+            </div>
 
-          {/* Checkbox - Only show for regular checklists, not for historiikk */}
-          {selectedChecklistId !== 'historiikk' && (
+            {/* Checkbox - Only show for regular checklists, not for historiikk */}
             <div className="flex items-center gap-4 py-2">
               <button
                 onClick={() => setMarkedAsReviewed(!markedAsReviewed)}
@@ -839,140 +877,193 @@ export function RevisjonsgrunnlagPage({
                 Marker som gjennomgått
               </span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Conditional Content: Show ForetakHistorikkView OR Tabs + Table */}
         {selectedChecklistId === 'historiikk' ? (
           <ForetakHistorikkView />
         ) : (
-          <>
-            {/* Tabs */}
-            <div className="border-b border-[var(--border)] pl-[52px] max-[1400px]:pl-6">
-              <div className="flex overflow-x-auto">
-                {[
-                  { id: 'alle', label: 'Alle spørsmål' },
-                  { id: 'avvik-ekstern', label: 'Avvik (ekstern)' },
-                  { id: 'avvik-eget', label: 'Avvik (eget)' },
-                  { id: 'forbedringspunkter', label: 'Forbedringspunkter' },
-                  { id: 'positive', label: 'Positive observasjoner' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as TabType)}
-                    className={`px-4 py-[14px] label-medium relative whitespace-nowrap ${
-                      activeTab === tab.id
-                        ? 'text-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {tab.label}
-                    {activeTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary" />
-                    )}
-                  </button>
-                ))}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Table Panel - Takes remaining space */}
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+              {/* Tabs */}
+              <div className="border-b border-[var(--border)] pl-[52px] max-[1400px]:pl-6">
+                <div className="flex overflow-x-auto">
+                  {[
+                    { id: 'alle', label: 'Alle spørsmål' },
+                    { id: 'avvik-ekstern', label: 'Avvik (ekstern)' },
+                    { id: 'avvik-eget', label: 'Avvik (eget)' },
+                    { id: 'forbedringspunkter', label: 'Forbedringspunkter' },
+                    { id: 'positive', label: 'Positive observasjoner' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as TabType)}
+                      className={`px-4 py-[14px] label-medium relative whitespace-nowrap ${
+                        activeTab === tab.id
+                          ? 'text-foreground'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {tab.label}
+                      {activeTab === tab.id && (
+                        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="flex-1 overflow-auto">
+                <table className="w-full">
+                  <thead className="sticky top-0 bg-surface-container-low border-b border-[var(--border)]">
+                    <tr>
+                      <th className="text-left px-4 py-2 label-medium text-foreground bg-surface-container-low">
+                        Sjekklistepunkt
+                      </th>
+                      <th className="text-left px-4 py-2 label-medium text-foreground bg-surface-container-low max-[1400px]:hidden" style={{ width: '160px' }}>
+                        Tidligere avvik
+                      </th>
+                      <th className="text-left px-4 py-2 label-medium text-foreground bg-surface-container-low max-[1400px]:hidden" style={{ width: '152px' }}>
+                        Foretakets svar
+                      </th>
+                      <th className="text-left px-4 py-2 label-medium text-foreground bg-surface-container-low" style={{ width: '180px' }}>
+                        Del av grunnlaget
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {questionData.map((question) => {
+                      // Get dynamic status based on whether question exists in Register Revisjon
+                      const basisStatus = getPartOfBasisStatus(question.id);
+                      const isFocus = basisStatus === 'focus';
+                      const isAdded = basisStatus === 'added';
+                      const isNotAdded = basisStatus === 'not-added';
+
+                      return (
+                        <tr
+                          key={question.id}
+                          onClick={() => !question.isGroup && setSelectedQuestionId(question.id)}
+                          className={`border-b border-[var(--border)] ${
+                            question.isGroup ? 'bg-muted/30' : 'hover:bg-muted cursor-pointer'
+                          }`}
+                        >
+                          {/* Question text */}
+                          <td className="px-4 py-4">
+                            <p className="body-medium text-foreground">
+                              {question.text}
+                            </p>
+                          </td>
+
+                          {/* Previous deviation - Hidden on mobile/tablet */}
+                          <td className="px-4 py-4 max-[1400px]:hidden" style={{ width: '160px' }}>
+                            {question.previousDeviation && getDeviationChip(question.previousDeviation)}
+                          </td>
+
+                          {/* Company answer - Hidden on mobile/tablet */}
+                          <td className="px-4 py-4 max-[1400px]:hidden" style={{ width: '152px' }}>
+                            {question.companyAnswer && (
+                              <p className="body-medium text-foreground">
+                                {question.companyAnswer}
+                              </p>
+                            )}
+                          </td>
+
+                          {/* Part of basis */}
+                          <td className="px-4 py-4" style={{ width: '180px' }}>
+                            {!question.isGroup && (
+                              <>
+                                {isFocus ? (
+                                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295]">
+                                    <span className="label-medium whitespace-nowrap">
+                                      Fokusområde
+                                    </span>
+                                  </div>
+                                ) : isAdded ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveQuestion(question.id);
+                                    }}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295] hover:bg-[#c5d5ff] transition-colors cursor-pointer"
+                                    title="Klikk for å fjerne fra Register Revisjon"
+                                  >
+                                    <Check size={18} />
+                                    <span className="label-medium whitespace-nowrap">
+                                      Lagt til
+                                    </span>
+                                  </button>
+                                ) : isNotAdded ? (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onAddQuestionToRegister(question.id);
+                                    }}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] border border-[var(--border)] hover:bg-muted transition-colors cursor-pointer"
+                                    title="Klikk for å legge til i Register Revisjon"
+                                  >
+                                    <Plus size={18} className="text-foreground" />
+                                    <span className="label-medium text-foreground whitespace-nowrap">
+                                      Legg til
+                                    </span>
+                                  </button>
+                                ) : null}
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
-              <table className="w-full">
-                <thead className="sticky top-0 bg-surface-container-low border-b border-[var(--border)]">
-                  <tr>
-                    <th className="text-left px-4 py-2 label-medium text-foreground bg-surface-container-low">
-                      Sjekklistepunkt
-                    </th>
-                    <th className="text-left px-4 py-2 label-medium text-foreground w-[160px] bg-surface-container-low max-[1400px]:hidden">
-                      Tidligere avvik
-                    </th>
-                    <th className="text-left px-4 py-2 label-medium text-foreground w-[152px] bg-surface-container-low max-[1400px]:hidden">
-                      Foretakets svar
-                    </th>
-                    <th className="text-left px-4 py-2 label-medium text-foreground w-[154px] bg-surface-container-low">
-                      Del av grunnlaget
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {questionData.map((question) => {
-                    // Get dynamic status based on whether question exists in Register Revisjon
-                    const basisStatus = getPartOfBasisStatus(question.id);
-                    const isFocus = basisStatus === 'focus';
-                    const isAdded = basisStatus === 'added';
-                    const isNotAdded = basisStatus === 'not-added';
+            {/* DESKTOP: Detail Panel - Shows selected question with resizable width */}
+            {selectedQuestion && !selectedQuestion.isGroup && (
+              <div 
+                className="max-[1200px]:hidden h-full bg-background overflow-hidden flex flex-row relative shrink-0"
+                style={{ width: `${detailPanelWidth}px` }}
+              >
+                {/* Resize Handle - Left Edge */}
+                <div
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsResizingDetail(true);
+                  }}
+                  className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary transition-colors z-10 ${
+                    isResizingDetail ? 'bg-primary' : 'bg-transparent'
+                  }`}
+                  style={{
+                    touchAction: 'none',
+                  }}
+                />
 
-                    return (
-                      <tr
-                        key={question.id}
-                        className={`border-b border-[var(--border)] ${
-                          question.isGroup ? 'bg-muted/30' : ''
-                        }`}
-                      >
-                        {/* Question text */}
-                        <td className="px-4 py-4">
-                          <p className="body-medium text-foreground">
-                            {question.text}
-                          </p>
-                        </td>
+                {/* Vertical Divider */}
+                <div className="w-px h-full bg-border shrink-0" />
 
-                        {/* Previous deviation - Hidden on mobile/tablet */}
-                        <td className="px-4 py-4 w-[160px] max-[1400px]:hidden">
-                          {question.previousDeviation && getDeviationChip(question.previousDeviation)}
-                        </td>
-
-                        {/* Company answer - Hidden on mobile/tablet */}
-                        <td className="px-4 py-4 w-[152px] max-[1400px]:hidden">
-                          {question.companyAnswer && (
-                            <p className="body-medium text-foreground">
-                              {question.companyAnswer}
-                            </p>
-                          )}
-                        </td>
-
-                        {/* Part of basis */}
-                        <td className="px-4 py-4 w-[154px]">
-                          {!question.isGroup && (
-                            <>
-                              {isFocus ? (
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295]">
-                                  <span className="label-medium">
-                                    Fokusområde
-                                  </span>
-                                </div>
-                              ) : isAdded ? (
-                                <button
-                                  onClick={() => handleRemoveQuestion(question.id)}
-                                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] bg-[#dae2ff] text-[#174295] hover:bg-[#c5d5ff] transition-colors cursor-pointer"
-                                  title="Klikk for å fjerne fra Register Revisjon"
-                                >
-                                  <Check size={18} />
-                                  <span className="label-medium">
-                                    Lagt til
-                                  </span>
-                                </button>
-                              ) : isNotAdded ? (
-                                <button
-                                  onClick={() => onAddQuestionToRegister(question.id)}
-                                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[8px] border border-[var(--border)] hover:bg-muted transition-colors cursor-pointer"
-                                  title="Klikk for å legge til i Register Revisjon"
-                                >
-                                  <Plus size={18} className="text-foreground" />
-                                  <span className="label-medium text-foreground">
-                                    Legg til
-                                  </span>
-                                </button>
-                              ) : null}
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
+                {/* Detail Content */}
+                <div className="flex-1 overflow-hidden">
+                  <RevisjonsgrunnlagQuestionDetailPanel 
+                    question={selectedQuestion}
+                    onClose={() => setSelectedQuestionId(null)}
+                    isAddedToRevision={getPartOfBasisStatus(selectedQuestion.id) !== 'not-added'}
+                    onToggleAddToRevision={() => {
+                      const status = getPartOfBasisStatus(selectedQuestion.id);
+                      if (status === 'not-added') {
+                        onAddQuestionToRegister(selectedQuestion.id);
+                      } else if (status === 'added') {
+                        handleRemoveQuestion(selectedQuestion.id);
+                      }
+                      // Focus areas can't be toggled
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

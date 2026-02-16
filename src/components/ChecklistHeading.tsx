@@ -74,8 +74,10 @@ export function ChecklistHeading({
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            className="relative px-4 py-3.5 hover:bg-muted/50 transition-colors shrink-0"
+            onClick={() => onTabChange?.(tab.id)}
+            className={`px-4 py-3.5 transition-colors relative cursor-pointer ${
+              activeTab === tab.id ? 'bg-transparent' : 'hover:bg-muted'
+            }`}
           >
             <span
               className={`label-medium ${

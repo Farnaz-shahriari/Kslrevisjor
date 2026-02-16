@@ -20,7 +20,7 @@ export function KravVeilederSection({ question }: KravVeilederSectionProps) {
     <div className="space-y-3">
       {/* Dokumentasjon kreves button */}
       {question.requiresDocumentation && (
-        <button className="inline-flex items-center gap-2 px-3 py-2 bg-primary text-primary-foreground rounded-lg label-medium hover:bg-primary/90 transition-colors">
+        <button className="inline-flex items-center gap-2 px-3 py-2 bg-secondary-container text-on-secondary-container rounded-lg label-medium hover:opacity-80 transition-opacity">
           <FileText className="w-4 h-4" />
           Dokumentasjon kreves
         </button>

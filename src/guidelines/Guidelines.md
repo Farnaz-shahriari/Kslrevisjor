@@ -21,6 +21,46 @@ Keep file sizes small and put helper functions and components in their own files
 - ❌ **NEVER** hardcode hex colors or RGB values
 - ❌ **NEVER** use inline font styles
 
+### Vertical Spacing Standards
+
+**CRITICAL: Consistent vertical spacing across all pages and lists in the Revisor interface**
+
+#### Spacing Between Sections and Lists
+
+- ✅ **ALWAYS** use `gap-2` (8px) between Sorting/Bulk Actions Bar and the list of items below
+- ✅ **ALWAYS** use `gap-1` (4px) between individual list items (audit cards, deviation cards, document cards, etc.)
+- ✅ Applies to ALL pages with lists: Tildelte Revisjoner, Aksepterte Revisjoner, Revisjonshistorikk, Avviksoversikt, etc.
+
+#### Examples
+
+```tsx
+// ✅ CORRECT - 8px gap between action bar and list
+<div className="flex flex-col">
+  {/* Sorting/Bulk Actions Bar */}
+  <div className="flex items-center justify-between px-6 py-4">
+    {/* ... action bar content ... */}
+  </div>
+  
+  {/* 8px gap before list */}
+  <div className="flex flex-col gap-1 px-6">
+    {/* List items with 4px gap between them */}
+    {items.map(item => <ItemCard key={item.id} />)}
+  </div>
+</div>
+
+// ❌ WRONG - Inconsistent spacing
+<div className="flex flex-col gap-4">  {/* Don't use gap-4 for list items */}
+  {items.map(item => <ItemCard key={item.id} />)}
+</div>
+```
+
+#### Spacing Rules
+
+- **Action Bar → List**: 8px (`gap-2` or `mb-2`)
+- **List Item → List Item**: 4px (`gap-1`)
+- **Card Internal Padding**: Use consistent padding from existing components
+- Apply these spacing rules to both desktop and mobile views
+
 ### Norwegian Language
 - ✅ All UI text, labels, buttons, and content must be in Norwegian
 - ✅ Maintain consistent terminology across revisor and producer interfaces
@@ -888,6 +928,278 @@ The RadioButton component is used throughout the application in:
 
 All instances must use the centralized RadioButton component to ensure consistency.
 
+## Tab Component System
+
+**CRITICAL: ALL tabs in the application MUST use the Tab component from `/components/ui/tabs.tsx`**
+
+The Tab component provides a consistent, accessible tab navigation pattern with perfect hover behavior that matches Material Design principles.
+
+### Key Features
+
+The tab component includes these critical interaction patterns:
+- ✅ **Cursor changes to pointer** on hover
+- ✅ **Background color appears** (`hover:bg-muted`) on hover
+- ✅ **Smooth color transitions** for all state changes
+- ✅ **Active indicator**: 2px primary underline at the bottom
+- ✅ **Text colors**: foreground when active, muted-foreground when inactive
+- ✅ **Height**: 48px (h-12) for standard tabs
+- ✅ **Typography**: label-medium class from design system
+
+### Import and Basic Usage
+
+```tsx
+import { Tab, TabGroup } from "./components/ui/tabs";
+
+// Basic tab group
+<TabGroup>
+  <Tab 
+    active={activeTab === 'tab1'} 
+    onClick={() => setActiveTab('tab1')}
+  >
+    Tab 1
+  </Tab>
+  <Tab 
+    active={activeTab === 'tab2'} 
+    onClick={() => setActiveTab('tab2')}
+  >
+    Tab 2
+  </Tab>
+  <Tab 
+    active={activeTab === 'tab3'} 
+    onClick={() => setActiveTab('tab3')}
+  >
+    Tab 3
+  </Tab>
+</TabGroup>
+```
+
+### Tab Variants
+
+The component system provides three size variants:
+
+**1. Standard Tab (default)** - `<Tab>`
+- Height: 48px (h-12)
+- Padding: px-4 py-[14px]
+- Typography: label-medium
+- Use for: Most tab navigation scenarios
+
+**2. Compact Tab** - `<TabCompact>`
+- Height: 40px (h-10)
+- Padding: px-3 py-2
+- Typography: label-small
+- Use for: Space-constrained UIs, dense layouts
+
+**3. Large Tab** - `<TabLarge>`
+- Height: 56px (h-14)
+- Padding: px-6 py-4
+- Typography: label-large
+- Active text: text-primary (instead of text-foreground)
+- Use for: Prominent navigation, main page tabs
+
+### TabGroup Container
+
+The `TabGroup` component wraps tabs and provides:
+- Horizontal flex layout with no gaps
+- Optional horizontal scrolling for overflow tabs
+- Consistent spacing and alignment
+
+```tsx
+// With scrolling (default)
+<TabGroup>
+  {tabs}
+</TabGroup>
+
+// Without scrolling
+<TabGroup scrollable={false}>
+  {tabs}
+</TabGroup>
+
+// Custom styling
+<TabGroup className="px-6 border-b border-border">
+  {tabs}
+</TabGroup>
+```
+
+### Complete Example
+
+```tsx
+import { useState } from 'react';
+import { Tab, TabGroup, TabLarge } from "./components/ui/tabs";
+
+function MyComponent() {
+  const [activeTab, setActiveTab] = useState('overview');
+
+  return (
+    <div className="flex flex-col">
+      {/* Header with tabs */}
+      <div className="border-b border-border">
+        <div className="px-6 pt-6">
+          <h1 className="headline-small">Page Title</h1>
+        </div>
+        
+        <TabGroup className="px-6">
+          <TabLarge 
+            active={activeTab === 'overview'} 
+            onClick={() => setActiveTab('overview')}
+          >
+            Oversikt
+          </TabLarge>
+          <TabLarge 
+            active={activeTab === 'details'} 
+            onClick={() => setActiveTab('details')}
+          >
+            Detaljer
+          </TabLarge>
+          <TabLarge 
+            active={activeTab === 'history'} 
+            onClick={() => setActiveTab('history')}
+          >
+            Historikk
+          </TabLarge>
+        </TabGroup>
+      </div>
+
+      {/* Tab content */}
+      <div className="flex-1 p-6">
+        {activeTab === 'overview' && <OverviewContent />}
+        {activeTab === 'details' && <DetailsContent />}
+        {activeTab === 'history' && <HistoryContent />}
+      </div>
+    </div>
+  );
+}
+```
+
+### ✅ Correct Examples
+
+```tsx
+// Standard tabs
+<TabGroup className="px-6">
+  <Tab active={activeTab === 'all'} onClick={() => setActiveTab('all')}>
+    Alle spørsmål
+  </Tab>
+  <Tab active={activeTab === 'unanswered'} onClick={() => setActiveTab('unanswered')}>
+    Ubesvarte
+  </Tab>
+</TabGroup>
+
+// Large tabs for main navigation
+<TabGroup>
+  <TabLarge active={activeTab === 'register'} onClick={() => setActiveTab('register')}>
+    Registrer revisjon
+  </TabLarge>
+  <TabLarge active={activeTab === 'report'} onClick={() => setActiveTab('report')}>
+    Skriv rapport
+  </TabLarge>
+</TabGroup>
+
+// Compact tabs for tight spaces
+<TabGroup>
+  <TabCompact active={view === 'grid'} onClick={() => setView('grid')}>
+    Rutenett
+  </TabCompact>
+  <TabCompact active={view === 'list'} onClick={() => setView('list')}>
+    Liste
+  </TabCompact>
+</TabGroup>
+
+// Disabled tab
+<Tab 
+  active={false} 
+  onClick={() => {}} 
+  disabled={true}
+>
+  Kommer snart
+</Tab>
+```
+
+### ❌ Never Use
+
+```tsx
+// ❌ WRONG - Raw button without Tab component
+<button className="px-4 py-3 hover:bg-muted">
+  Tab Label
+</button>
+
+// ❌ WRONG - Missing hover states
+<button className={activeTab === 'tab1' ? 'text-primary' : 'text-foreground'}>
+  Tab 1
+</button>
+
+// ❌ WRONG - Inconsistent styling
+<button className="h-10 px-2 text-sm">
+  Tab Label
+</button>
+
+// ❌ WRONG - Hardcoded colors
+<button style={{ color: activeTab === 'tab1' ? '#4a671e' : '#666' }}>
+  Tab 1
+</button>
+```
+
+### Migration from Raw Buttons
+
+When you see raw tab buttons in the code, replace them with the Tab component:
+
+```tsx
+// Before
+<button 
+  onClick={() => setActiveTab('tab1')}
+  className={`px-4 py-3 whitespace-nowrap transition-colors title-small cursor-pointer hover:bg-muted ${
+    activeTab === 'tab1' 
+      ? 'text-foreground border-b-2 border-primary' 
+      : 'text-muted-foreground'
+  }`}
+>
+  Tab Label
+</button>
+
+// After
+<Tab 
+  active={activeTab === 'tab1'} 
+  onClick={() => setActiveTab('tab1')}
+>
+  Tab Label
+</Tab>
+```
+
+### Consistency Rules
+
+- ✅ **ALWAYS** use the Tab component for any tab navigation UI
+- ✅ **ALWAYS** ensure cursor-pointer and hover:bg-muted are present
+- ✅ **ALWAYS** use design system typography classes (label-medium, label-large, etc.)
+- ✅ **ALWAYS** show the 2px primary underline for active tabs
+- ✅ **ALWAYS** use foreground/muted-foreground colors from design system
+- ✅ Wrap tabs in TabGroup for consistent layout
+- ✅ Choose the appropriate variant (standard, compact, large) based on context
+- ❌ **NEVER** create custom tab implementations
+- ❌ **NEVER** use hardcoded colors or sizes
+- ❌ **NEVER** omit hover states from tabs
+
+### Application-Wide Usage
+
+The Tab component is used throughout the application in:
+
+- **Header.tsx** - Main navigation tabs (Planlegg revisjon, Registrer revisjon, etc.)
+- **ForetakHistorikkView.tsx** - History tabs (Eksternerevisjoner, Egenrevisjoner, Tilsynshistorikk)
+- **AvvikoversiktPage.tsx** - Avvik tabs (Åpne avvik, Til handling nå, etc.)
+- **FakturagrunnlagPage.tsx** - Trip tabs (Ufakturerte reiser, Alle reiser)
+- **ChecklistHeading.tsx** - Checklist tabs (Alle spørsmål, Ubesvarte, etc.)
+- **DocumentOverview.tsx** - Document tabs (Vedlegg, Knyttede sjekkliste spørsmål)
+- **WriteReportPage.tsx** - Report section tabs
+- **ProfilePage.tsx** - Profile tabs
+- **Any future tabbed navigation**: Follow this same pattern
+
+All instances must use the centralized Tab component to ensure consistency.
+
+### User Experience Benefits
+
+1. **Consistent interaction**: Same hover behavior across all tabs in the app
+2. **Visual feedback**: Clear indication of clickable elements with pointer cursor
+3. **Smooth transitions**: Professional feel with transition-colors
+4. **Accessibility**: Proper button semantics and keyboard navigation
+5. **Maintainability**: Centralized styling makes updates easier
+
 ## Mobile-Responsive Table Pattern
 
 **CRITICAL: Tables must adapt to mobile screens while maintaining traditional multi-column layouts on desktop**
@@ -1174,3 +1486,315 @@ Apply this pattern to these tables:
 5. **No horizontal scroll**: All content fits within mobile viewport
 
  Some of the base components you are using may have styling(eg. gap/typography) baked in as defaults.
+So make sure you explicitly set any styling information from the guidelines in the generated react to override the defaults.
+
+## Deferred Status Filtering Pattern
+
+**CRITICAL: Immediate visual feedback with deferred list reorganization across the entire application**
+
+### The Golden Rule
+
+When a user performs an action that changes an item's status (answering a question, closing an avvik, changing severity, etc.):
+
+1. ✅ **ALWAYS** update the item's status/details IMMEDIATELY in place
+2. ✅ **ALWAYS** keep the item in its current list/tab position
+3. ✅ **NEVER** move the item to another filtered list/tab immediately
+4. ✅ **ONLY** reorganize items into correct filtered lists when user navigates away and returns
+
+This pattern provides clear visual feedback that the system has processed the user's action, while preventing confusion from items "disappearing" immediately.
+
+### The Pattern
+
+**Step 1: User Action**
+- User performs an action (answers question, closes avvik, changes severity, etc.)
+- Item status updates IMMEDIATELY in the UI
+- Item STAYS in its current position in the current list/tab
+- Status column/badge reflects the new status
+- User sees the change happen right where they made it
+
+**Step 2: Navigation Trigger**
+- User navigates away by:
+  - Switching to a different tab in the same view
+  - Navigating to a different page
+  - Changing filters
+  - Refreshing the view
+
+**Step 3: List Reorganization**
+- When user returns to the view, items appear in their correct filtered lists/tabs
+- Item with updated status now appears under the appropriate tab/filter
+- Item no longer appears in the previous tab if it doesn't match that filter
+
+### Implementation Pattern
+
+Use a "pending changes" flag that triggers reorganization on navigation:
+
+```tsx
+// Track pending changes that need reorganization
+const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
+// When user changes status, update in place and flag for reorganization
+const handleStatusChange = (itemId: string, newStatus: string) => {
+  // Update the item status in the current list
+  setItems(prevItems => 
+    prevItems.map(item => 
+      item.id === itemId 
+        ? { ...item, status: newStatus }
+        : item
+    )
+  );
+  
+  // Flag that we have pending changes
+  setHasPendingChanges(true);
+};
+
+// When user changes tabs, reorganize if needed
+const handleTabChange = (newTab: string) => {
+  if (hasPendingChanges) {
+    // Reorganize items into correct filtered lists
+    reorganizeItems();
+    setHasPendingChanges(false);
+  }
+  setActiveTab(newTab);
+};
+
+// Alternative: Use useEffect to reorganize when component remounts
+useEffect(() => {
+  // On mount/remount, always show correctly filtered items
+  loadFilteredItems(activeTab);
+}, [activeTab]);
+```
+
+### Real-World Examples
+
+#### Example 1: Avviksoversikt (Deviation Overview)
+
+**Scenario:** User viewing "Åpne avvik" tab
+
+1. **User Action:**
+   - User clicks on an avvik to view details
+   - User confirms closing the avvik in the detail panel
+   - Dialog appears: "Bekreft lukking av avvik"
+   - User clicks "Bekreft"
+
+2. **Immediate Feedback:**
+   - Avvik status changes to "Lukket" in the status column
+   - Avvik STAYS in the "Åpne avvik" list
+   - User can see the status has changed from "Dokumentert åpent" to "Lukket"
+   - Detail panel reflects new status
+
+3. **Deferred Reorganization:**
+   - User switches to "Til behandling nå" tab → items reorganize
+   - User navigates to "Profil" page and returns → items reorganize
+   - When user returns to "Åpne avvik" tab, the closed avvik is gone
+   - When user views "Lukket avvik" tab, the closed avvik appears there
+
+#### Example 2: Svaroversikt (Answer Overview in Write Report)
+
+**Scenario:** User viewing "Ubesvarte" tab in Svaroversikt
+
+1. **User Action:**
+   - User clicks on a question that shows status "Trenger utfylling"
+   - User answers "Ja" to the question in the detail panel
+   - User clicks "Lagre" or the answer is auto-saved
+
+2. **Immediate Feedback:**
+   - Question status changes to "Ja" in the status column
+   - Question STAYS in the "Ubesvarte" list
+   - User can see the status changed from "Trenger utfylling" to "Ja"
+   - Status chip color updates to reflect "Ja" status
+
+3. **Deferred Reorganization:**
+   - User switches to "Ja" tab → items reorganize
+   - User switches to "Nei" tab and back → items reorganize
+   - When user returns to "Ubesvarte" tab, the answered question is gone
+   - When user views "Ja" tab, the answered question appears there
+
+#### Example 3: Register Revisjon (Question Answering)
+
+**Scenario:** User viewing "Ubesvarte" tab in Register revisjon
+
+1. **User Action:**
+   - User selects a question with status "Ikke besvart"
+   - User answers "Nei" and adds a deviation
+   - User saves the answer
+
+2. **Immediate Feedback:**
+   - Question status changes to "Nei" in the question list
+   - Question STAYS in the "Ubesvarte" tab
+   - Status badge updates to show "Nei"
+   - User sees their action had an effect
+
+3. **Deferred Reorganization:**
+   - User switches to "Ja" tab → items reorganize
+   - User switches to "Alle spørsmål" tab → items reorganize
+   - When user returns to "Ubesvarte" tab, the answered question is gone
+   - When user views "Nei" tab, the answered question appears there
+
+### Application-Wide Usage
+
+This pattern applies to ALL views with filtered lists/tabs:
+
+**Revisor Interface:**
+
+1. **Avviksoversikt** (AvvikoversiktPage)
+   - Tabs: Åpne avvik, Til behandling nå, Til oppfølging, Avventer produsent, Lukket avvik
+   - Actions: Closing avvik, changing severity, changing status
+   - Behavior: Status updates in place, reorganizes on tab change
+
+2. **Skriv rapport - Svaroversikt** (SvaroversiktSection)
+   - Tabs: Alle, Ja, Nei, Ikke relevant, Ubesvarte
+   - Actions: Answering questions, changing answers
+   - Behavior: Status updates in place, reorganizes on tab change
+
+3. **Skriv rapport - Avvikshåndtering** (AvvikshandteringPage)
+   - Tabs: Alle, Lite avvik, Avvik, Stort avvik
+   - Actions: Changing severity, closing deviations
+   - Behavior: Status updates in place, reorganizes on tab change
+
+4. **Register revisjon** (RegisterRevisjonPage)
+   - Tabs: Alle spørsmål, Ja, Nei, Ikke relevant, Ubesvarte, Dokumentasjon, Avvik
+   - Actions: Answering questions, adding deviations
+   - Behavior: Status updates in place, reorganizes on tab change
+
+**Producer Interface:**
+
+1. **Egenkontroll** (Producer Question View)
+   - Tabs: Alle spørsmål, Ja, Nei, Ikke relevant, Ubesvarte, Dokumentasjon
+   - Actions: Answering questions, uploading documentation
+   - Behavior: Status updates in place, reorganizes on tab change
+
+2. **Avvik** (ProducerDeviationView)
+   - Tabs: Åpne, Til handling, Lukket
+   - Actions: Responding to deviations, uploading documentation
+   - Behavior: Status updates in place, reorganizes on tab change
+
+3. **Spesialitet** (SpesialitetQuestionView / SpesialitetChecklistPage)
+   - Tabs: Alle spørsmål, Ja, Nei, Ubesvarte
+   - Actions: Answering checklist questions
+   - Behavior: Status updates in place, reorganizes on tab change
+
+### User Experience Benefits
+
+1. **Immediate feedback**: Users see their actions take effect instantly
+2. **No confusion**: Items don't "disappear" while users are working with them
+3. **Visual confirmation**: Status changes are clearly visible in the current context
+4. **Predictable behavior**: Users understand where items will be after navigation
+5. **Reduced anxiety**: Users don't worry that their changes were lost when items "disappear"
+6. **Better workflow**: Users can complete multiple actions in one tab before switching
+
+### Consistency Rules
+
+- ✅ **ALWAYS** update status in place when user makes a change
+- ✅ **ALWAYS** keep the item in its current list/tab after status change
+- ✅ **ALWAYS** reorganize items only when user navigates away
+- ✅ **ALWAYS** show correct filtered items when user returns to a tab/view
+- ✅ Apply to ALL filtered lists and tabs in both Revisor and Producer interfaces
+- ❌ **NEVER** immediately remove an item from a list when its status changes
+- ❌ **NEVER** move items between tabs without user navigation
+- ❌ **NEVER** make items "disappear" immediately after user action
+
+### Implementation Triggers for Reorganization
+
+Items should reorganize when:
+
+- ✅ User switches between tabs in the same view
+- ✅ User navigates to a different page and returns
+- ✅ User changes filter settings
+- ✅ User refreshes the view
+- ✅ Component remounts (useEffect on mount)
+
+Items should NOT reorganize when:
+
+- ❌ User changes an item's status
+- ❌ User saves an answer
+- ❌ User updates item details
+- ❌ User is still viewing the same tab
+
+### Technical Considerations
+
+**State Management:**
+- Maintain separate "displayed items" and "filtered items" states
+- Display items reflect current user view (may include items that don't match filter)
+- Filtered items are loaded fresh when user navigates or changes tabs
+
+**Performance:**
+- Reorganization is cheap - only happens on navigation, not on every status change
+- Immediate status updates are fast - just updating local state
+- No unnecessary re-filtering on every user action
+
+**Data Consistency:**
+- Backend updates happen immediately when user changes status
+- Frontend shows optimistic update in place
+- On navigation, fetch fresh filtered data from backend or re-filter local data
+
+### Example Code Pattern
+
+```tsx
+function DeviationOverviewPage() {
+  const [activeTab, setActiveTab] = useState('åpne');
+  const [displayedDeviations, setDisplayedDeviations] = useState<Deviation[]>([]);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
+  // Load correctly filtered items when tab changes
+  useEffect(() => {
+    const filteredDeviations = getFilteredDeviations(allDeviations, activeTab);
+    setDisplayedDeviations(filteredDeviations);
+    setHasPendingChanges(false);
+  }, [activeTab, allDeviations]);
+
+  // Handle status change - update in place
+  const handleCloseDeviation = (deviationId: string) => {
+    // Update displayed items immediately
+    setDisplayedDeviations(prev =>
+      prev.map(dev =>
+        dev.id === deviationId
+          ? { ...dev, status: 'Lukket' }
+          : dev
+      )
+    );
+
+    // Update backend
+    updateDeviationStatus(deviationId, 'Lukket');
+
+    // Flag for reorganization
+    setHasPendingChanges(true);
+  };
+
+  // Handle tab change - reorganize if needed
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    // useEffect will handle reorganization
+  };
+
+  return (
+    <div>
+      <TabGroup>
+        <Tab active={activeTab === 'åpne'} onClick={() => handleTabChange('åpne')}>
+          Åpne avvik
+        </Tab>
+        <Tab active={activeTab === 'lukket'} onClick={() => handleTabChange('lukket')}>
+          Lukket avvik
+        </Tab>
+      </TabGroup>
+
+      <DeviationList
+        deviations={displayedDeviations}
+        onClose={handleCloseDeviation}
+      />
+    </div>
+  );
+}
+```
+
+### Visual Feedback During Status Change
+
+To make status changes even clearer, consider these optional enhancements:
+
+1. **Highlight the changed item** with a brief color flash
+2. **Show a snackbar/toast** confirming the action ("Avvik lukket")
+3. **Update the status badge** with a smooth transition
+4. **Add a subtle icon** next to changed items (e.g., checkmark)
+
+These are optional but reinforce that the user's action was successful.
+
+So make sure you explicitly set any styling information from the guidelines in the generated react to override the defaults.

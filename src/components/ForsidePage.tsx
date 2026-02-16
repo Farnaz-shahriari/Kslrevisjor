@@ -382,7 +382,7 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
           {viewMode === 'calendar' && (
             <div className="bg-[#f4f4ea] rounded-xl p-6 w-full max-[1400px]:mx-6 max-[1400px]:mb-6">
               {/* Calendar header with month navigation */}
-              <div className="flex items-center justify-center gap-4 py-2 mb-4">
+              <div className="flex items-center justify-center gap-1 py-2 mb-4">
                 <button 
                   onClick={goToPreviousMonth}
                   className="w-14 h-14 flex items-center justify-center hover:bg-muted/30 rounded-full transition-colors"
@@ -458,30 +458,20 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
           {/* List View */}
           {viewMode === 'list' && (
             <div className="w-full max-[1400px]:pb-4">
-              {/* Date groups and revisjon cards */}
-              {Array.from(groupedRevisjoner.entries()).map(([dateKey, revisjoner], groupIndex) => (
-                <div key={dateKey} className="flex flex-col w-full" style={{ marginTop: groupIndex === 0 ? 0 : '24px' }}>
-                  {/* Date header - closer to cards below */}
-                  <div className="label-medium text-foreground mb-2 max-[1400px]:px-6">
-                    <p>{dateKey}</p>
-                  </div>
-
-                  {/* Revisjon cards */}
-                  <div className="flex flex-col gap-4 max-[1400px]:px-6">
-                    {revisjoner.map((revisjon) => (
-                      <RevisjonCard 
-                        key={revisjon.id} 
-                        revisjon={revisjon}
-                        onCardClick={() => {
-                          if (onRevisionClick) {
-                            onRevisionClick(revisjon.id);
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+              {/* All revisjon cards with consistent gap-1 spacing */}
+              <div className="flex flex-col gap-1 max-[1400px]:px-6">
+                {allPlannedRevisjoner.map((revisjon) => (
+                  <RevisjonCard 
+                    key={revisjon.id} 
+                    revisjon={revisjon}
+                    onCardClick={() => {
+                      if (onRevisionClick) {
+                        onRevisionClick(revisjon.id);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -644,7 +634,7 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
   return (
     <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[24px] py-[16px] relative w-full" data-name="Profile Details">
       {/* Information - User greeting and action buttons */}
-      <div className="content-center flex flex-wrap gap-[8px] items-center justify-between py-[8px] relative shrink-0 w-full" data-name="information">
+      <div className="content-center flex flex-wrap gap-[8px] items-center justify-between py-[0px] relative shrink-0 w-full" data-name="information">
         {/* User greeting */}
         <div className="content-stretch flex gap-[16px] items-center py-[8px] relative shrink-0 w-[533px]" data-name="user greeting">
           {/* Avatar - Clean profile picture without badge */}

@@ -727,7 +727,7 @@ export function PlanleggRevisjonPage() {
               </h3>
               
               {/* Revisjon Cards */}
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
                 {revisjonerSammeSted.map((revisjon) => (
                   <RevisjonCard
                     key={revisjon.id}
