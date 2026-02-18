@@ -191,9 +191,10 @@ export function PreviousAvvikTable({ deviations }: PreviousAvvikTableProps) {
               foretakName: '', // Not applicable for previous revisions
               checklist: `${selectedDeviation.questionNumber} – ${selectedDeviation.questionText}`,
               deadline: new Date(), // Placeholder
-              status: selectedDeviation.status === 'lukket' ? 'besok-planlagt' : 'tidspunkt-foreslatt',
+              status: selectedDeviation.status === 'lukket' ? 'lukket' : 'tidspunkt-foreslatt',
               requiresAction: false,
-              confirmationMethod: 'dokumentasjon'
+              confirmationMethod: 'dokumentasjon',
+              closedDate: selectedDeviation.status === 'lukket' ? new Date(2025, 2, 1) : undefined // March 1, 2025
             }}
           />
         </div>

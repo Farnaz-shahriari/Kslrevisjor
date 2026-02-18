@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Button } from './ui/button';
-import { ChevronLeft, Search, List, MapPin, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, Search, List, MapPin, SlidersHorizontal, Table } from 'lucide-react';
 import { RevisjonCard } from './RevisjonCard';
 import { MaterialCheckbox } from './ui/material-checkbox';
 import { DatePicker } from './ui/date-picker';
@@ -18,7 +18,7 @@ interface AksepterteRevisjonerPageProps {
 
 // Mock data - Exact same revisjoner as in ForsidePage
 export const mockAksepterteRevisjoner = [
-  // Cards without planned date (Venter på planlegging)
+  // Cards without planned date (Akseptert status - waiting for planning)
   {
     id: 'awaiting-1',
     foretakName: 'Bjørkli Økologiske',
@@ -26,252 +26,213 @@ export const mockAksepterteRevisjoner = [
     visitTime: null,
     revisjonData: {
       ordning: 'KSL',
-      revisjonsfrist: '15. februar 2025',
-      produksjon: ['Sau', 'Grovfôr', 'Storfe'],
-      kommune: 'Trysil',
-      address: 'Fjellveien 88, 2420 Trysil',
-      isPriority: true,
-      hasPlannedDate: false
-    },
-    location: {
-      lat: 61.3158,
-      lng: 12.2689,
-    },
-  },
-  {
-    id: 'awaiting-2',
-    foretakName: 'Kollen Gård',
-    visitDate: null,
-    visitTime: null,
-    revisjonData: {
-      ordning: 'LokalMat',
-      revisjonsfrist: '20. februar 2025',
-      produksjon: ['Melkeproduksjon', 'Grovfôr'],
-      kommune: 'Eidskog',
-      address: 'Skogveien 45, 2230 Eidskog',
-      isPriority: false,
-      hasPlannedDate: false
-    },
-    location: {
-      lat: 60.1689,
-      lng: 12.0967,
-    },
-  },
-  {
-    id: 'awaiting-3',
-    foretakName: 'Sjøli Økofarm',
-    visitDate: null,
-    visitTime: null,
-    revisjonData: {
-      ordning: 'Nyt Norge',
-      revisjonsfrist: '25. februar 2025',
-      produksjon: ['Geit', 'Geitost produksjon'],
-      kommune: 'Åmot',
-      address: 'Øvergårdveien 12, 2450 Rena',
-      isPriority: false,
-      hasPlannedDate: false
-    },
-    location: {
-      lat: 61.1328,
-      lng: 11.3678,
-    },
-  },
-  {
-    id: 'awaiting-4',
-    foretakName: 'Lia Sauebruk',
-    visitDate: null,
-    visitTime: null,
-    revisjonData: {
-      ordning: 'KSL',
-      revisjonsfrist: '28. februar 2025',
-      produksjon: ['Sau', 'Lam', 'Grovfôr'],
-      kommune: 'Åsnes',
-      address: 'Liaåsen 67, 2270 Flisa',
-      isPriority: true,
-      hasPlannedDate: false
-    },
-    location: {
-      lat: 60.6167,
-      lng: 12.3167,
-    },
-  },
-  {
-    id: 'awaiting-5',
-    foretakName: 'Berget Biogård',
-    visitDate: null,
-    visitTime: null,
-    revisjonData: {
-      ordning: 'Spesialitet',
-      revisjonsfrist: '5. mars 2025',
-      produksjon: ['Biodling', 'Honningproduksjon'],
-      kommune: 'Kongsvinger',
-      address: 'Honningveien 3, 2212 Kongsvinger',
-      isPriority: false,
-      hasPlannedDate: false
-    },
-    location: {
-      lat: 60.1917,
-      lng: 12.0050,
-    },
-  },
-  {
-    id: 'awaiting-6',
-    foretakName: 'Skogen Øko AS',
-    visitDate: null,
-    visitTime: null,
-    revisjonData: {
-      ordning: 'KSL',
-      revisjonsfrist: '10. mars 2025',
-      produksjon: ['Korn', 'Frø og belgvekster', 'Grovfôr'],
-      kommune: 'Grue',
-      address: 'Grueveien 156, 2260 Kirkenær',
-      isPriority: false,
-      hasPlannedDate: false
-    },
-    location: {
-      lat: 60.4728,
-      lng: 12.1378,
-    },
-  },
-  {
-    id: 'awaiting-7',
-    foretakName: 'Dalheim Gård',
-    visitDate: null,
-    visitTime: null,
-    revisjonData: {
-      ordning: 'LokalMat',
-      revisjonsfrist: '15. mars 2025',
-      produksjon: ['Frukt og bær', 'Økologiske grønnsaker'],
-      kommune: 'Våler',
-      address: 'Dalveien 89, 2436 Våler i Solør',
-      isPriority: true,
-      hasPlannedDate: false
-    },
-    location: {
-      lat: 60.3083,
-      lng: 12.2556,
-    },
-  },
-  // Cards with planned date (Planlagt dato)
-  {
-    id: 'haugseter-gard',
-    foretakName: 'Haugseter Gård',
-    visitDate: new Date(2025, 0, 15), // 15. januar 2025
-    visitTime: '09:00 - 12:00',
-    revisjonData: {
-      ordning: 'KSL',
-      revisjonsfrist: '31. mars 2025',
-      produksjon: ['Storfe', 'Grovfôr'],
-      kommune: 'Vang',
-      address: 'Vangsvegen 302, 2974 Vang',
-      isPriority: false,
-      hasPlannedDate: true
-    },
-    location: {
-      lat: 61.1344,
-      lng: 8.5983,
-    },
-  },
-  {
-    id: 'accepted-1',
-    foretakName: 'Nordlys Økologiske',
-    visitDate: new Date(2025, 0, 27), // 27. januar 2025
-    visitTime: '09:00 - 11:30',
-    revisjonData: {
-      ordning: 'KSL',
-      revisjonsfrist: '30. januar 2025',
-      produksjon: ['Sau', 'Korn', 'Frø og belgvekster', 'Grovfôr', 'Storfe'],
-      kommune: 'Sel',
-      address: 'Fjellveien 42, 2670 Otta',
-      isPriority: true,
-      hasPlannedDate: true
-    },
-    location: {
-      lat: 61.7739,
-      lng: 9.5444,
-    },
-  },
-  {
-    id: 'accepted-2',
-    foretakName: 'Grønn Vallei Gård',
-    visitDate: new Date(2025, 0, 27), // 27. januar 2025
-    visitTime: '13:00 - 15:00',
-    revisjonData: {
-      ordning: 'LokalMat',
-      revisjonsfrist: '31. januar 2025',
-      produksjon: ['Melkeproduksjon', 'Grovfôr', 'Storfe'],
+      revisjonsfrist: '5. mai 2026',
+      produksjon: [
+        { name: 'Storfe', count: 24 },
+        { name: 'Melkeproduksjon', count: 88 },
+        { name: 'Grovfôr', count: 142 }
+      ],
       kommune: 'Lillehammer',
-      address: 'Storgata 15, 2000 Lillehammer',
+      address: 'Bjørkliveien 15, 2609 Lillehammer',
       isPriority: false,
-      hasPlannedDate: true
+      hasPlannedDate: false
     },
     location: {
-      lat: 61.1153,
+      lat: 61.1150,
       lng: 10.4662,
     },
   },
   {
-    id: 'accepted-3',
-    foretakName: 'Fjellheim Sauebruk',
-    visitDate: new Date(2025, 0, 29), // 29. januar 2025
-    visitTime: '10:00 - 13:00',
+    id: 'awaiting-2',
+    foretakName: 'Sletteløkken Gård',
+    visitDate: null,
+    visitTime: null,
     revisjonData: {
-      ordning: 'Spesialitet',
-      revisjonsfrist: '1. februar 2025',
-      produksjon: ['Frukt og bær', 'Planter og stauder'],
-      kommune: 'Dovre',
-      address: 'Høyfjellsvegen 8, 2660 Dombås',
+      ordning: 'Nyt Norge',
+      revisjonsfrist: '12. mai 2026',
+      produksjon: [
+        { name: 'Grønnsaker', count: 45 },
+        { name: 'Potet', count: 156 },
+        { name: 'Gulrot', count: 89 }
+      ],
+      kommune: 'Elverum',
+      address: 'Sletteløkkveien 88, 2406 Elverum',
+      isPriority: false,
+      hasPlannedDate: false
+    },
+    location: {
+      lat: 60.8813,
+      lng: 11.5622,
+    },
+  },
+  {
+    id: 'awaiting-3',
+    foretakName: 'Fjellheim Sauehold',
+    visitDate: null,
+    visitTime: null,
+    revisjonData: {
+      ordning: 'LokalMat',
+      revisjonsfrist: '18. mai 2026',
+      produksjon: [
+        { name: 'Sau', count: 32 },
+        { name: 'Lam', count: 48 },
+        { name: 'Ullproduksjon', count: 12 }
+      ],
+      kommune: 'Gausdal',
+      address: 'Fjellheimveien 45, 2651 Gausdal',
+      isPriority: false,
+      hasPlannedDate: false
+    },
+    location: {
+      lat: 61.2356,
+      lng: 10.1234,
+    },
+  },
+  
+  // Cards with FUTURE planned dates (Planlagt dato status - July 2026 and later)
+  {
+    id: 'planned-1',
+    foretakName: 'Østre Toten Gardsmeieri',
+    visitDate: new Date(2026, 6, 8), // 8. juli 2026
+    visitTime: '09:00 - 11:30',
+    revisjonData: {
+      ordning: 'KSL',
+      revisjonsfrist: '24. juni 2026',
+      produksjon: [
+        { name: 'Storfe', count: 18 },
+        { name: 'Geitost produksjon', count: 6 },
+        { name: 'Melkeproduksjon', count: 95 }
+      ],
+      kommune: 'Østre Toten',
+      address: 'Meierigata 12, 2850 Lena',
       isPriority: false,
       hasPlannedDate: true
     },
     location: {
-      lat: 62.0758,
-      lng: 9.1228,
+      lat: 60.7344,
+      lng: 10.6234,
     },
   },
   {
-    id: 'accepted-4',
-    foretakName: 'Solsiden Frukt & Bær',
-    visitDate: new Date(2025, 0, 29), // 29. januar 2025
-    visitTime: '14:00 - 16:30',
+    id: 'planned-2',
+    foretakName: 'Hurdal Økogård',
+    visitDate: new Date(2026, 6, 14), // 14. juli 2026
+    visitTime: '13:00 - 15:30',
     revisjonData: {
       ordning: 'Nyt Norge',
-      revisjonsfrist: '3. februar 2025',
-      produksjon: ['Økologiske grønnsaker', 'Potet'],
-      kommune: 'Stange',
-      address: 'Fruktveien 23, 2312 Ottestad',
+      revisjonsfrist: '28. juni 2026',
+      produksjon: [
+        { name: 'Grønnsaker', count: 64 },
+        { name: 'Potet', count: 198 },
+        { name: 'Kålrot', count: 87 }
+      ],
+      kommune: 'Hurdal',
+      address: 'Gardsveien 55, 2090 Hurdal',
       isPriority: true,
       hasPlannedDate: true
     },
     location: {
-      lat: 60.8872,
-      lng: 11.1922,
+      lat: 60.4689,
+      lng: 11.0856,
     },
   },
   {
-    id: 'accepted-5',
-    foretakName: 'Aurland Biogård',
-    visitDate: new Date(2025, 1, 3), // 3. februar 2025
-    visitTime: '11:00 - 13:30',
+    id: 'planned-3',
+    foretakName: 'Søndre Hedmark Gård',
+    visitDate: new Date(2026, 6, 21), // 21. juli 2026
+    visitTime: '10:00 - 12:30',
     revisjonData: {
       ordning: 'KSL',
-      revisjonsfrist: '6. februar 2025',
-      produksjon: ['Sau', 'Lam', 'Grovfôr'],
-      kommune: 'Elverum',
-      address: 'Melkeveien 7, 2408 Elverum',
+      revisjonsfrist: '5. juli 2026',
+      produksjon: [
+        { name: 'Storfe', count: 42 },
+        { name: 'Melkeproduksjon', count: 156 },
+        { name: 'Grovfôr', count: 223 }
+      ],
+      kommune: 'Kongsvinger',
+      address: 'Gardsveien 78, 2212 Kongsvinger',
       isPriority: false,
       hasPlannedDate: true
     },
     location: {
-      lat: 60.8814,
-      lng: 11.5644,
+      lat: 60.1928,
+      lng: 12.0006,
     },
   },
   {
-    id: 'accepted-6',
-    foretakName: 'Eikestad Melkeproduksjon',
-    visitDate: new Date(2025, 1, 3), // 3. februar 2025
-    visitTime: '08:00 - 11:00',
+    id: 'planned-4',
+    foretakName: 'Valdres Alpint Gardsbruk',
+    visitDate: new Date(2026, 6, 28), // 28. juli 2026
+    visitTime: '14:00 - 16:00',
+    revisjonData: {
+      ordning: 'Spesialitet',
+      revisjonsfrist: '12. juli 2026',
+      produksjon: [
+        { name: 'Geit', count: 28 },
+        { name: 'Geitost produksjon', count: 8 },
+        { name: 'Geitemelk', count: 112 }
+      ],
+      kommune: 'Nord-Aurdal',
+      address: 'Alpinveien 33, 2900 Fagernes',
+      isPriority: false,
+      hasPlannedDate: true
+    },
+    location: {
+      lat: 61.0056,
+      lng: 9.2267,
+    },
+  },
+  {
+    id: 'planned-5',
+    foretakName: 'Ringebu Fjellgård',
+    visitDate: new Date(2026, 7, 4), // 4. august 2026
+    visitTime: '09:30 - 12:00',
+    revisjonData: {
+      ordning: 'LokalMat',
+      revisjonsfrist: '18. juli 2026',
+      produksjon: [
+        { name: 'Sau', count: 48 },
+        { name: 'Lam', count: 72 },
+        { name: 'Ullproduksjon', count: 18 }
+      ],
+      kommune: 'Ringebu',
+      address: 'Fjellveien 101, 2630 Ringebu',
+      isPriority: false,
+      hasPlannedDate: true
+    },
+    location: {
+      lat: 61.5278,
+      lng: 10.1689,
+    },
+  },
+  {
+    id: 'planned-6',
+    foretakName: 'Hadeland Grønt AS',
+    visitDate: new Date(2026, 7, 11), // 11. august 2026
+    visitTime: '13:30 - 16:00',
+    revisjonData: {
+      ordning: 'Nyt Norge',
+      revisjonsfrist: '25. juli 2026',
+      produksjon: [
+        { name: 'Grønnsaker', count: 98 },
+        { name: 'Potet', count: 245 },
+        { name: 'Gulrot', count: 134 }
+      ],
+      kommune: 'Gran',
+      address: 'Grønnveien 42, 2770 Gran',
+      isPriority: false,
+      hasPlannedDate: true
+    },
+    location: {
+      lat: 60.3889,
+      lng: 10.5667,
+    },
+  },
+  {
+    id: 'planned-7',
+    foretakName: 'Nes Honningproduksjon',
+    visitDate: new Date(2026, 7, 18), // 18. august 2026
+    visitTime: '10:00 - 11:30',
     revisjonData: {
       ordning: 'LokalMat',
       revisjonsfrist: '8. februar 2025',
@@ -286,25 +247,123 @@ export const mockAksepterteRevisjoner = [
       lng: 11.4689,
     },
   },
+  
+  // Cards with PAST planned dates (Revidert status - visit date passed but report not locked)
+  {
+    id: 'revidert-1',
+    foretakName: 'Vestbygd Økofarm',
+    visitDate: new Date(2026, 1, 10), // 10. februar 2026 - past date
+    visitTime: '09:00 - 11:30',
+    revisjonData: {
+      ordning: 'KSL',
+      revisjonsfrist: '24. februar 2026',
+      produksjon: [
+        { name: 'Storfe', count: 35 },
+        { name: 'Melkeproduksjon', count: 120 },
+        { name: 'Grovfôr', count: 165 }
+      ],
+      kommune: 'Ringebu',
+      address: 'Vestbygdveien 88, 2630 Ringebu',
+      isPriority: false,
+      hasPlannedDate: true,
+      rapportLocked: false // Report not locked yet
+    },
+    location: {
+      lat: 61.5278,
+      lng: 10.1689,
+    },
+  },
+  {
+    id: 'revidert-2',
+    foretakName: 'Søndre Økologiske',
+    visitDate: new Date(2026, 1, 11), // 11. februar 2026 - past date
+    visitTime: '13:00 - 15:30',
+    revisjonData: {
+      ordning: 'Nyt Norge',
+      revisjonsfrist: '25. februar 2026',
+      produksjon: [
+        { name: 'Grønnsaker', count: 52 },
+        { name: 'Potet', count: 180 },
+        { name: 'Kålrot', count: 75 }
+      ],
+      kommune: 'Hamar',
+      address: 'Gardeveien 42, 2315 Hamar',
+      isPriority: true,
+      hasPlannedDate: true,
+      rapportLocked: false // Report not locked yet
+    },
+    location: {
+      lat: 60.7945,
+      lng: 11.0680,
+    },
+  },
+  {
+    id: 'revidert-3',
+    foretakName: 'Granli Gardsbruk',
+    visitDate: new Date(2026, 1, 12), // 12. februar 2026 - past date
+    visitTime: '10:00 - 12:00',
+    revisjonData: {
+      ordning: 'LokalMat',
+      revisjonsfrist: '26. februar 2026',
+      produksjon: [
+        { name: 'Sau', count: 22 },
+        { name: 'Lam', count: 34 },
+        { name: 'Ullproduksjon', count: 8 }
+      ],
+      kommune: 'Åmot',
+      address: 'Granliveien 15, 2450 Rena',
+      isPriority: false,
+      hasPlannedDate: true,
+      rapportLocked: false // Report not locked yet
+    },
+    location: {
+      lat: 61.1345,
+      lng: 11.3689,
+    },
+  },
+  {
+    id: 'revidert-4',
+    foretakName: 'Nordby Gårdsmeieri',
+    visitDate: new Date(2026, 1, 13), // 13. februar 2026 - past date
+    visitTime: '14:00 - 16:30',
+    revisjonData: {
+      ordning: 'Spesialitet',
+      revisjonsfrist: '27. februar 2026',
+      produksjon: [
+        { name: 'Geit', count: 18 },
+        { name: 'Geitost produksjon', count: 5 },
+        { name: 'Geitemelk', count: 95 }
+      ],
+      kommune: 'Gjøvik',
+      address: 'Nordbyveien 77, 2816 Gjøvik',
+      isPriority: false,
+      hasPlannedDate: true,
+      rapportLocked: false // Report not locked yet
+    },
+    location: {
+      lat: 60.7957,
+      lng: 10.6915,
+    },
+  },
 ];
 
-export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], onFilterChange }: AksepterteRevisjonerPageProps = {}) {
-  const [showingMenu, setShowingMenu] = useState(false); // Changed to false - show list first on mobile
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const [selectedStatus, setSelectedStatus] = useState<string[]>(initialFilter);
-  const [selectedRevisjonstyper, setSelectedRevisjonstyper] = useState<string[]>([]);
-  const [selectedProduksjon, setSelectedProduksjon] = useState<string[]>([]);
+export function AksepterteRevisjonerPage({ onRevisionClick }: AksepterteRevisjonerPageProps) {
+  const [showingMenu, setShowingMenu] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'map' | 'table'>('list');
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [selectedOrdning, setSelectedOrdning] = useState<string[]>([]);
+  const [selectedProduksjon, setSelectedProduksjon] = useState<string[]>([]);
   const [selectedKommune, setSelectedKommune] = useState<string[]>([]);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<'planlagt-dato' | 'revisjonsfrist' | 'ordning' | 'revisjonstype'>('planlagt-dato');
-  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false); // New state for BottomSheet
+  const [sortBy, setSortBy] = useState<'planlagt-dato' | 'revisjonsfrist' | 'ordning'>('planlagt-dato');
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false); // New state for toggling advanced search
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false); // New state for mobile filter sheet
   
   // Date range states
-  const [revisjonsfristFrom, setRevisjonsfristFrom] = useState<Date | null>(new Date('2025-01-01'));
-  const [revisjonsfristTo, setRevisjonsfristTo] = useState<Date | null>(new Date('2025-12-31'));
-  const [planlagtDatoFrom, setPlanlagtDatoFrom] = useState<Date | null>(new Date('2025-01-01'));
-  const [planlagtDatoTo, setPlanlagtDatoTo] = useState<Date | null>(new Date('2025-12-31'));
+  const [revisjonsfristFrom, setRevisjonsfristFrom] = useState<Date | null>(null);
+  const [revisjonsfristTo, setRevisjonsfristTo] = useState<Date | null>(null);
+  const [planlagtDatoFrom, setPlanlagtDatoFrom] = useState<Date | null>(null);
+  const [planlagtDatoTo, setPlanlagtDatoTo] = useState<Date | null>(null);
 
   const handleBackToMenu = () => {
     setShowingMenu(true);
@@ -323,30 +382,23 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
       });
     }
 
-    // Filter by Revisjonstype
-    if (selectedRevisjonstyper.length > 0) {
-      filtered = filtered.filter(rev => {
-        if (selectedRevisjonstyper.includes('prioritert-revisjon') && rev.revisjonData.isPriority) return true;
-        if (selectedRevisjonstyper.includes('ordinar') && !rev.revisjonData.isPriority) return true;
-        return false;
-      });
+    // Filter by Ordning
+    if (selectedOrdning.length > 0) {
+      filtered = filtered.filter(rev => 
+        selectedOrdning.some(ord => rev.revisjonData.ordning.toLowerCase() === ord.toLowerCase())
+      );
     }
 
     // Filter by Produksjon
     if (selectedProduksjon.length > 0) {
       filtered = filtered.filter(rev => {
         return rev.revisjonData.produksjon.some(prod => {
-          const prodLower = prod.toLowerCase();
+          // Handle both string and object formats
+          const prodName = typeof prod === 'string' ? prod : prod.name;
+          const prodLower = prodName.toLowerCase();
           return selectedProduksjon.some(selected => prodLower.includes(selected.toLowerCase()));
         });
       });
-    }
-
-    // Filter by Ordning
-    if (selectedOrdning.length > 0) {
-      filtered = filtered.filter(rev => 
-        selectedOrdning.some(ord => rev.revisjonData.ordning.toLowerCase() === ord.toLowerCase())
-      );
     }
 
     // Filter by Kommune
@@ -367,7 +419,7 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
     }
 
     return filtered;
-  }, [mockAksepterteRevisjoner, selectedStatus, selectedRevisjonstyper, selectedProduksjon, selectedOrdning, selectedKommune, planlagtDatoFrom, planlagtDatoTo]);
+  }, [mockAksepterteRevisjoner, selectedStatus, selectedOrdning, selectedProduksjon, selectedKommune, planlagtDatoFrom, planlagtDatoTo]);
 
   // Extract unique values with counts from the original data
   const filterOptions = useMemo(() => {
@@ -377,10 +429,6 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
     const statusCounts = {
       'venter-pa-planlegging': 0,
       'planlagt-dato': 0,
-    };
-    const revisjonstypeCounts = {
-      'prioritert-revisjon': 0,
-      'ordinar': 0,
     };
 
     mockAksepterteRevisjoner.forEach(rev => {
@@ -394,7 +442,9 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
 
       // Count produksjon
       rev.revisjonData.produksjon.forEach(prod => {
-        produksjonCounts[prod] = (produksjonCounts[prod] || 0) + 1;
+        // Handle both string and object formats
+        const prodName = typeof prod === 'string' ? prod : prod.name;
+        produksjonCounts[prodName] = (produksjonCounts[prodName] || 0) + 1;
       });
 
       // Count status
@@ -402,13 +452,6 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
         statusCounts['planlagt-dato']++;
       } else {
         statusCounts['venter-pa-planlegging']++;
-      }
-
-      // Count revisjonstype
-      if (rev.revisjonData.isPriority) {
-        revisjonstypeCounts['prioritert-revisjon']++;
-      } else {
-        revisjonstypeCounts['ordinar']++;
       }
     });
 
@@ -432,10 +475,6 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
         label: value,
         count,
       })),
-      revisjonstype: [
-        { value: 'prioritert-revisjon', label: 'Prioritert revisjon', count: revisjonstypeCounts['prioritert-revisjon'] },
-        { value: 'ordinar', label: 'Ordinær', count: revisjonstypeCounts['ordinar'] },
-      ].filter(item => item.count > 0),
     };
   }, [mockAksepterteRevisjoner]);
 
@@ -459,19 +498,12 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
     } else if (sortBy === 'ordning') {
       // Sort alphabetically by ordning
       sorted.sort((a, b) => a.revisjonData.ordning.localeCompare(b.revisjonData.ordning));
-    } else if (sortBy === 'revisjonstype') {
-      // Sort by revisjonstype: prioritert first, then others
-      sorted.sort((a, b) => {
-        const aScore = a.revisjonData.isPriority ? 1 : 0;
-        const bScore = b.revisjonData.isPriority ? 1 : 0;
-        return bScore - aScore; // Higher score comes first
-      });
     }
     
     return sorted;
   };
 
-  const handleSortChange = (newSort: 'planlagt-dato' | 'revisjonsfrist' | 'ordning' | 'revisjonstype') => {
+  const handleSortChange = (newSort: 'planlagt-dato' | 'revisjonsfrist' | 'ordning') => {
     setSortBy(newSort);
     setSortDropdownOpen(false);
   };
@@ -481,7 +513,6 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
       case 'planlagt-dato': return 'Planlagt dato';
       case 'revisjonsfrist': return 'Revisjonsfrist';
       case 'ordning': return 'Ordning';
-      case 'revisjonstype': return 'Revisjonstype';
     }
   };
 
@@ -489,11 +520,6 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
   const statusLabels: Record<string, string> = {
     'venter-pa-planlegging': 'Venter på planlegging',
     'planlagt-dato': 'Planlagt dato',
-  };
-
-  const revisjonstypeLabels: Record<string, string> = {
-    'prioritert-revisjon': 'Prioritert revisjon',
-    'ordinar': 'Ordinær',
   };
 
   const produksjonLabels: Record<string, string> = {};
@@ -515,19 +541,14 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
   const handleRemoveStatus = (value: string) => {
     const newList = selectedStatus.filter(v => v !== value);
     setSelectedStatus(newList);
-    onFilterChange?.(newList);
-  };
-
-  const handleRemoveRevisjonstype = (value: string) => {
-    setSelectedRevisjonstyper(prev => prev.filter(v => v !== value));
-  };
-
-  const handleRemoveProduksjon = (value: string) => {
-    setSelectedProduksjon(prev => prev.filter(v => v !== value));
   };
 
   const handleRemoveOrdning = (value: string) => {
     setSelectedOrdning(prev => prev.filter(v => v !== value));
+  };
+
+  const handleRemoveProduksjon = (value: string) => {
+    setSelectedProduksjon(prev => prev.filter(v => v !== value));
   };
 
   const handleRemoveKommune = (value: string) => {
@@ -536,11 +557,72 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
 
   const handleClearAllFilters = () => {
     setSelectedStatus([]);
-    setSelectedRevisjonstyper([]);
-    setSelectedProduksjon([]);
     setSelectedOrdning([]);
+    setSelectedProduksjon([]);
     setSelectedKommune([]);
-    onFilterChange?.([]);
+  };
+
+  // Helper function to get status chip based on revision state
+  const getStatusChip = (revisjon: any) => {
+    const today = new Date(2026, 1, 17); // Current date in the scenario: Tuesday, Feb 17, 2026
+    
+    // Akseptert status (no planned date) - orange background
+    if (!revisjon.visitDate) {
+      return (
+        <div className="bg-[#fff4e6] content-stretch flex h-[32px] items-center justify-center overflow-clip relative rounded-[8px] shrink-0">
+          <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+            <div className="label-medium text-[#805500]">
+              Akseptert
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Planlagt status (future date) - accent color with icon
+    if (revisjon.visitDate > today) {
+      return (
+        <div className="bg-[var(--accent)] content-stretch flex h-[32px] items-center justify-center overflow-clip relative rounded-[8px] shrink-0">
+          <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+            <div className="label-medium text-[var(--accent-foreground)]">
+              Planlagt
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Revidert status (past date) - orange background
+    return (
+      <div className="bg-[#fff4e6] content-stretch flex h-[32px] items-center justify-center overflow-clip relative rounded-[8px] shrink-0">
+        <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+          <div className="label-medium text-[#805500]">
+            Revidert
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper function to get revisor chip (outlined style like in card view)
+  const getRevisorChip = () => {
+    return (
+      <div className="h-[32px] relative rounded-[8px] shrink-0">
+        <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+          <div className="content-stretch flex h-[32px] items-center justify-center px-4 py-[6px] relative shrink-0">
+            <span className="label-medium text-foreground whitespace-nowrap">
+              Revisor
+            </span>
+          </div>
+        </div>
+        <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
+      </div>
+    );
+  };
+
+  // Helper function to format produksjon for table display
+  const formatProduksjon = (produksjon: any[]) => {
+    return produksjon.map(p => typeof p === 'string' ? p : p.name).join(', ');
   };
 
   // Render filter section helper
@@ -581,36 +663,6 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
                     ? [...selectedStatus, item.value]
                     : selectedStatus.filter(s => s !== item.value);
                   setSelectedStatus(newList);
-                  onFilterChange?.(newList);
-                }}
-                label={`${item.label} (${item.count})`}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="px-4">
-        <div className="h-px bg-[var(--border)]" />
-      </div>
-
-      {/* Revisjonstype section */}
-      <div className="px-4 py-4">
-        <h3 className="label-medium text-foreground mb-2">Revisjonstype</h3>
-        <div className="flex flex-col gap-1">
-          {filterOptions.revisjonstype.map((item) => (
-            <div
-              key={item.value}
-              className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
-            >
-              <MaterialCheckbox
-                checked={selectedRevisjonstyper.includes(item.value)}
-                onChange={(checked) => {
-                  const newList = checked
-                    ? [...selectedRevisjonstyper, item.value]
-                    : selectedRevisjonstyper.filter(s => s !== item.value);
-                  setSelectedRevisjonstyper(newList);
                 }}
                 label={`${item.label} (${item.count})`}
               />
@@ -755,9 +807,19 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
   return (
     <div className="flex h-full w-full overflow-hidden flex-col bg-background">
       {/* Header with title */}
-      <div className="flex flex-col border-b border-[var(--border)] bg-background">
-        <div className="px-6 pt-6 pb-4">
+      <div className="flex flex-col bg-background">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <h2 className="headline-small text-foreground">Aksepterte Revisjoner</h2>
+          
+          {/* Avansert søk button - Desktop only */}
+          <Button
+            variant="secondary"
+            onClick={() => setIsAdvancedSearchOpen(!isAdvancedSearchOpen)}
+            className="max-[1400px]:hidden"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+            Avansert søk
+          </Button>
         </div>
       </div>
 
@@ -784,15 +846,31 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
           </div>
         )}
 
-        {/* DESKTOP: Advanced Search - Always visible */}
-        <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            {renderFilterSection(false)}
+        {/* DESKTOP: Advanced Search - Conditionally visible */}
+        {isAdvancedSearchOpen && (
+          <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
+            {/* Close button at the top */}
+            <div className="px-4 py-4 border-b border-[var(--border)]">
+              <Button 
+                variant="tertiary"
+                onClick={() => setIsAdvancedSearchOpen(false)}
+                className="w-full justify-start"
+              >
+                <ChevronLeft className="w-5 h-5 mr-2" />
+                Lukk søkepanel
+              </Button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {renderFilterSection(false)}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Vertical Divider - Desktop only */}
-        <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
+        {/* Vertical Divider - Desktop only, only show when panel is open */}
+        {isAdvancedSearchOpen && (
+          <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
+        )}
 
         {/* MOBILE/TABLET & DESKTOP: Main Content Area */}
         <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full`}>
@@ -811,9 +889,9 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
           )}
 
           {/* Main content */}
-          <div className="flex-1 overflow-y-auto px-4 pt-2 pr-10 min-[1500px]:pr-[200px]">
+          <div className="flex-1 overflow-y-auto px-0 pt-2">
             {/* Sorting and Bulk Actions Bar */}
-            <div className="flex items-center justify-between gap-2 py-0 mb-2 flex-wrap max-w-[1040px]">
+            <div className="flex items-center justify-between gap-2 px-6 py-0 mb-2 flex-wrap">
               {/* LEFT GROUP: View toggle */}
               <div className="flex items-center gap-2 flex-wrap">
                 {/* View Mode Toggle */}
@@ -838,6 +916,17 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
                     <MapPin className={`w-6 h-6 ${viewMode === 'map' ? 'text-white' : 'text-[#174295]'}`} />
                     <span className={`label-medium ${viewMode === 'map' ? 'text-white' : 'text-[#174295]'}`}>
                       Kart
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
+                      viewMode === 'table' ? 'bg-[#365bae] rounded-r-2xl' : 'bg-[#dae2ff] rounded-r'
+                    }`}
+                  >
+                    <Table className={`w-6 h-6 ${viewMode === 'table' ? 'text-white' : 'text-[#174295]'}`} />
+                    <span className={`label-medium ${viewMode === 'table' ? 'text-white' : 'text-[#174295]'}`}>
+                      Tabell
                     </span>
                   </button>
                 </div>
@@ -906,14 +995,6 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
                         >
                           Ordning
                         </button>
-                        <button
-                          onClick={() => handleSortChange('revisjonstype')}
-                          className={`w-full px-4 py-3 text-left body-medium hover:bg-muted transition-colors ${
-                            sortBy === 'revisjonstype' ? 'bg-secondary-container text-secondary-container-foreground' : 'text-foreground'
-                          }`}
-                        >
-                          Revisjonstype
-                        </button>
                       </div>
                     </>
                   )}
@@ -924,27 +1005,27 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
             {/* Filter chip bar */}
             <RevisjonFilterChipBar
               selectedStatus={selectedStatus}
-              selectedRevisjonstyper={selectedRevisjonstyper}
+              selectedRevisjonstyper={[]}
               selectedProduksjon={selectedProduksjon}
               selectedOrdning={selectedOrdning}
               selectedKommune={selectedKommune}
               onRemoveStatus={handleRemoveStatus}
-              onRemoveRevisjonstype={handleRemoveRevisjonstype}
+              onRemoveRevisjonstype={() => {}}
               onRemoveProduksjon={handleRemoveProduksjon}
               onRemoveOrdning={handleRemoveOrdning}
               onRemoveKommune={handleRemoveKommune}
               onClearAll={handleClearAllFilters}
               resultCount={getFilteredRevisjoner.length}
               statusLabels={statusLabels}
-              revisjonstypeLabels={revisjonstypeLabels}
+              revisjonstypeLabels={{}}
               produksjonLabels={produksjonLabels}
               ordningLabels={ordningLabels}
               kommuneLabels={kommuneLabels}
             />
             
-            {/* Conditional rendering: List or Map view */}
+            {/* Conditional rendering: List, Map, or Table view */}
             {viewMode === 'list' ? (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 px-6">
                 {getSortedRevisjoner().map((revisjon) => (
                   <RevisjonCard 
                     key={revisjon.id} 
@@ -957,13 +1038,166 @@ export function AksepterteRevisjonerPage({ onRevisionClick, initialFilter = [], 
                   />
                 ))}
               </div>
-            ) : (
+            ) : viewMode === 'map' ? (
               <InteractiveMap
                 revisjoner={getSortedRevisjoner()}
                 onAccept={() => {}}
                 onReject={() => {}}
                 acceptedIds={new Set()}
               />
+            ) : (
+              /* Table View - Full Width */
+              <div className="w-full">
+                <table className="w-full border-collapse">
+                  <thead className="bg-[var(--surface-container-low)] sticky top-0 z-10">
+                    <tr className="border-b border-[var(--border)]">
+                      {/* Status column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Status</span>
+                      </th>
+                      {/* Revisjonsfrist column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Revisjonsfrist</span>
+                      </th>
+                      {/* Ordning column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Ordning</span>
+                      </th>
+                      {/* Revisor/Med revisor column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Revisor</span>
+                      </th>
+                      {/* Foretak and details column - responsive */}
+                      <th className="px-6 py-3 text-left">
+                        <span className="label-medium max-[768px]:hidden">Foretak</span>
+                        <span className="label-medium min-[768px]:hidden">Revisjon</span>
+                      </th>
+                      {/* Address column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Adresse</span>
+                      </th>
+                      {/* Kommune column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Kommune</span>
+                      </th>
+                      {/* Produksjon column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Produksjon</span>
+                      </th>
+                      {/* Actions column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Handlinger</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getSortedRevisjoner().map((revisjon) => (
+                      <tr 
+                        key={revisjon.id} 
+                        className="border-b border-[var(--border)] hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (onRevisionClick) {
+                            onRevisionClick(revisjon.id);
+                          }
+                        }}
+                      >
+                        {/* Desktop: Status column */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          {getStatusChip(revisjon)}
+                        </td>
+                        
+                        {/* Desktop: Revisjonsfrist column */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {revisjon.revisjonData.revisjonsfrist}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Ordning column */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {revisjon.revisjonData.ordning}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Revisor chip column */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          {getRevisorChip()}
+                        </td>
+                        
+                        {/* Responsive column - Foretak and details */}
+                        <td className="px-6 py-4">
+                          {/* Desktop: Show only foretak name */}
+                          <span className="body-medium text-foreground max-[768px]:hidden">
+                            {revisjon.foretakName}
+                          </span>
+                          
+                          {/* Mobile: Show condensed two-line format */}
+                          <div className="flex flex-col gap-2 min-[768px]:hidden">
+                            {/* Line 1: Chips with gap-1 */}
+                            <div className="flex flex-row items-center gap-1 flex-wrap">
+                              {getStatusChip(revisjon)}
+                              {getRevisorChip()}
+                              <span className="label-small text-muted-foreground">
+                                {revisjon.revisjonData.ordning}
+                              </span>
+                            </div>
+                            
+                            {/* Line 2: Foretak name and address */}
+                            <div className="flex flex-col gap-0.5">
+                              <span className="body-medium text-foreground font-semibold">
+                                {revisjon.foretakName}
+                              </span>
+                              <span className="body-medium text-muted-foreground">
+                                {revisjon.revisjonData.address} • {revisjon.revisjonData.kommune}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        {/* Desktop: Address column */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {revisjon.revisjonData.address}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Kommune column */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {revisjon.revisjonData.kommune}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Produksjon column */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {formatProduksjon(revisjon.revisjonData.produksjon)}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Actions column */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <div className="flex items-center justify-end">
+                            <Button 
+                              variant="secondary"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onRevisionClick) {
+                                  onRevisionClick(revisjon.id);
+                                }
+                              }}
+                              className="h-10"
+                            >
+                              Åpne revisjon
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

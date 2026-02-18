@@ -730,6 +730,16 @@ export function FakturagrunnlagPage() {
       <div className="border-b border-border">
         <div className="flex items-center justify-between px-6 pt-6 pb-0">
           <h1 className="headline-small">Fakturagrunnlag</h1>
+          
+          {/* Avansert søk button - Desktop only */}
+          <Button
+            variant="secondary"
+            onClick={() => setIsAdvancedSearchOpen(!isAdvancedSearchOpen)}
+            className="max-[1400px]:hidden"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+            Avansert søk
+          </Button>
         </div>
 
         {/* Tabs */}

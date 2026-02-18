@@ -266,6 +266,9 @@ export default function App() {
   // State for notes panel width - default to 384px
   const [notesPanelWidth, setNotesPanelWidth] = useState(384);
   
+  // State to track if any bottom sheet is open (used to hide FAB)
+  const [isAnyBottomSheetOpen, setIsAnyBottomSheetOpen] = useState(false);
+  
   // State for Aksepterte Revisjoner filter (venter-pa-planlegging)
   const [aksepterteRevisjonerFilter, setAksepterteRevisjonerFilter] = useState<string[]>([]);
   
@@ -452,6 +455,7 @@ export default function App() {
             deviationsLocked={deviationsLocked}
             onLockReport={handleLockReport}
             reportLocked={reportLocked}
+            onBottomSheetOpenChange={setIsAnyBottomSheetOpen}
           />
         );
       case 'avvik':
@@ -581,7 +585,7 @@ export default function App() {
               )}
               
               {/* Main pages content */}
-              <div className="flex flex-1 overflow-hidden">
+              <div className="flex flex-1 max-[1023px]:overflow-y-auto overflow-hidden">
                 {activeMainTab === 'forside' ? (
                   <ForsidePage 
                     onNavigateToTildelteRevisjoner={() => setActiveMainTab('tildelteRevisjoner')}
@@ -629,7 +633,7 @@ export default function App() {
               </div>
 
               {/* Medium Extended FAB - Mobile/Tablet only, shown on aksepterteRevisjoner when viewing detail */}
-              {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && (
+              {activeMainTab === 'aksepterteRevisjoner' && viewingRevisionDetail && !isAnyBottomSheetOpen && (
                 <button
                   onClick={() => setIsPrivateNotesPanelOpen(true)}
                   className="min-[1200px]:hidden fixed bottom-6 right-6 bg-secondary hover:bg-secondary/90 transition-colors rounded-[16px] shadow-lg flex items-center gap-3 px-6 h-14 z-50"

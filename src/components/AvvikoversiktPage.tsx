@@ -511,6 +511,16 @@ export function AvvikoversiktPage() {
       <div className="border-b border-border">
         <div className={`flex items-center justify-between pt-6 pb-0 ${selectedDeviationId ? 'px-6' : 'px-6'}`}>
           <h1 className="headline-small">Avviksoversikt</h1>
+          
+          {/* Avansert søk button - Desktop only */}
+          <Button
+            variant="secondary"
+            onClick={() => setIsAdvancedSearchOpen(!isAdvancedSearchOpen)}
+            className="max-[1400px]:hidden"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+            Avansert søk
+          </Button>
         </div>
 
         {/* Tabs */}

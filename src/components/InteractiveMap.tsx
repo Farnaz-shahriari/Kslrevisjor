@@ -166,6 +166,15 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
     // Add markers
     addMarkers();
 
+    // Auto-fit the map to show all markers
+    if (revisjonerWithLocation.length > 0) {
+      const bounds = L.latLngBounds(
+        revisjonerWithLocation.map(r => [r.location!.lat, r.location!.lng])
+      );
+      // Fit bounds with padding for better visual
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
@@ -207,6 +216,24 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
 
     // Get current zoom level
     const currentZoom = mapRef.current.getZoom();
+
+    // Determine theme class based on ordning
+    const getThemeClass = (ordning: string): string => {
+      const ordningLower = ordning.toLowerCase();
+      if (ordningLower.includes('lokalmat')) return 'theme-lokalmat';
+      if (ordningLower.includes('nyt norge')) return 'theme-nyt-norge';
+      if (ordningLower.includes('spesialitet')) return 'theme-spesialitet';
+      return 'theme-ksl'; // Default to KSL
+    };
+
+    // Get color based on ordning
+    const getOrdningColor = (ordning: string): string => {
+      const ordningLower = ordning.toLowerCase();
+      if (ordningLower.includes('lokalmat')) return '#992b1f';
+      if (ordningLower.includes('nyt norge')) return '#174295';
+      if (ordningLower.includes('spesialitet')) return '#6f4e37';
+      return '#4a671e'; // Default to KSL
+    };
 
     // Group markers by proximity ONLY when zoomed out significantly
     const markerGroups: { revisjoner: TildeltRevisjon[]; center: { lat: number; lng: number } }[] = [];
@@ -254,15 +281,6 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
     // Create markers for each group
     markerGroups.forEach((group) => {
       const isCluster = group.revisjoner.length > 1 && currentZoom < 6;
-
-      // Determine theme class based on ordning
-      const getThemeClass = (ordning: string): string => {
-        const ordningLower = ordning.toLowerCase();
-        if (ordningLower.includes('lokalmat')) return 'theme-lokalmat';
-        if (ordningLower.includes('nyt norge')) return 'theme-nyt-norge';
-        if (ordningLower.includes('spesialitet')) return 'theme-spesialitet';
-        return 'theme-ksl'; // Default to KSL
-      };
 
       let iconHtml = '';
       
@@ -430,6 +448,34 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
       markersRef.current.push(marker);
     });
 
+    // Add location dots for individual revisjoner (not clusters)
+    // These are small colored dots at the exact location
+    markerGroups.forEach((group) => {
+      const isCluster = group.revisjoner.length > 1 && currentZoom < 6;
+      
+      // Only add dots for individual markers
+      if (!isCluster) {
+        const revisjon = group.revisjoner[0];
+        const dotColor = getOrdningColor(revisjon.revisjonData.ordning);
+        
+        // Create a small circular dot
+        const dotIcon = L.divIcon({
+          html: `<div style="width: 10px; height: 10px; background: ${dotColor}; border: 2px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+          className: 'location-dot',
+          iconSize: [10, 10],
+          iconAnchor: [5, 5],
+        });
+        
+        // Create dot marker at exact location
+        const dotMarker = L.marker([revisjon.location!.lat, revisjon.location!.lng], {
+          icon: dotIcon,
+          interactive: false, // Don't capture clicks
+        }).addTo(mapRef.current);
+        
+        markersRef.current.push(dotMarker);
+      }
+    });
+
     // Re-render when zoom changes
     mapRef.current.off('zoomend');
     mapRef.current.on('zoomend', () => {
@@ -589,6 +635,12 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
           z-index: 1000 !important;
         }
         
+        .location-dot {
+          background: transparent !important;
+          border: none !important;
+          z-index: 999 !important;
+        }
+        
         .leaflet-popup {
           z-index: 2000 !important;
         }
@@ -678,8 +730,8 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
             {/* Info chips */}
             {(selectedRevisjon.revisjonData.isPriority || selectedRevisjon.revisjonData.isOppfolgingGyldigKSL) && (
               <div className="flex flex-wrap gap-[10px] mb-6">
-                {/* Priority chip */}
-                {selectedRevisjon.revisjonData.isPriority && (
+                {/* Priority chip - Show ONLY if isPriority is true */}
+                {selectedRevisjon.revisjonData.isPriority ? (
                   <div className="bg-[#ffdad6] h-[32px] relative rounded-[8px] shrink-0">
                     <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
                       <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
@@ -688,23 +740,21 @@ export function InteractiveMap({ revisjoner, onAccept, onReject, acceptedIds }: 
                         </div>
                       </div>
                     </div>
-                    <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
+                    <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[8px]" />
                   </div>
-                )}
-                
-                {/* KSL chip */}
-                {selectedRevisjon.revisjonData.isOppfolgingGyldigKSL && (
-                  <div className="bg-[#fdeeb1] h-[32px] relative rounded-[8px] shrink-0">
+                ) : selectedRevisjon.revisjonData.isOppfolgingGyldigKSL ? (
+                  /* Oppfølging gyldig KSL chip - Show ONLY if not priority AND isOppfolgingGyldigKSL is true */
+                  <div className="bg-[var(--l-avvik-container)] h-[32px] relative rounded-[8px] shrink-0">
                     <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
                       <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
-                        <div className="label-medium text-[#3d2c00]">
+                        <div className="label-medium text-[var(--on-l-avvik-container)]">
                           <p>Oppfølging gyldig KSL</p>
                         </div>
                       </div>
                     </div>
-                    <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
+                    <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[8px]" />
                   </div>
-                )}
+                ) : null}
               </div>
             )}
 

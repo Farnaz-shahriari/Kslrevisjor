@@ -71,8 +71,8 @@ export function TildeltRevisjonCard({ revisjon, onAccept, onReject }: TildeltRev
       
       {/* Info chips - at the top */}
       <div className="content-stretch flex flex-wrap gap-[8px] items-start relative shrink-0 w-full" data-name="Info chips">
-        {/* Priority chip */}
-        {data.isPriority && (
+        {/* Priority chip - Show ONLY if isPriority is true */}
+        {data.isPriority ? (
           <div className="bg-[var(--error-container)] h-[32px] relative rounded-[8px] shrink-0">
             <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
               <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
@@ -83,21 +83,19 @@ export function TildeltRevisjonCard({ revisjon, onAccept, onReject }: TildeltRev
             </div>
             <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[8px]" />
           </div>
-        )}
-
-        {/* Oppfølging gyldig KSL chip */}
-        {data.isOppfolgingGyldigKSL && (
-          <div className="bg-[var(--accent)] h-[32px] relative rounded-[8px] shrink-0">
+        ) : data.isOppfolgingGyldigKSL ? (
+          /* Oppfølging gyldig KSL chip - Show ONLY if not priority AND isOppfolgingGyldigKSL is true */
+          <div className="bg-[var(--l-avvik-container)] h-[32px] relative rounded-[8px] shrink-0">
             <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
               <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
-                <div className="label-medium text-[var(--accent-foreground)]">
+                <div className="label-medium text-[var(--on-l-avvik-container)]">
                   <p>Oppfølging gyldig KSL</p>
                 </div>
               </div>
             </div>
             <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[8px]" />
           </div>
-        )}
+        ) : null}
       </div>
       
       {/* Audit information - responsive layout with flex-wrap */}

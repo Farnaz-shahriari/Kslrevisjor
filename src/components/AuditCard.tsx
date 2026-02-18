@@ -45,7 +45,7 @@ export interface DeviationData {
 
 interface AuditCardProps {
   audit: AuditCardData;
-  onClick?: () => void;
+  onClick?: () => void; // DEPRECATED: No longer used, cards are not clickable
   showExpandButton?: boolean; // Whether to show Vis mer/mindre button
   defaultExpanded?: boolean;
   variant?: 'external' | 'self'; // 'external' for external audits (cream bg), 'self' for egenrevisjon (white bg)
@@ -116,9 +116,8 @@ export function AuditCard({
 
   return (
     <div 
-      className="content-stretch flex flex-col gap-[16px] items-start pt-[8px] px-[24px] max-[900px]:px-[16px] relative rounded-[12px] shrink-0 w-full max-w-[1040px] cursor-pointer hover:shadow-md transition-shadow"
+      className="content-stretch flex flex-col gap-[16px] items-start pt-[8px] px-[24px] max-[900px]:px-[16px] relative rounded-[12px] shrink-0 w-full max-w-[1040px]"
       style={{ backgroundColor: variant === 'external' ? '#FAFAF0' : '#FFFFFF' }}
-      onClick={onClick}
     >
       <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[12px]" />
       
@@ -213,7 +212,9 @@ export function AuditCard({
                 </div>
                 <div className="body-large text-foreground">
                   {audit.produksjon.map((prod, idx) => (
-                    <p key={idx} className={idx < audit.produksjon.length - 1 ? 'mb-0' : ''}>{prod.name}{prod.count !== undefined ? ` (${prod.count})` : ''}</p>
+                    <p key={idx} className={idx < audit.produksjon.length - 1 ? 'mb-0' : ''}>
+                      {prod.name}{prod.count !== undefined ? ` (${prod.count})` : ''}
+                    </p>
                   ))}
                 </div>
               </div>

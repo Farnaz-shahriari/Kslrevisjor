@@ -1,10 +1,12 @@
-import { useState, useRef } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useRef } from 'react';
+import { Upload } from 'lucide-react';
 import svgPaths from '../imports/svg-8axi0x1eud';
 import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
 import { Button } from './ui/button';
-import { format } from 'date-fns';
-import { nb } from 'date-fns/locale';
+import { ExpandableInput } from './ExpandableInput';
+import { DatePicker } from './ui/date-picker';
+import { KravVeilederSection } from './KravVeilederSection';
+import { addMonths, addDays } from 'date-fns';
 
 type SeverityType = 'kritisk-avvik' | 'avvik' | 'lite-avvik';
 type ConfirmationMethod = 'dokumentasjon' | 'digitalt-besok' | 'fysisk-besok';
@@ -35,6 +37,16 @@ interface QuestionInfo {
   id: string;
   questionText: string;
   kravVeileder?: string;
+  title?: string;
+  veilederRevisorText?: string;
+  veilederText?: string;
+  kravLinks?: Array<{
+    category: string;
+    title: string;
+    description?: string;
+    link?: string;
+  }>;
+  requiresDocumentation?: boolean;
 }
 
 interface AvvikshandteringDetailPanelProps {
@@ -79,67 +91,72 @@ export function AvvikshandteringDetailPanel({
   updateClosureInfo,
   onUpdateQuestionData
 }: AvvikshandteringDetailPanelProps) {
-  const [kravBevisExpanded, setKravBevisExpanded] = useState(false);
-  const [editingMangel, setEditingMangel] = useState<string | null>(null);
-  const [editingKrav, setEditingKrav] = useState<string | null>(null);
-  const [editingBevis, setEditingBevis] = useState<string | null>(null);
-  const [tempMangel, setTempMangel] = useState('');
-  const [tempKrav, setTempKrav] = useState('');
-  const [tempBevis, setTempBevis] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get recommended deadline (2 months from now)
+  const recommendedDeadline = addMonths(new Date(), 2);
+  const maxAllowedDeadline = addDays(recommendedDeadline, 14);
+  
+  // Convert deadline string to Date object, or use recommended date as default
+  const deadlineDate = selectedClosureInfo.deadline 
+    ? new Date(selectedClosureInfo.deadline) 
+    : recommendedDeadline;
+
+  const handleMangelChange = (value: string) => {
+    if (onUpdateQuestionData) {
+      const updatedDeviations = selectedQuestionData.deviations ? [...selectedQuestionData.deviations] : [{}];
+      updatedDeviations[0] = { ...updatedDeviations[0], mangel: value };
+      onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
+    }
+  };
+
+  const handleKravChange = (value: string) => {
+    if (onUpdateQuestionData) {
+      const updatedDeviations = selectedQuestionData.deviations ? [...selectedQuestionData.deviations] : [{}];
+      updatedDeviations[0] = { ...updatedDeviations[0], krav: value };
+      onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
+    }
+  };
+
+  const handleBevisChange = (value: string) => {
+    if (onUpdateQuestionData) {
+      const updatedDeviations = selectedQuestionData.deviations ? [...selectedQuestionData.deviations] : [{}];
+      updatedDeviations[0] = { ...updatedDeviations[0], bevis: value };
+      onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
+    }
+  };
+
+  const handleAnsvarligChange = (value: string) => {
+    updateClosureInfo(selectedQuestionId, { responsible: value });
+  };
+
+  const handleDeadlineChange = (date: Date | null) => {
+    if (date) {
+      updateClosureInfo(selectedQuestionId, { deadline: date.toISOString().split('T')[0] });
+    } else {
+      updateClosureInfo(selectedQuestionId, { deadline: undefined });
+    }
+  };
+
+  const handleCommentChange = (value: string) => {
+    updateClosureInfo(selectedQuestionId, { comment: value });
+  };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background">
-      <div className="px-6 py-4 space-y-4">
-        {/* Question Header */}
-        <div className="flex gap-2 items-center justify-between">
-          <h3 className="title-large">
-            {selectedQuestionInfo.id}
-          </h3>
-        </div>
-
-        {/* Question Text */}
-        <h4 className="title-large">
-          {selectedQuestion.questionText}
-        </h4>
-
-        {/* Krav Veileder Section */}
+      {/* Question Header - matches Svaroversikt design */}
+      <div className="px-6 py-4 border-b border-border">
+        <h3 className="body-large text-foreground mb-3">
+          {selectedQuestionInfo.id} {selectedQuestion.questionText}
+        </h3>
+        
+        {/* Krav & Veileder Section */}
         {selectedQuestionInfo && (
-          <div className="bg-[var(--surface-container-low)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-5 h-5 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                <path d={svgPaths.p2668ba00} fill="#44483B" />
-              </svg>
-              <p className="label-medium text-foreground">
-                Krav veileder
-              </p>
-            </div>
-            <p className="body-medium text-muted-foreground">
-              {selectedQuestionInfo.kravVeileder || 'Se krav i veileder for mer informasjon om dette spørsmålet.'}
-            </p>
-          </div>
+          <KravVeilederSection question={selectedQuestionInfo} />
         )}
+      </div>
 
-        {/* Foretak/Company - Mock data */}
-        <div className="flex gap-4 items-center p-2 w-full">
-          <div className="bg-primary-container rounded-full size-10 flex items-center justify-center">
-            <p className="label-medium text-primary-container-foreground">
-              SG
-            </p>
-          </div>
-          <div className="flex-1">
-            <p className="body-large text-foreground">
-              Solberg Gård
-            </p>
-            <p className="body-medium text-muted-foreground">
-              Alle saker for gården
-            </p>
-          </div>
-          <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-            <path d="M10 17V7L15 12L10 17Z" fill="#44483B" />
-          </svg>
-        </div>
-
+      <div className="px-6 py-4 space-y-4">
         {/* Deviation Level/Severity Badge */}
         {selectedQuestion.severity && (
           <div className={`flex gap-4 items-center px-2 py-0 min-h-[56px] rounded-[var(--radius-lg)] ${getSeverityColor(selectedQuestion.severity)}`}>
@@ -168,291 +185,135 @@ export function AvvikshandteringDetailPanel({
           </div>
         )}
 
-        {/* Mangel - Always visible */}
-        <div className="p-2 w-full">
-          {editingMangel === selectedQuestionId ? (
-            <div className="flex items-start gap-4">
-              <div className="flex-1">
-                <p className="label-small text-muted-foreground mb-2">
-                  Mangel
-                </p>
-                <textarea
-                  value={tempMangel}
-                  onChange={(e) => setTempMangel(e.target.value)}
-                  onBlur={() => {
-                    if (onUpdateQuestionData) {
-                      const updatedDeviations = selectedQuestionData.deviations ? [...selectedQuestionData.deviations] : [{}];
-                      updatedDeviations[0] = { ...updatedDeviations[0], mangel: tempMangel };
-                      onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
-                    }
-                    setEditingMangel(null);
-                  }}
-                  autoFocus
-                  className="w-full p-3 border border-[var(--border)] rounded-[var(--radius)] body-large resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                  rows={2}
-                />
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="label-small text-muted-foreground">
-                Mangel
-              </p>
-              <p className="body-large text-foreground">
-                {selectedQuestionData.deviations?.[0]?.mangel || selectedQuestionData.deviations?.[0]?.description || 'Ingen mangel lagt til'}
-              </p>
-              
-              {/* Expand/Collapse Button for Krav and Bevis */}
-              <button
-                onClick={() => setKravBevisExpanded(!kravBevisExpanded)}
-                className="flex items-center gap-2 mt-2 text-primary hover:opacity-70 transition-opacity label-medium"
-              >
-                {kravBevisExpanded ? (
-                  <>
-                    <ChevronUp className="w-5 h-5" />
-                    Skjul krav og bevis
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-5 h-5" />
-                    Vis krav og bevis
-                  </>
-                )}
-              </button>
-              
-              {/* Collapsible Krav and Bevis Section */}
-              {kravBevisExpanded && (
-                <div className="mt-4 space-y-4">
-                  {/* Krav - Editable */}
-                  <div>
-                    {editingKrav === selectedQuestionId ? (
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1">
-                          <p className="label-small text-muted-foreground mb-2">
-                            Krav
-                          </p>
-                          <textarea
-                            value={tempKrav}
-                            onChange={(e) => setTempKrav(e.target.value)}
-                            onBlur={() => {
-                              if (onUpdateQuestionData) {
-                                const updatedDeviations = selectedQuestionData.deviations ? [...selectedQuestionData.deviations] : [{}];
-                                updatedDeviations[0] = { ...updatedDeviations[0], krav: tempKrav };
-                                onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
-                              }
-                              setEditingKrav(null);
-                            }}
-                            autoFocus
-                            className="w-full p-3 border border-[var(--border)] rounded-[var(--radius)] body-large resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1">
-                          <p className="label-small text-muted-foreground">
-                            Krav
-                          </p>
-                          <p className="body-large text-foreground">
-                            {selectedQuestionData.deviations?.[0]?.krav || 'Ingen krav lagt til'}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setEditingKrav(selectedQuestionId);
-                            setTempKrav(selectedQuestionData.deviations?.[0]?.krav || '');
-                          }}
-                          className="shrink-0 w-10 h-10 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
-                            <path d={svgPathsDeviation.p25003780} fill="#44483B" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
+        {/* Mangel - Editable with ExpandableInput */}
+        <div className="w-full">
+          <ExpandableInput
+            label="Mangel"
+            value={selectedQuestionData.deviations?.[0]?.mangel || selectedQuestionData.deviations?.[0]?.description || ''}
+            onChange={handleMangelChange}
+            icon="description"
+            required={false}
+          />
+        </div>
+
+        {/* Krav - Editable (always shown) */}
+        <div className="w-full">
+          <ExpandableInput
+            label="Krav"
+            value={selectedQuestionData.deviations?.[0]?.krav || ''}
+            onChange={handleKravChange}
+            icon="description"
+            required={false}
+          />
+        </div>
+
+        {/* Bevis - Editable (always shown) */}
+        <div className="w-full">
+          <ExpandableInput
+            label="Bevis"
+            value={selectedQuestionData.deviations?.[0]?.bevis || ''}
+            onChange={handleBevisChange}
+            icon="description"
+            required={false}
+          />
+        </div>
+
+        {/* Upload Images Button */}
+        <div className="w-full">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && onUpdateQuestionData) {
+                const newImages = Array.from(files).map((file, index) => ({
+                  id: `${Date.now()}-${index}`,
+                  name: file.name,
+                  url: URL.createObjectURL(file)
+                }));
+                const deviation = selectedQuestionData.deviations?.[0] || {};
+                const updatedDeviations = [{
+                  ...deviation,
+                  bevisImages: [...(deviation.bevisImages || []), ...newImages]
+                }];
+                onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
+              }
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-2 px-6 py-3 border border-[var(--border)] rounded-full hover:bg-muted transition-colors"
+          >
+            <Upload className="w-5 h-5 text-foreground" />
+            <span className="label-medium text-foreground">
+              Last opp bilde
+            </span>
+          </button>
+
+          {/* Uploaded Images List */}
+          {selectedQuestionData.deviations?.[0]?.bevisImages && selectedQuestionData.deviations[0].bevisImages.length > 0 && (
+            <div className="mt-4 space-y-0">
+              {selectedQuestionData.deviations[0].bevisImages.map((image: any, index: number) => (
+                <div key={image.id || index} className="flex items-center gap-4 px-4 py-2 min-h-[72px]">
+                  <div className="w-14 h-14 bg-muted rounded overflow-hidden shrink-0">
+                    <img src={image.url} alt={image.name} className="w-full h-full object-cover" />
                   </div>
-
-                  {/* Bevis - Editable */}
-                  <div>
-                    {editingBevis === selectedQuestionId ? (
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1">
-                          <p className="label-small text-muted-foreground mb-2">
-                            Bevis
-                          </p>
-                          <textarea
-                            value={tempBevis}
-                            onChange={(e) => setTempBevis(e.target.value)}
-                            onBlur={() => {
-                              if (onUpdateQuestionData) {
-                                const updatedDeviations = selectedQuestionData.deviations ? [...selectedQuestionData.deviations] : [{}];
-                                updatedDeviations[0] = { ...updatedDeviations[0], bevis: tempBevis };
-                                onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
-                              }
-                              setEditingBevis(null);
-                            }}
-                            autoFocus
-                            className="w-full p-3 border border-[var(--border)] rounded-[var(--radius)] body-large resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                            rows={2}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1">
-                          <p className="label-small text-muted-foreground">
-                            Bevis
-                          </p>
-                          <p className="body-large text-foreground">
-                            {selectedQuestionData.deviations?.[0]?.bevis || 'Ingen bevis lagt til'}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setEditingBevis(selectedQuestionId);
-                            setTempBevis(selectedQuestionData.deviations?.[0]?.bevis || '');
-                          }}
-                          className="shrink-0 w-10 h-10 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
-                        >
-                          <svg className="w-5 h-5" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
-                            <path d={svgPathsDeviation.p25003780} fill="#44483B" />
-                          </svg>
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Upload Images Button */}
-                    <div className="mt-4">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="hidden"
-                        onChange={(e) => {
-                          const files = e.target.files;
-                          if (files && onUpdateQuestionData) {
-                            const newImages = Array.from(files).map((file, index) => ({
-                              id: `${Date.now()}-${index}`,
-                              name: file.name,
-                              url: URL.createObjectURL(file)
-                            }));
-                            const deviation = selectedQuestionData.deviations?.[0] || {};
-                            const updatedDeviations = [{
-                              ...deviation,
-                              bevisImages: [...(deviation.bevisImages || []), ...newImages]
-                            }];
-                            onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
-                          }
-                          if (fileInputRef.current) {
-                            fileInputRef.current.value = '';
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-2 px-6 py-3 border border-[var(--border)] rounded-full hover:bg-muted transition-colors"
-                      >
-                        <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 16 16">
-                          <path d={svgPathsDeviation.p3573eb00} fill="#44483B" />
-                        </svg>
-                        <span className="label-medium text-muted-foreground">
-                          Last opp bilde
-                        </span>
-                      </button>
-
-                      {/* Uploaded Images List */}
-                      {selectedQuestionData.deviations?.[0]?.bevisImages && selectedQuestionData.deviations[0].bevisImages.length > 0 && (
-                        <div className="mt-4 space-y-0">
-                          {selectedQuestionData.deviations[0].bevisImages.map((image: any, index: number) => (
-                            <div key={image.id || index} className="flex items-center gap-4 px-4 py-2 min-h-[72px]">
-                              <div className="w-14 h-14 bg-muted rounded overflow-hidden shrink-0">
-                                <img src={image.url} alt={image.name} className="w-full h-full object-cover" />
-                              </div>
-                              <div className="flex-1">
-                                <p className="body-large text-foreground">
-                                  {image.name}
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  if (onUpdateQuestionData) {
-                                    const deviation = selectedQuestionData.deviations?.[0];
-                                    const updatedDeviations = [{
-                                      ...deviation,
-                                      bevisImages: deviation?.bevisImages?.filter((_: any, i: number) => i !== index) || []
-                                    }];
-                                    onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
-                                  }
-                                }}
-                                className="shrink-0"
-                              >
-                                <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 14 18">
-                                  <path d={svgPathsDeviation.p4c48400} fill="#44483B" />
-                                </svg>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  <div className="flex-1">
+                    <p className="body-large text-foreground">
+                      {image.name}
+                    </p>
                   </div>
-
-                  {/* Rapportert avvik */}
-                  {selectedQuestionData.deviations?.[0] && (
-                    <div>
-                      <p className="label-small text-muted-foreground">
-                        Rapportert avvik
-                      </p>
-                      <p className="body-large text-foreground">
-                        {getSeverityLabel(selectedQuestion.severity)}
-                      </p>
-                    </div>
-                  )}
+                  <button
+                    onClick={() => {
+                      if (onUpdateQuestionData) {
+                        const deviation = selectedQuestionData.deviations?.[0];
+                        const updatedDeviations = [{
+                          ...deviation,
+                          bevisImages: deviation?.bevisImages?.filter((_: any, i: number) => i !== index) || []
+                        }];
+                        onUpdateQuestionData(selectedQuestionId, { deviations: updatedDeviations });
+                      }
+                    }}
+                    className="shrink-0"
+                  >
+                    <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 14 18">
+                      <path d={svgPathsDeviation.p4c48400} fill="#44483B" />
+                    </svg>
+                  </button>
                 </div>
-              )}
-            </>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Deadline */}
-        <div className="flex gap-4 items-start p-2 w-full">
-          <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-            <path d={svgPaths.p2c046200} fill="#44483B" />
-          </svg>
-          <div className="flex-1">
-            <p className="label-small text-muted-foreground">
-              Tidsfrist for lukking av avvik
-            </p>
-            <p className="body-large text-foreground">
-              {selectedClosureInfo.deadline 
-                ? format(new Date(selectedClosureInfo.deadline), "EEEE d. MMMM yyyy", { locale: nb })
-                : '4. mars 2026'
-              }
-            </p>
-          </div>
+        {/* Tidsfrist - DatePicker with recommended date */}
+        <div className="w-full">
+          <DatePicker
+            label="Tidsfrist for lukking av avvik"
+            value={deadlineDate}
+            onChange={handleDeadlineChange}
+            recommendedDate={recommendedDeadline}
+            maxDate={maxAllowedDeadline}
+            required={true}
+          />
         </div>
 
-        {/* Ansvarlig */}
-        <div className="flex gap-4 items-start p-2 w-full">
-          <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-            <path d={svgPaths.p3e89b580} fill="#44483B" />
-          </svg>
-          <div className="flex-1">
-            <p className="label-small text-muted-foreground">
-              Ansvarlig for lukking:
-            </p>
-            <p className="body-large text-foreground">
-              {selectedClosureInfo.responsible || 'Ikke satt'}
-            </p>
-          </div>
+        {/* Ansvarlig - Editable with ExpandableInput */}
+        <div className="w-full">
+          <ExpandableInput
+            label="Ansvarlig for lukking"
+            value={selectedClosureInfo.responsible || ''}
+            onChange={handleAnsvarligChange}
+            icon="groups"
+            required={true}
+          />
         </div>
-
-        {/* Bekreft lukking av avviket Button */}
-        <Button variant="secondary" className="w-full">
-          Bekreft lukking av avviket
-        </Button>
 
         {/* Closing Avvik Container - Hvordan bekreftes tiltaket */}
         <div className="bg-[var(--surface-container-low)] border border-[var(--border)] rounded-[var(--radius-lg)] p-6 space-y-4">
@@ -533,19 +394,15 @@ export function AvvikshandteringDetailPanel({
           {/* Divider */}
           <div className="h-px w-full bg-[var(--border)]" />
 
-          {/* Kommentar */}
-          <div className="flex gap-4 items-start p-2 w-full">
-            <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-              <path d={svgPaths.p1bbda200} fill="#44483B" />
-            </svg>
-            <div className="flex-1">
-              <p className="label-small text-muted-foreground">
-                Kommentar
-              </p>
-              <p className="body-large text-foreground">
-                {selectedClosureInfo.comment || 'Ingen kommentar'}
-              </p>
-            </div>
+          {/* Kommentar - Editable with ExpandableInput */}
+          <div className="w-full">
+            <ExpandableInput
+              label="Kommentar"
+              value={selectedClosureInfo.comment || ''}
+              onChange={handleCommentChange}
+              icon="description"
+              required={false}
+            />
           </div>
         </div>
       </div>

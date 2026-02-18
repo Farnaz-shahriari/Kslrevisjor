@@ -113,10 +113,15 @@ function getActionText(status: StatusType, confirmationMethod: ConfirmationMetho
   }
 }
 
+export interface ProductionItem {
+  name: string;
+  count?: number;
+}
+
 interface RevisjonData {
   ordning: string;
   revisjonsfrist: string;
-  produksjon: string[];
+  produksjon: ProductionItem[] | string[]; // Support both formats
   kommune: string;
   address: string;
   isPriority: boolean;
@@ -182,9 +187,14 @@ function getRevisjonsfrist(visitDate: Date): string {
 
 // Get planned revisjoner - ONLY from AksepterteRevisjonerPage with hasPlannedDate: true
 function getAllPlannedRevisjoner(): PlannedRevisjon[] {
-  // Filter only revisjoner that have a planned date
+  // Filter only revisjoner that have a planned date in the FUTURE
+  const now = new Date();
   const plannedRevisjoner: PlannedRevisjon[] = mockAksepterteRevisjoner
-    .filter(rev => rev.revisjonData.hasPlannedDate === true && rev.visitDate !== null)
+    .filter(rev => 
+      rev.revisjonData.hasPlannedDate === true && 
+      rev.visitDate !== null && 
+      rev.visitDate > now // Only future dates
+    )
     .map(rev => ({
       id: rev.id,
       type: 'godkjent-revisjon' as RevisjonType,
@@ -238,8 +248,14 @@ interface Section2Props {
 
 function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick, onNavigateToAvvikoversikt }: Section2Props) {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 0, 1)); // January 2026
   const allPlannedRevisjoner = getAllPlannedRevisjoner();
+  
+  // Set initial month to the first planned revisjon's month (July 2026)
+  const firstRevisjonDate = allPlannedRevisjoner.length > 0 
+    ? allPlannedRevisjoner[0].visitDate 
+    : new Date(2026, 6, 1); // Fallback to July 2026
+  
+  const [currentMonth, setCurrentMonth] = useState(new Date(firstRevisjonDate.getFullYear(), firstRevisjonDate.getMonth(), 1));
   const groupedRevisjoner = groupRevisjonerByDate(allPlannedRevisjoner);
 
   // Month navigation
@@ -327,9 +343,15 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
       <div className="flex flex-col items-start py-[16px] relative h-full max-[1400px]:h-auto w-full max-[1400px]:w-full">
         {/* Fixed Header - Title and View Toggle Buttons */}
         <div className="flex flex-col gap-[16px] shrink-0 px-10 max-[1400px]:px-0 w-full">
-          {/* Title */}
-          <div className="title-large text-foreground max-[1400px]:px-6 max-[1400px]:pt-6">
-            <p>Planlagte revisjoner</p>
+          {/* Title with badge - matches Avviksbehandling style */}
+          <div className="flex items-center gap-2 max-[1400px]:px-6 max-[1400px]:pt-6">
+            <div className="title-large text-foreground">
+              <p>Planlagte revisjoner</p>
+            </div>
+            {/* Badge showing count */}
+            <div className="bg-[var(--error)] rounded-full min-w-6 h-6 px-2 flex items-center justify-center">
+              <span className="label-xsmall text-[var(--error-foreground)]">{allPlannedRevisjoner.length}</span>
+            </div>
           </div>
 
           {/* View toggle buttons - Liste and Kalender */}
@@ -406,11 +428,11 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
                 </button>
               </div>
 
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-4">
+              {/* Calendar grid - Full width with flexible cells */}
+              <div className="grid grid-cols-7 w-full" style={{ gap: '1px' }}>
                 {/* Day headers */}
                 {['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map(day => (
-                  <div key={day} className="title-medium text-foreground text-center pb-4">
+                  <div key={day} className="title-medium text-foreground text-center py-4 bg-[#f4f4ea]">
                     {day}
                   </div>
                 ))}
@@ -423,7 +445,7 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
                   return (
                     <div 
                       key={index} 
-                      className={`bg-white p-2 min-h-[100px] flex flex-col gap-2 ${
+                      className={`bg-white p-3 min-h-[120px] flex flex-col gap-2 ${
                         !isCurrentMonth ? 'opacity-40' : ''
                       }`}
                     >
@@ -437,15 +459,23 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
                         const foretakShort = rev.foretakName.split(' ').slice(0, 2).join(' ');
                         
                         return (
-                          <div 
+                          <button 
                             key={idx}
-                            className="bg-[#fafaf0] px-1 py-0.5 text-center"
+                            className="bg-[#fafaf0] px-2 py-1.5 text-center cursor-pointer hover:bg-[#f0f0e8] active:bg-[#e8e8e0] transition-colors w-full rounded border border-[#e8e8e0] hover:border-[#d0d0c8] focus:outline-none focus:ring-2 focus:ring-primary/20"
                             title={`${time} ${rev.foretakName}`}
+                            onClick={() => {
+                              if (onRevisionClick) {
+                                onRevisionClick(rev.id);
+                              }
+                            }}
                           >
-                            <p className="label-medium text-[var(--muted-foreground)] truncate">
-                              {time}. {foretakShort}
+                            <p className="label-small text-[var(--muted-foreground)] truncate">
+                              {time}
                             </p>
-                          </div>
+                            <p className="label-small text-[var(--muted-foreground)] truncate">
+                              {foretakShort}
+                            </p>
+                          </button>
                         );
                       })}
                     </div>
@@ -503,7 +533,7 @@ function Section3SidePanelToDoList() {
         {/* Fixed Header - Title with badge */}
         <div className="flex items-center gap-2 shrink-0 px-10">
           <div className="title-large text-foreground">
-            <p>Klar for oppfølging</p>
+            <p>Avviksbehandling</p>
           </div>
           {/* Badge showing count */}
           <div className="bg-[var(--error)] rounded-full min-w-6 h-6 px-2 flex items-center justify-center">
@@ -670,7 +700,7 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
                 <circle cx="17.5" cy="17.5" r="2.5" />
               </svg>
               <div className="label-medium text-primary">
-                <p>Se på statistik</p>
+                <p>Se på statistikk</p>
               </div>
             </div>
           </button>
@@ -743,7 +773,7 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
                 {/* Text */}
                 <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Waiting for Planning">
                   <div className="title-medium text-foreground w-full">
-                    <p>Venter på planlegging</p>
+                    <p>Aksepterte revisjoner</p>
                   </div>
                 </div>
               </div>
@@ -778,7 +808,7 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
                 {/* Text */}
                 <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Ready for Report">
                   <div className="title-medium text-foreground w-full">
-                    <p>Klar for rapport</p>
+                    <p>Rapporter, ikke låst</p>
                   </div>
                 </div>
               </div>

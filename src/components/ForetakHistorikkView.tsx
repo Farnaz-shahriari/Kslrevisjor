@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, Download } from 'lucide-react';
+import React, { useState } from 'react';
 import { Tab } from './ui/tabs';
 import { AuditCard, AuditCardData } from './AuditCard';
-import { AuditHistoryDetailPanel } from './AuditHistoryDetailPanel';
 
 type HistoryTabType = 'eksterne' | 'egne' | 'tilsyn';
 
@@ -21,12 +19,47 @@ const mockAuditHistory: AuditCardData[] = [
     foretakName: 'Solheim Gård',
     address: 'Solheimveien 12',
     kommune: 'Voss',
-    avvikCount: 2,
-    avvikCritical: 0,
-    avvikMajor: 1,
+    avvikCount: 4,
+    avvikCritical: 1,
+    avvikMajor: 2,
     avvikMinor: 1,
-    avvikOpen: 0,
-    kortRapport: 'Revisjonen ble gjennomført som planlagt. Totalt ble det registrert 2 avvik som nå er lukket. Generelt god standard på driften med god dokumentasjon.'
+    avvikOpen: 4,
+    avvikClosed: 0,
+    kortRapport: 'Ingen avvik registrert. Meget god standard på produksjonen og dokumentasjonen er komplett og oversiktlig. Meldet god standard på området med komplett og oversiktlig.',
+    deviations: [
+      {
+        id: 'dev-ext-1-1',
+        severity: 'kritisk',
+        question: 'Generelle krav til gården',
+        mangel: 'Ingen avvik registrert. Meget god standard på produksjonen og dokumentasjonen er komplett og oversiktlig.',
+        status: 'apent',
+        deadline: '15. februar 2025'
+      },
+      {
+        id: 'dev-ext-1-2',
+        severity: 'avvik',
+        question: 'Hellas, miljø og sikkerhet',
+        mangel: 'Mangler dokumentasjon på gjødsellager.',
+        status: 'apent',
+        deadline: '20. februar 2025'
+      },
+      {
+        id: 'dev-ext-1-3',
+        severity: 'avvik',
+        question: 'Smitte, dyr og alv-vikt',
+        mangel: 'Manglende oppdatert karantene rutiner.',
+        status: 'apent',
+        deadline: '25. februar 2025'
+      },
+      {
+        id: 'dev-ext-1-4',
+        severity: 'lite-avvik',
+        question: 'Generelle krav til gården',
+        mangel: 'Ingen avvik registrert. Meget god standard.',
+        status: 'apent',
+        deadline: '28. februar 2025'
+      }
+    ]
   },
   {
     id: 'ext-2',
@@ -43,6 +76,7 @@ const mockAuditHistory: AuditCardData[] = [
     kommune: 'Voss',
     avvikCount: 0,
     avvikOpen: 0,
+    avvikClosed: 0,
     kortRapport: 'Ingen avvik registrert. Meget god standard på produksjonen og dokumentasjonen er komplett og oversiktlig.'
   }
 ];
@@ -89,60 +123,10 @@ const mockEgenrevisjoner: AuditCardData[] = [
 
 export function ForetakHistorikkView() {
   const [activeHistoryTab, setActiveHistoryTab] = useState<HistoryTabType>('eksterne');
-  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
-  
-  // State for resizable detail panel
-  const [detailPanelWidth, setDetailPanelWidth] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth * 0.5; // Default to 50% of screen width
-    }
-    return 600;
-  });
-  const [isResizingDetail, setIsResizingDetail] = useState(false);
-
-  // Get the currently selected audit
-  const selectedAudit = selectedAuditId 
-    ? [...mockAuditHistory, ...mockEgenrevisjoner].find(a => a.id === selectedAuditId)
-    : null;
-
-  // Handle mouse move and mouse up for resizing detail panel
-  useEffect(() => {
-    if (!isResizingDetail) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = window.innerWidth - e.clientX;
-      
-      // Constrain width between 30% and 70% of screen width
-      const minWidth = window.innerWidth * 0.30; // 30%
-      const maxWidth = window.innerWidth * 0.70; // 70%
-      
-      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
-      setDetailPanelWidth(constrainedWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizingDetail(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizingDetail]);
-
-  // Get the current list of audits based on active tab
-  const currentAudits = activeHistoryTab === 'eksterne' 
-    ? mockAuditHistory 
-    : activeHistoryTab === 'egne' 
-    ? mockEgenrevisjoner 
-    : [];
 
   return (
     <div className="flex flex-row h-full overflow-hidden">
-      {/* List Panel - Takes remaining space */}
+      {/* List Panel - Full width */}
       <div className="flex-1 bg-background overflow-y-auto flex flex-col min-w-0">
         {/* Header with title */}
         <div className="px-10 max-[1400px]:px-6 py-6">
@@ -179,7 +163,6 @@ export function ForetakHistorikkView() {
                     key={audit.id} 
                     audit={audit} 
                     variant="external"
-                    onClick={() => setSelectedAuditId(audit.id)}
                   />
                 ))}
               </>
@@ -192,7 +175,6 @@ export function ForetakHistorikkView() {
                     key={audit.id} 
                     audit={audit} 
                     variant="self"
-                    onClick={() => setSelectedAuditId(audit.id)}
                   />
                 ))}
               </>
@@ -208,39 +190,6 @@ export function ForetakHistorikkView() {
           </div>
         </div>
       </div>
-
-      {/* DESKTOP: Detail Panel - Shows selected audit with resizable width */}
-      {selectedAudit && (
-        <div 
-          className="max-[1200px]:hidden h-full bg-background overflow-hidden flex flex-row relative"
-          style={{ width: `${detailPanelWidth}px` }}
-        >
-          {/* Resize Handle - Left Edge */}
-          <div
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setIsResizingDetail(true);
-            }}
-            className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary transition-colors z-10 ${
-              isResizingDetail ? 'bg-primary' : 'bg-transparent'
-            }`}
-            style={{
-              touchAction: 'none',
-            }}
-          />
-
-          {/* Vertical Divider */}
-          <div className="w-px h-full bg-border shrink-0" />
-
-          {/* Detail Content */}
-          <div className="flex-1 overflow-hidden">
-            <AuditHistoryDetailPanel 
-              audit={selectedAudit}
-              onClose={() => setSelectedAuditId(null)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

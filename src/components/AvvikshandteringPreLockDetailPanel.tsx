@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import svgPaths from '../imports/svg-8axi0x1eud';
 import { DeviationView } from './DeviationView';
-import { X } from 'lucide-react';
+import { KravVeilederSection } from './KravVeilederSection';
+import { AttachedDocumentCard } from './AttachedDocumentCard';
 
 interface QuestionInfo {
   id: string;
   title: string;
   kravVeileder?: string;
+  answerText?: string;
 }
 
 interface QuestionAnswer {
@@ -35,6 +36,7 @@ interface AvvikshandteringPreLockDetailPanelProps {
   selectedQuestion: QuestionAnswer;
   selectedQuestionData: QuestionData;
   onUpdateQuestionData?: (questionId: string, data: Partial<QuestionData>) => void;
+  onAnswerChange?: (questionId: string, answer: 'ja' | 'nei' | 'ikke-relevant') => void;
   onClose?: () => void;
 }
 
@@ -44,6 +46,7 @@ export function AvvikshandteringPreLockDetailPanel({
   selectedQuestion,
   selectedQuestionData,
   onUpdateQuestionData,
+  onAnswerChange,
   onClose
 }: AvvikshandteringPreLockDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<'avvik' | 'egenvurderinger' | 'notat'>('avvik');
@@ -56,62 +59,77 @@ export function AvvikshandteringPreLockDetailPanel({
     }
   };
 
+  const handleRemoveDocument = (index: number) => {
+    if (selectedQuestionData.attachedDocuments && onUpdateQuestionData) {
+      const newDocuments = selectedQuestionData.attachedDocuments.filter((_, i) => i !== index);
+      onUpdateQuestionData(selectedQuestionId, { attachedDocuments: newDocuments });
+    }
+  };
+
+  const handleAnswerClick = (option: 'Ja' | 'Nei' | 'Ikke relevant') => {
+    if (onAnswerChange) {
+      const answerType = option === 'Ja' ? 'ja' : option === 'Nei' ? 'nei' : 'ikke-relevant';
+      onAnswerChange(selectedQuestionId, answerType);
+    }
+  };
+
+  // Get current answer from questionData
+  const currentAnswer = selectedQuestionData.answer === 'ja' ? 'Ja' : 
+                        selectedQuestionData.answer === 'nei' ? 'Nei' : 
+                        selectedQuestionData.answer === 'ikke-relevant' ? 'Ikke relevant' : 'Nei';
+
   return (
-    <div className="flex flex-col h-full w-full bg-background">
-      {/* Header with Close Button */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-background sticky top-0 z-10">
-        <h3 className="title-large text-foreground">Avvikdetaljer</h3>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center hover:bg-muted rounded-full transition-colors"
-            aria-label="Lukk"
-          >
-            <X className="w-6 h-6 text-foreground" />
-          </button>
+    <div className="flex flex-col h-full w-full bg-background overflow-y-auto">
+      {/* Question Header */}
+      <div className="px-6 py-4 border-b border-border">
+        <h3 className="body-large text-foreground mb-3">
+          {selectedQuestion.id} {selectedQuestion.questionText}
+        </h3>
+        
+        {/* Krav & Veileder Section */}
+        {selectedQuestionInfo && (
+          <KravVeilederSection question={selectedQuestionInfo} />
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
-        {/* Question Header */}
-        <div className="flex gap-2 items-center justify-between mb-2">
-          <h3 className="title-large">
-            {selectedQuestionInfo.id}
-          </h3>
+      {/* Answer Options - Now clickable to change answer */}
+      <div className="px-6 py-4 border-b border-border">
+        <h4 className="label-medium text-foreground mb-3">Velg svar</h4>
+        <div className="space-y-2">
+          {(['Ja', 'Nei', 'Ikke relevant'] as const).map((option) => (
+            <button
+              key={option}
+              onClick={() => handleAnswerClick(option)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] transition-colors hover:bg-muted"
+            >
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                option === currentAnswer
+                  ? 'border-primary bg-primary'
+                  : 'border-foreground'
+              }`}>
+                {option === currentAnswer && (
+                  <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                )}
+              </div>
+              <span className={`body-medium ${
+                option === currentAnswer ? 'text-primary' : 'text-foreground'
+              }`}>
+                {option}
+              </span>
+            </button>
+          ))}
         </div>
+      </div>
 
-        {/* Question Text */}
-        <h4 className="title-large mb-4">
-          {selectedQuestion.questionText}
-        </h4>
-
-        {/* Krav Veileder Section */}
-        {selectedQuestionInfo && (
-          <div className="bg-[var(--surface-container-low)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-5 h-5 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                <path d={svgPaths.p2668ba00} fill="#44483B" />
-              </svg>
-              <p className="label-medium text-foreground">
-                Krav veileder
-              </p>
-            </div>
-            <p className="body-medium text-muted-foreground">
-              {selectedQuestionInfo.kravVeileder || 'Se krav i veileder for mer informasjon om dette spørsmålet.'}
-            </p>
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-[var(--border)]">
+      {/* Tabs */}
+      <div className="border-b border-border">
+        <div className="flex items-center px-4">
           <button
             onClick={() => setActiveTab('avvik')}
-            className={`px-4 py-3 label-medium transition-colors relative ${
-              activeTab === 'avvik'
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className="px-3 py-3 label-medium relative transition-colors"
+            style={{
+              color: activeTab === 'avvik' ? '#1a1c16' : '#44483b'
+            }}
           >
             Avvik
             {activeTab === 'avvik' && (
@@ -120,11 +138,10 @@ export function AvvikshandteringPreLockDetailPanel({
           </button>
           <button
             onClick={() => setActiveTab('egenvurderinger')}
-            className={`px-4 py-3 label-medium transition-colors relative ${
-              activeTab === 'egenvurderinger'
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className="px-3 py-3 label-medium relative transition-colors"
+            style={{
+              color: activeTab === 'egenvurderinger' ? '#1a1c16' : '#44483b'
+            }}
           >
             Egenrevisjonssvar
             {activeTab === 'egenvurderinger' && (
@@ -133,11 +150,10 @@ export function AvvikshandteringPreLockDetailPanel({
           </button>
           <button
             onClick={() => setActiveTab('notat')}
-            className={`px-4 py-3 label-medium transition-colors relative ${
-              activeTab === 'notat'
-                ? 'text-primary'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className="px-3 py-3 label-medium relative transition-colors"
+            style={{
+              color: activeTab === 'notat' ? '#1a1c16' : '#44483b'
+            }}
           >
             Notat
             {activeTab === 'notat' && (
@@ -145,10 +161,12 @@ export function AvvikshandteringPreLockDetailPanel({
             )}
           </button>
         </div>
+      </div>
 
-        {/* Tab Content */}
+      {/* Tab Content */}
+      <div className="px-6 py-4">
         {activeTab === 'avvik' && (
-          <div className="space-y-4">
+          <div className="max-w-full">
             <DeviationView
               deviationData={selectedQuestionData.deviations?.[0]}
               onUpdate={handleDeviationUpdate}
@@ -158,19 +176,40 @@ export function AvvikshandteringPreLockDetailPanel({
         )}
 
         {activeTab === 'egenvurderinger' && (
-          <div className="space-y-4">
-            <div className="bg-[var(--surface-container-low)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4">
-              <p className="body-medium text-muted-foreground">
-                Ingen egenrevisjonssvar tilgjengelig
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <p className="label-small text-muted-foreground m-0">Svarvalg</p>
+              <p className="body-medium text-foreground m-0">Nei</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="label-small text-muted-foreground m-0">Svartekst</p>
+              <p className="body-medium text-foreground m-0">
+                {selectedQuestionInfo.answerText || 'Ingen svartekst tilgjengelig'}
               </p>
             </div>
+            
+            {/* Attached documents section */}
+            {selectedQuestionData.attachedDocuments && selectedQuestionData.attachedDocuments.length > 0 && (
+              <div className="flex flex-col gap-2 pt-2">
+                <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
+                <div className="flex flex-col gap-2">
+                  {selectedQuestionData.attachedDocuments.map((doc, index) => (
+                    <AttachedDocumentCard
+                      key={index}
+                      documentName={doc}
+                      onRemove={() => handleRemoveDocument(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'notat' && (
-          <div className="space-y-4">
-            <div className="bg-[var(--surface-container-low)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4">
-              <p className="body-medium text-muted-foreground">
+          <div className="max-w-full">
+            <div className="flex flex-col gap-2">
+              <p className="body-medium text-foreground m-0">
                 {selectedQuestionData.notatText || 'Ingen notat lagt til'}
               </p>
             </div>

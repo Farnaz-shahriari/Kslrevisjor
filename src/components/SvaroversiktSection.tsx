@@ -37,6 +37,7 @@ interface SvaroversiktSectionProps {
   onNavigateToDocument?: (documentIndex: number) => void;
   deviationsLocked?: boolean;
   initialFilter?: FilterTab;
+  onBottomSheetOpenChange?: (isOpen: boolean) => void;
 }
 
 type FilterTab = 'all' | 'ubesvarte' | 'ja' | 'nei' | 'forbedring' | 'positive' | 'ikke-relevant';
@@ -61,7 +62,8 @@ export function SvaroversiktSection({
   onUpdateQuestionData,
   onNavigateToDocument,
   deviationsLocked,
-  initialFilter
+  initialFilter,
+  onBottomSheetOpenChange
 }: SvaroversiktSectionProps) {
   // Calculate initial filter - start with 'ubesvarte' if there are unanswered questions
   const getInitialFilter = (): FilterTab => {
@@ -94,12 +96,18 @@ export function SvaroversiktSection({
   const [snackbarUndo, setSnackbarUndo] = useState<(() => void) | null>(null);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
 
+  // Notify parent when bottom sheet state changes
+  useEffect(() => {
+    onBottomSheetOpenChange?.(isBottomSheetOpen);
+  }, [isBottomSheetOpen, onBottomSheetOpenChange]);
+
   // Update filter when initialFilter changes
   useEffect(() => {
     if (initialFilter) {
       setSelectedFilter(initialFilter);
     }
   }, [initialFilter]);
+  
   const [answers, setAnswers] = useState<QuestionAnswer[]>(() => {
     // Generate answers from actual questionData passed from App.tsx
     const allQuestions: QuestionAnswer[] = [];
@@ -132,8 +140,15 @@ export function SvaroversiktSection({
     
     return allQuestions;
   });
+  
+  // CRITICAL: displayedAnswers is what's shown in the list
+  // It only updates when filter changes, NOT when individual answers change
+  const [displayedAnswers, setDisplayedAnswers] = useState<QuestionAnswer[]>([]);
+  
+  // Track pending changes flag
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
-  // Get unanswered questions
+  // Get unanswered questions - computed from questionData
   const unansweredQuestions = (() => {
     const unanswered: QuestionAnswer[] = [];
     
@@ -171,6 +186,36 @@ export function SvaroversiktSection({
   })();
 
   const allQuestionsAnswered = answers.length === totalQuestions;
+
+  // Reorganize displayed answers ONLY when filter tab changes (not when answers change)
+  useEffect(() => {
+    let filtered: QuestionAnswer[];
+    
+    if (selectedFilter === 'ubesvarte') {
+      filtered = unansweredQuestions;
+    } else {
+      filtered = answers.filter(answer => {
+        switch (selectedFilter) {
+          case 'ja':
+            return answer.answer === 'Ja';
+          case 'nei':
+            return answer.answer === 'Nei';
+          case 'ikke-relevant':
+            return answer.answer === 'Ikke relevant';
+          case 'forbedring':
+            return answer.hasForbedringspunkter;
+          case 'positive':
+            return answer.hasPositiveObservasjoner;
+          case 'all':
+          default:
+            return true;
+        }
+      });
+    }
+    
+    setDisplayedAnswers(filtered);
+    setHasPendingChanges(false);
+  }, [selectedFilter]); // ONLY reorganize when filter tab changes, not when answers change
 
   // Resize handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -329,20 +374,32 @@ export function SvaroversiktSection({
       // Update local state
       const existingAnswer = answers.find(a => a.id === selectedQuestionId);
       if (existingAnswer) {
-        // Update existing answer
+        // Update existing answer in both answers and displayedAnswers
         setAnswers(prev => prev.map(a => 
+          a.id === selectedQuestionId ? { ...a, answer: newAnswer } : a
+        ));
+        setDisplayedAnswers(prev => prev.map(a =>
           a.id === selectedQuestionId ? { ...a, answer: newAnswer } : a
         ));
       } else {
         // Add new answer for previously unanswered question
         if (questionInfo) {
-          setAnswers(prev => [...prev, {
+          const newAnswerObj = {
             id: selectedQuestionId,
             answer: newAnswer,
             questionText: questionInfo.title,
             categoryId: questionInfo.categoryId || '',
             groupId: questionInfo.groupId || '',
-          }]);
+          };
+          
+          setAnswers(prev => [...prev, newAnswerObj]);
+          // Update displayed answers in place - replace the unanswered item with the answered one
+          setDisplayedAnswers(prev => prev.map(a =>
+            a.id === selectedQuestionId ? newAnswerObj : a
+          ));
+          
+          // Flag that we have pending changes
+          setHasPendingChanges(true);
           
           // If we're in the ubesvarte tab, show snackbar and select next question
           if (wasUnanswered) {
@@ -635,7 +692,7 @@ export function SvaroversiktSection({
               </tr>
             </thead>
             <tbody>
-              {filteredAnswers.map((answer) => (
+              {displayedAnswers.map((answer) => (
                 <tr
                   key={answer.id}
                   onClick={() => {
@@ -652,7 +709,8 @@ export function SvaroversiktSection({
                   }`}
                 >
                   <td className="px-10 py-3">
-                    {selectedFilter === 'ubesvarte' ? (
+                    {/* Show "Trenger utfylling" chip for unanswered, or the actual answer */}
+                    {!answer.answer || answer.answer === '' ? (
                       <div className="bg-[#f4f4ea] box-border flex items-center justify-center overflow-clip relative rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_1px_3px_1px_rgba(0,0,0,0.15)] shrink-0">
                         <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
                           <div className="relative shrink-0 w-[18px] h-[18px]">
@@ -699,7 +757,7 @@ export function SvaroversiktSection({
             <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
               <span className="label-medium text-foreground">Svar</span>
             </div>
-            {filteredAnswers.map((answer) => (
+            {displayedAnswers.map((answer) => (
               <div
                 key={answer.id}
                 onClick={() => {
@@ -716,7 +774,7 @@ export function SvaroversiktSection({
                 <div className="flex flex-col gap-2">
                   {/* Line 1: Answer status with gap-1 */}
                   <div className="flex flex-row items-center gap-1 flex-wrap">
-                    {selectedFilter === 'ubesvarte' ? (
+                    {!answer.answer || answer.answer === '' ? (
                       <div className="bg-[#f4f4ea] box-border flex items-center justify-center overflow-clip relative rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_1px_3px_1px_rgba(0,0,0,0.15)] shrink-0">
                         <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
                           <div className="relative shrink-0 w-[18px] h-[18px]">
@@ -787,7 +845,7 @@ export function SvaroversiktSection({
               {/* Question Header */}
               <div className="px-6 py-4 border-b border-border">
                 <h3 className="body-large text-foreground mb-3">
-                  {selectedQuestion.questionText}
+                  {selectedQuestion.id} {selectedQuestion.questionText}
                 </h3>
                 
                 {/* Krav & Veileder Section */}

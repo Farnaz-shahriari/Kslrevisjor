@@ -45,6 +45,7 @@ interface AvvikshandteringPageProps {
   onNavigateToSvaroversikt?: () => void;
   onPrevious?: () => void;
   onNext?: () => void;
+  onBottomSheetOpenChange?: (isOpen: boolean) => void;
 }
 
 interface QuestionAnswer {
@@ -72,7 +73,8 @@ export function AvvikshandteringPage({
   onCompletionChange,
   onNavigateToSvaroversikt,
   onPrevious,
-  onNext
+  onNext,
+  onBottomSheetOpenChange
 }: AvvikshandteringPageProps) {
   const [hasAgreed, setHasAgreed] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -80,6 +82,11 @@ export function AvvikshandteringPage({
   const [activeTab, setActiveTab] = useState<TabType>('avvik');
   const [showDocumentsMenu, setShowDocumentsMenu] = useState(false);
   const [isDetailBottomSheetOpen, setIsDetailBottomSheetOpen] = useState(false);
+  
+  // Notify parent when bottom sheet state changes
+  useEffect(() => {
+    onBottomSheetOpenChange?.(isDetailBottomSheetOpen);
+  }, [isDetailBottomSheetOpen, onBottomSheetOpenChange]);
   
   // Store closure information for each deviation
   const [closureData, setClosureData] = useState<Record<string, ClosureInfo>>({});
@@ -149,6 +156,74 @@ export function AvvikshandteringPage({
     return neiQuestions;
   });
 
+  // CRITICAL: displayedAnswers is what's shown in the list
+  // It only updates when filter changes, NOT when individual answers change
+  const [displayedAnswers, setDisplayedAnswers] = useState<QuestionAnswer[]>([]);
+  
+  // Track pending changes flag
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+
+  // Initialize displayedAnswers on first render and when answers regenerate
+  useEffect(() => {
+    setDisplayedAnswers(answers);
+  }, [answers]);
+
+  // Handle answer change - update in place with deferred filtering
+  const handleAnswerChange = (questionId: string, newAnswer: 'ja' | 'nei' | 'ikke-relevant') => {
+    // Update the answer in questionData via parent callback
+    if (onAnswerQuestion) {
+      onAnswerQuestion(questionId, newAnswer);
+    }
+
+    // Update the displayed item's answer immediately (visual feedback)
+    setDisplayedAnswers(prevDisplayed =>
+      prevDisplayed.map(item =>
+        item.id === questionId
+          ? { ...item, answer: newAnswer === 'ja' ? 'Ja' : newAnswer === 'nei' ? 'Nei' : 'Ikke relevant' }
+          : item
+      )
+    );
+
+    // Flag that we have pending changes
+    setHasPendingChanges(true);
+  };
+
+  // Reorganize list when isLocked changes (when "Lås avvikene" is clicked)
+  useEffect(() => {
+    if (isLocked && hasPendingChanges) {
+      // Regenerate the list to only show "Nei" answers
+      const neiQuestions: QuestionAnswer[] = [];
+      
+      questionsData.forEach(category => {
+        category.questionGroups.forEach(group => {
+          group.questions.forEach(question => {
+            const data = questionData[question.id];
+            
+            if (data && data.answer === 'nei') {
+              let severity = calculateSeverity(question.id, group.id);
+              if (data.deviations && data.deviations.length > 0 && data.deviations[0].calculatedSeverity) {
+                severity = data.deviations[0].calculatedSeverity;
+              }
+              
+              neiQuestions.push({
+                id: question.id,
+                answer: 'Nei',
+                questionText: question.title,
+                categoryId: category.id,
+                groupId: group.id,
+                severity
+              });
+            }
+          });
+        });
+      });
+      
+      setAnswers(neiQuestions);
+      setDisplayedAnswers(neiQuestions);
+      setHasPendingChanges(false);
+    }
+  }, [isLocked]);
+
   // Calculate unanswered questions count
   const unansweredCount = (() => {
     let count = 0;
@@ -185,17 +260,6 @@ export function AvvikshandteringPage({
   const selectedQuestionInfo = selectedQuestionId ? getQuestionById(selectedQuestionId) : null;
   const selectedQuestionData = selectedQuestionId ? questionData[selectedQuestionId] || {} : {};
   const selectedClosureInfo = selectedQuestionId ? closureData[selectedQuestionId] || {} : {};
-
-  const handleAnswerChange = (newAnswer: 'Ja' | 'Nei' | 'Ikke relevant') => {
-    if (selectedQuestionId && onAnswerQuestion) {
-      const answerType = newAnswer === 'Ja' ? 'ja' : newAnswer === 'Nei' ? 'nei' : 'ikke-relevant';
-      onAnswerQuestion(selectedQuestionId, answerType);
-      
-      setAnswers(prev => prev.map(a => 
-        a.id === selectedQuestionId ? { ...a, answer: 'Nei' } : a
-      ));
-    }
-  };
 
   const handleRemoveDocument = (index: number) => {
     if (selectedQuestionId && selectedQuestionData.attachedDocuments && onUpdateQuestionData) {
@@ -471,7 +535,7 @@ export function AvvikshandteringPage({
               </tr>
             </thead>
             <tbody>
-              {answers.map((answer) => (
+              {displayedAnswers.map((answer) => (
                 <tr
                   key={answer.id}
                   onClick={() => {
@@ -552,7 +616,7 @@ export function AvvikshandteringPage({
             <div className="px-6 py-3 border-b border-[var(--border)] bg-surface-container-low sticky top-0 z-10">
               <span className="label-medium text-foreground">Avvik</span>
             </div>
-            {answers.map((answer) => (
+            {displayedAnswers.map((answer) => (
               <div
                 key={answer.id}
                 onClick={() => {
@@ -616,6 +680,7 @@ export function AvvikshandteringPage({
               selectedQuestionData={selectedQuestionData}
               updateClosureInfo={updateClosureInfo}
               onUpdateQuestionData={onUpdateQuestionData}
+              onAnswerChange={handleAnswerChange}
             />
           )}
         </div>
@@ -634,68 +699,25 @@ export function AvvikshandteringPage({
           {selectedQuestionId && selectedQuestion && selectedQuestionInfo && (
             <div>
               {isLocked ? (
-                /* Locked State - Same content as desktop */
-                <div className="px-6 py-4">
-                  {/* Question Number with External Link */}
-                  <div className="flex gap-2 items-center justify-between mb-2">
-                    <h3 className="title-large">
-                      {selectedQuestionInfo.id}
-                    </h3>
-                    <button className="p-2">
-                      <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                        <g transform="scale(1.3333)">
-                          <path d={svgPaths.pd76fd80} fill="#1A1C16" />
-                        </g>
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Question Text */}
-                  <h4 className="title-large mb-4">
-                    {selectedQuestion.questionText}
-                  </h4>
-
-                  {/* Severity Badge */}
-                  {selectedQuestion.severity && (
-                    <div className={`flex items-center gap-4 p-4 rounded-lg mb-4 ${getSeverityColor(selectedQuestion.severity)}`}>
-                      <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                        <g transform="scale(1.09)">
-                          <path d={svgPaths.p6027970} fill="currentColor" />
-                        </g>
-                      </svg>
-                      <div className="flex-1">
-                        <p className="label-small">
-                          Beregnet alvorlighetsgrad
-                        </p>
-                        <p className="body-large">
-                          {getSeverityLabel(selectedQuestion.severity)}
-                        </p>
-                      </div>
-                      <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                        <g transform="scale(1.2)">
-                          <path d={svgPaths.p19ecbc00} fill="currentColor" />
-                        </g>
-                      </svg>
-                    </div>
-                  )}
-
-                  <div className="border-t border-border my-4" />
-
-                  {/* Note: Full content would be too large to duplicate here */}
-                  {/* For mobile, we show key information only */}
-                  <p className="body-medium text-muted-foreground text-center py-8">
-                    Full avvikdetaljer vises på desktop
-                  </p>
-                </div>
+                <AvvikshandteringDetailPanel
+                  selectedQuestionId={selectedQuestionId}
+                  selectedQuestionInfo={selectedQuestionInfo}
+                  selectedQuestion={selectedQuestion}
+                  selectedQuestionData={selectedQuestionData}
+                  selectedClosureInfo={selectedClosureInfo}
+                  updateClosureInfo={updateClosureInfo}
+                  onUpdateQuestionData={onUpdateQuestionData}
+                />
               ) : (
-                /* Unlocked State - Show tabs and content */
-                <div className="px-6 py-4">
-                  <h3 className="title-large mb-4">{selectedQuestionInfo.id}</h3>
-                  <h4 className="title-large mb-4">{selectedQuestion.questionText}</h4>
-                  <p className="body-medium text-muted-foreground text-center py-8">
-                    Full avvikdetaljer vises på desktop
-                  </p>
-                </div>
+                <AvvikshandteringPreLockDetailPanel
+                  selectedQuestionId={selectedQuestionId}
+                  selectedQuestionInfo={selectedQuestionInfo}
+                  selectedQuestion={selectedQuestion}
+                  selectedQuestionData={selectedQuestionData}
+                  updateClosureInfo={updateClosureInfo}
+                  onUpdateQuestionData={onUpdateQuestionData}
+                  onAnswerChange={handleAnswerChange}
+                />
               )}
             </div>
           )}

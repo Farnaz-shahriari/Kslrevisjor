@@ -332,9 +332,6 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
             <p className="body-large text-foreground">
               {deviation.foretakName}
             </p>
-            <p className="body-medium text-muted-foreground">
-              Alle saker for gården
-            </p>
           </div>
           <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
             <path d="M10 17V7L15 12L10 17Z" fill="#44483B" />

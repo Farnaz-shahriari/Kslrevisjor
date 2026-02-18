@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Button } from './ui/button';
-import { ChevronLeft, Search, List, MapPin, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, Search, List, MapPin, SlidersHorizontal, Table } from 'lucide-react';
 import { RevisjonCard } from './RevisjonCard';
 import { MaterialCheckbox } from './ui/material-checkbox';
 import { DatePicker } from './ui/date-picker';
@@ -9,6 +9,7 @@ import { InteractiveMap } from './InteractiveMap';
 import { BottomSheet } from './ui/bottom-sheet';
 import { RevisjonFilterChipBar } from './RevisjonFilterChipBar';
 import svgPathsSorting from "../imports/svg-59lykn648d";
+import svgPathsRevisjonCard from "../imports/svg-es1yhnytnq"; // Import for Åpne revisjon icon
 import { allDeviations } from './AvvikoversiktPage'; // Import deviations data
 
 interface RevisjonshistorikkPageProps {
@@ -452,7 +453,7 @@ export const mockRevisjonshistorikk = [
 
 export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], onFilterChange }: RevisjonshistorikkPageProps = {}) {
   const [showingMenu, setShowingMenu] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'map' | 'table'>('list');
   const [selectedRevisjonstyper, setSelectedRevisjonstyper] = useState<string[]>([]);
   const [selectedProduksjon, setSelectedProduksjon] = useState<string[]>([]);
   const [selectedOrdning, setSelectedOrdning] = useState<string[]>([]);
@@ -461,6 +462,7 @@ export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], on
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'planlagt-dato' | 'revisjonsfrist' | 'ordning' | 'revisjonstype'>('planlagt-dato');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false); // New state for toggling advanced search
   
   // Date range states - Changed revisjonsfrist to rapportLaastDato
   const [rapportLaastDatoFrom, setRapportLaastDatoFrom] = useState<Date | null>(new Date('2024-01-01'));
@@ -706,6 +708,66 @@ export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], on
     setSelectedKommune([]);
   };
 
+  // Helper function to get "Rapport låst" chip
+  const getRapportLaastChip = () => {
+    return (
+      <div className="bg-[var(--secondary-container)] content-stretch flex h-[32px] items-center justify-center overflow-clip relative rounded-[8px] shrink-0">
+        <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+          <div className="label-medium text-[var(--secondary-container-foreground)]">
+            Rapport låst
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper function to get redigerbar chip (if editable within 14 days)
+  const getRedigerbarChip = (revisjon: any) => {
+    if (!revisjon.revisjonData.rapportLocked || !revisjon.revisjonData.isEditable) {
+      return null;
+    }
+    
+    return (
+      <div className="bg-[#E8F5E9] content-stretch flex h-[32px] items-center justify-center overflow-clip relative rounded-[8px] shrink-0">
+        <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+          <div className="label-medium text-[#2E7D32]">
+            Redigerbar
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Helper function to get revisor chip (outlined style like in card view)
+  const getRevisorChip = () => {
+    return (
+      <div className="h-[32px] relative rounded-[8px] shrink-0">
+        <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+          <div className="content-stretch flex h-[32px] items-center justify-center px-4 py-[6px] relative shrink-0">
+            <span className="label-medium text-foreground whitespace-nowrap">
+              Revisor
+            </span>
+          </div>
+        </div>
+        <div aria-hidden="true" className="absolute border border-[#c4c8b7] border-solid inset-0 pointer-events-none rounded-[8px]" />
+      </div>
+    );
+  };
+
+  // Helper function to format produksjon for table display
+  const formatProduksjon = (produksjon: string[]) => {
+    return produksjon.join(', ');
+  };
+
+  // Helper function to format visit date
+  const formatVisitDate = (visitDate: Date | null) => {
+    if (!visitDate) return '-';
+    const day = visitDate.getDate();
+    const month = visitDate.toLocaleString('no-NO', { month: 'long' });
+    const year = visitDate.getFullYear();
+    return `${day}. ${month} ${year}`;
+  };
+
   // Render filter section helper
   const renderFilterSection = (mobile: boolean) => (
     <>
@@ -917,9 +979,19 @@ export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], on
   return (
     <div className="flex h-full w-full overflow-hidden flex-col bg-background">
       {/* Header with title */}
-      <div className="flex flex-col border-b border-[var(--border)] bg-background">
-        <div className="px-6 pt-6 pb-4">
+      <div className="flex flex-col bg-background">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <h2 className="headline-small text-foreground">Revisjonshistorikk</h2>
+          
+          {/* Avansert søk button - Desktop only */}
+          <Button
+            variant="secondary"
+            onClick={() => setIsAdvancedSearchOpen(!isAdvancedSearchOpen)}
+            className="max-[1400px]:hidden"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+            Avansert søk
+          </Button>
         </div>
       </div>
 
@@ -946,22 +1018,38 @@ export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], on
           </div>
         )}
 
-        {/* DESKTOP: Advanced Search - Always visible */}
-        <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            {renderFilterSection(false)}
+        {/* DESKTOP: Advanced Search - Conditionally visible */}
+        {isAdvancedSearchOpen && (
+          <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
+            {/* Close button at the top */}
+            <div className="px-4 py-4 border-b border-[var(--border)]">
+              <Button 
+                variant="tertiary"
+                onClick={() => setIsAdvancedSearchOpen(false)}
+                className="w-full justify-start"
+              >
+                <ChevronLeft className="w-5 h-5 mr-2" />
+                Lukk søkepanel
+              </Button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {renderFilterSection(false)}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Vertical Divider - Desktop only */}
-        <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
+        {/* Vertical Divider - Desktop only, only show when panel is open */}
+        {isAdvancedSearchOpen && (
+          <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
+        )}
 
         {/* MOBILE/TABLET & DESKTOP: Main Content Area */}
         <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full`}>
           {/* Detail content */}
-          <div className="flex-1 overflow-y-auto px-4 pt-2 max-[900px]:px-4">
+          <div className="flex-1 overflow-y-auto px-0 pt-2 ">
             {/* Sorting and Bulk Actions Bar */}
-            <div className="flex items-center justify-between gap-2 py-0 mb-2 flex-wrap max-w-[1040px]">
+            <div className="flex items-center justify-between gap-2 py-0 px-6 mb-2 flex-wrap ">
               {/* LEFT GROUP: View toggle */}
               <div className="flex items-center gap-2 flex-wrap">
                 {/* View Mode Toggle */}
@@ -986,6 +1074,17 @@ export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], on
                     <MapPin className={`w-6 h-6 ${viewMode === 'map' ? 'text-white' : 'text-[#174295]'}`} />
                     <span className={`label-medium ${viewMode === 'map' ? 'text-white' : 'text-[#174295]'}`}>
                       Kart
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
+                      viewMode === 'table' ? 'bg-[#365bae] rounded-r-2xl' : 'bg-[#dae2ff] rounded-r'
+                    }`}
+                  >
+                    <Table className={`w-6 h-6 ${viewMode === 'table' ? 'text-white' : 'text-[#174295]'}`} />
+                    <span className={`label-medium ${viewMode === 'table' ? 'text-white' : 'text-[#174295]'}`}>
+                      Tabell
                     </span>
                   </button>
                 </div>
@@ -1090,9 +1189,9 @@ export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], on
               kommuneLabels={kommuneLabels}
             />
             
-            {/* Conditional rendering: List or Map view */}
+            {/* Conditional rendering: List, Map, or Table view */}
             {viewMode === 'list' ? (
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col px-6 gap-1">
                 {getSortedRevisjoner().map((revisjon) => {
                   // Add avvik counts to the revisjon data
                   const avvikCounts = getAvvikCounts(revisjon.foretakName);
@@ -1119,13 +1218,199 @@ export function RevisjonshistorikkPage({ onRevisionClick, initialFilter = [], on
                   );
                 })}
               </div>
-            ) : (
+            ) : viewMode === 'map' ? (
               <InteractiveMap
                 revisjoner={getSortedRevisjoner()}
                 onAccept={() => {}}
                 onReject={() => {}}
                 acceptedIds={new Set()}
               />
+            ) : (
+              /* Table View - Full Width */
+              <div className="w-full">
+                <table className="w-full border-collapse">
+                  <thead className="bg-[var(--surface-container-low)] sticky top-0 z-10">
+                    <tr className="border-b border-[var(--border)]">
+                      {/* Rapport låst column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Status</span>
+                      </th>
+                      {/* Revisjonsdato column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Revisjonsdato</span>
+                      </th>
+                      {/* Ordning column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Ordning</span>
+                      </th>
+                      {/* Revisor column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Revisor</span>
+                      </th>
+                      {/* Foretak and details column - responsive */}
+                      <th className="px-6 py-3 text-left">
+                        <span className="label-medium max-[768px]:hidden">Foretak</span>
+                        <span className="label-medium min-[768px]:hidden">Revisjon</span>
+                      </th>
+                      {/* Address column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Adresse</span>
+                      </th>
+                      {/* Kommune column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Kommune</span>
+                      </th>
+                      {/* Produksjon column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Produksjon</span>
+                      </th>
+                      {/* Actions column */}
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Handlinger</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getSortedRevisjoner().map((revisjon) => (
+                      <tr 
+                        key={revisjon.id} 
+                        className="border-b border-[var(--border)] hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (onRevisionClick) {
+                            onRevisionClick(revisjon.id);
+                          }
+                        }}
+                      >
+                        {/* Desktop: Status column (Rapport låst + Redigerbar if applicable) */}
+                        <td className="px-6 py-2 max-[768px]:hidden">
+                          <div className="flex flex-col items-start gap-1">
+                            {getRapportLaastChip()}
+                            {getRedigerbarChip(revisjon)}
+                          </div>
+                        </td>
+                        
+                        {/* Desktop: Revisjonsdato column */}
+                        <td className="px-6 py-2 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {formatVisitDate(revisjon.visitDate)}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Ordning column */}
+                        <td className="px-6 py-2 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {revisjon.revisjonData.ordning}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Revisor chip column */}
+                        <td className="px-6 py-2 max-[768px]:hidden">
+                          {getRevisorChip()}
+                        </td>
+                        
+                        {/* Responsive column - Foretak and details */}
+                        <td className="px-6 py-2">
+                          {/* Desktop: Show only foretak name */}
+                          <span className="body-medium text-foreground max-[768px]:hidden">
+                            {revisjon.foretakName}
+                          </span>
+                          
+                          {/* Mobile: Show condensed two-line format */}
+                          <div className="flex flex-col gap-2 min-[768px]:hidden">
+                            {/* Line 1: Chips with gap-1 */}
+                            <div className="flex flex-row items-center gap-1 flex-wrap">
+                              {getRapportLaastChip()}
+                              {getRedigerbarChip(revisjon)}
+                              {getRevisorChip()}
+                              <span className="label-small text-muted-foreground">
+                                {revisjon.revisjonData.ordning}
+                              </span>
+                            </div>
+                            
+                            {/* Line 2: Foretak name and address */}
+                            <div className="flex flex-col gap-0.5">
+                              <span className="body-medium text-foreground font-semibold">
+                                {revisjon.foretakName}
+                              </span>
+                              <span className="body-medium text-muted-foreground">
+                                {revisjon.revisjonData.address} • {revisjon.revisjonData.kommune}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        {/* Desktop: Address column */}
+                        <td className="px-6 py-2 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {revisjon.revisjonData.address}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Kommune column */}
+                        <td className="px-6 py-2 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {revisjon.revisjonData.kommune}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Produksjon column */}
+                        <td className="px-6 py-2 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">
+                            {formatProduksjon(revisjon.revisjonData.produksjon)}
+                          </span>
+                        </td>
+                        
+                        {/* Desktop: Actions column */}
+                        <td className="px-6 py-2 max-[768px]:hidden">
+                          <div className="flex flex-row items-center gap-4">
+                            {/* Åpne revisjon button - Text style like in card view */}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onRevisionClick) {
+                                  onRevisionClick(revisjon.id);
+                                }
+                              }}
+                              className="content-stretch flex items-center justify-start overflow-clip relative rounded-[100px] shrink-0 hover:opacity-70 transition-opacity"
+                            >
+                              <div className="content-stretch flex gap-[8px] items-center justify-center px-[24px] py-[16px] relative shrink-0">
+                                <div className="relative shrink-0 size-[24px]">
+                                  <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                                    <path d={svgPathsRevisjonCard.pa1eb970} fill="var(--primary)" />
+                                  </svg>
+                                </div>
+                                <div className="body-large text-primary">
+                                  <p>Åpne revisjon</p>
+                                </div>
+                              </div>
+                            </button>
+                            
+                            {/* Last ned rapporten button - Text style like in card view */}
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('Downloading rapport for:', revisjon.foretakName);
+                              }}
+                              className="content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 hover:opacity-70 transition-opacity"
+                            >
+                              <div className="content-stretch flex gap-[8px] items-center justify-center px-[24px] py-[16px] relative shrink-0">
+                                <div className="relative shrink-0 size-[24px]">
+                                  <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                                    <path d="M12 16L7 11L8.4 9.55L11 12.15V4H13V12.15L15.6 9.55L17 11L12 16ZM6 20C5.45 20 4.979 19.804 4.587 19.412C4.195 19.02 3.99934 18.5493 4 18V15H6V18H18V15H20V18C20 18.55 19.804 19.021 19.412 19.413C19.02 19.805 18.5493 20.0007 18 20H6Z" fill="var(--primary)" />
+                                  </svg>
+                                </div>
+                                <div className="body-large text-primary">
+                                  <p>Last ned rapporten</p>
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, Check, RefreshCw, Building2 } from 'lucide-react';
 import { OverlayScrollContainer } from './OverlayScrollContainer';
 import { questionsData } from '../data/questions';
 import { ArrowLeft } from 'lucide-react';
@@ -680,27 +680,17 @@ export function RevisjonsgrunnlagPage({
         <OverlayScrollContainer className="min-[1400px]:hidden w-full h-full bg-background flex flex-col gap-6 p-6 overflow-y-auto">
           {/* Update button */}
           <button className="w-full bg-primary text-primary-foreground rounded-[var(--radius-button)] px-6 py-3.5 h-14 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors label-medium">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20Z"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <path
-                d="M12 8V16M8 12H16"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
+            <RefreshCw className="w-5 h-5" />
             <span className="body-large">
-              Oppdater revisjongrunnlag
+              Oppdater revisjonsgrunnlag
+            </span>
+          </button>
+
+          {/* Fetch business revision basis button - Outlined */}
+          <button className="w-full bg-transparent text-foreground rounded-[var(--radius-button)] px-6 py-3.5 h-14 flex items-center justify-center gap-2 border-2 border-border hover:bg-muted transition-colors label-medium">
+            <Building2 className="w-5 h-5" />
+            <span className="body-large">
+              Hent revisjonsgrunnlag bedrift
             </span>
           </button>
 
@@ -754,27 +744,17 @@ export function RevisjonsgrunnlagPage({
       <OverlayScrollContainer className="w-[400px] max-[1400px]:hidden h-full bg-background border-r border-[var(--border)] flex flex-col gap-6 p-4 overflow-y-auto">
         {/* Update button */}
         <button className="w-full bg-primary text-primary-foreground rounded-[var(--radius-button)] px-6 py-3.5 h-14 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors label-medium">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20Z"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-            <path
-              d="M12 8V16M8 12H16"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
+          <RefreshCw className="w-5 h-5" />
           <span className="body-large">
-            Oppdater revisjongrunnlag
+            Oppdater revisjonsgrunnlag
+          </span>
+        </button>
+
+        {/* Fetch business revision basis button - Outlined */}
+        <button className="w-full bg-transparent text-foreground rounded-[var(--radius-button)] px-6 py-3.5 h-14 flex items-center justify-center gap-2 border-2 border-border hover:bg-muted transition-colors label-medium">
+          <Building2 className="w-5 h-5" />
+          <span className="body-large">
+            Hent revisjonsgrunnlag bedrift
           </span>
         </button>
 

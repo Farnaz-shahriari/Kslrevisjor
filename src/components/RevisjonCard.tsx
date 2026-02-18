@@ -11,7 +11,7 @@ export interface ProductionItem {
 interface RevisjonData {
   ordning: string;
   revisjonsfrist: string;
-  produksjon: ProductionItem[]; // Updated to support production counts
+  produksjon: ProductionItem[] | string[]; // Support both formats
   kommune: string;
   address: string;
   isPriority: boolean;
@@ -133,8 +133,17 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
               </div>
             </div>
           </div>
+        ) : revisjon.visitDate && new Date(revisjon.visitDate) < new Date() ? (
+          // Revidert chip - when visit date has passed but report not locked
+          <div className="bg-[#fff4e6] content-stretch flex h-[32px] items-center justify-center overflow-clip relative rounded-[8px] shrink-0">
+            <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+              <div className="label-medium text-[#805500]">
+                <p>Revidert</p>
+              </div>
+            </div>
+          </div>
         ) : data.hasPlannedDate ? (
-          // Planlagt dato chip - when date exists
+          // Planlagt dato chip - when date exists and hasn't passed yet
           <div className="bg-[var(--accent)] content-stretch flex h-[32px] items-center justify-center overflow-clip relative rounded-[8px] shrink-0">
             <div className="content-stretch flex gap-[8px] h-[32px] items-center justify-center pl-[8px] pr-[16px] py-[6px] relative shrink-0">
               <div className="relative shrink-0 size-[18px]">
@@ -148,16 +157,11 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
             </div>
           </div>
         ) : (
-          // Venter på planlegging chip - when no date
+          // Akseptert chip - when no date
           <div className="bg-[#fff4e6] content-stretch flex h-[32px] items-center justify-center overflow-clip relative rounded-[8px] shrink-0">
-            <div className="content-stretch flex gap-[8px] h-[32px] items-center justify-center pl-[8px] pr-[16px] py-[6px] relative shrink-0">
-              <div className="relative shrink-0 size-[18px]">
-                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 18 18">
-                  <path d={svgPathsRevisjonCard.p35211d80} fill="#805500" />
-                </svg>
-              </div>
+            <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
               <div className="label-medium text-[#805500]">
-                <p>Venter på planlegging</p>
+                <p>Akseptert</p>
               </div>
             </div>
           </div>
@@ -320,9 +324,18 @@ export function RevisjonCard({ revisjon, onCardClick, onNotesClick, notesCount }
                       <p>Produksjon</p>
                     </div>
                     <div className="body-large text-foreground">
-                      {data.produksjon.map((prod, idx) => (
-                        <p key={idx} className={idx < data.produksjon.length - 1 ? 'mb-0' : ''}>{prod.name}{prod.count !== undefined ? ` (${prod.count})` : ''}</p>
-                      ))}
+                      {data.produksjon.map((prod, idx) => {
+                        // Handle both ProductionItem format and string format
+                        const displayText = typeof prod === 'string' 
+                          ? prod 
+                          : `${prod.name}${prod.count !== undefined ? ` (${prod.count})` : ''}`;
+                        
+                        return (
+                          <p key={idx} className={idx < data.produksjon.length - 1 ? 'mb-0' : ''}>
+                            {displayText}
+                          </p>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

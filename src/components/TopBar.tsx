@@ -54,12 +54,11 @@ export function TopBar({
         <h1 className="title-large text-foreground">{farmName}</h1>
         
         {/* Notes button - Desktop only */}
-        {showNotesButton && onToggleNotes && (
+        {showNotesButton && onToggleNotes && !isNotesPanelOpen && (
           <button
             onClick={onToggleNotes}
             className="max-[1399px]:hidden bg-[var(--secondary-container)] rounded-[100px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_2px_6px_2px_rgba(0,0,0,0.15)] hover:shadow-[0px_2px_4px_0px_rgba(0,0,0,0.3),0px_4px_8px_3px_rgba(0,0,0,0.15)] transition-shadow"
-            aria-label={isNotesPanelOpen ? "Lukk egne notater" : "Åpne egne notater"}
-            style={{ display: isNotesPanelOpen ? 'none' : 'block' }}
+            aria-label="Åpne egne notater"
           >
             <div className="flex gap-2 items-center justify-center px-6 py-4">
               <StickyNote className="w-6 h-6 text-[var(--secondary-container-foreground)]" />

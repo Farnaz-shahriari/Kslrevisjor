@@ -232,9 +232,9 @@ export function PlanleggRevisjonPage() {
 
   const tabs = [
     { id: 'revisjoner-samme-sted' as TabType, label: 'Revisjoner samme sted' },
-    { id: 'kontaktinformasjon' as TabType, label: 'Kontaktinformasjon' },
+    { id: 'kontaktinformasjon' as TabType, label: 'Foretaksinformasjon' },
     { id: 'ordninger' as TabType, label: 'Foretakets ordninger' },
-    { id: 'brev' as TabType, label: 'Brev og varsler tir foretaket' },
+    { id: 'brev' as TabType, label: 'Brev og varsler til foretaket' },
     { id: 'varemottakere' as TabType, label: 'Varemottakere' },
     { id: 'logg' as TabType, label: 'Logg' },
   ];
@@ -369,41 +369,15 @@ export function PlanleggRevisjonPage() {
             </div>
           </div>
 
-          {/* Details Section - Expandable */}
-          <div className="flex flex-col">
-            <button
-              onClick={() => setDetailsExpanded(!detailsExpanded)}
-              className="flex items-center gap-3 h-10 px-4 hover:bg-muted rounded-[var(--radius)] transition-colors"
-            >
-              {detailsExpanded ? (
-                <ChevronUp className="w-6 h-6 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-6 h-6 text-muted-foreground" />
-              )}
-              <span className="body-large text-foreground">Foretaksinformasjon</span>
-            </button>
-
-            {detailsExpanded && (
-              <div className="flex flex-col gap-2 pt-2">
-                <div className="flex flex-col gap-1 px-4 py-2">
-                  <span className="label-small text-muted-foreground">Organisasjonsnummer</span>
-                  <span className="body-large text-foreground">4204015467</span>
-                </div>
-                <div className="flex flex-col gap-1 px-4 py-2">
-                  <span className="label-small text-muted-foreground">Produksentnummer</span>
-                  <span className="body-large text-foreground">4204015467</span>
-                </div>
-                <div className="flex flex-col gap-1 px-4 py-2">
-                  <span className="label-small text-muted-foreground">Gammelt produksentnummer</span>
-                  <span className="body-large text-foreground">1001022563</span>
-                </div>
-                <div className="flex flex-col gap-1 px-4 py-2">
-                  <span className="label-small text-muted-foreground">Gårds- og bruksnummer</span>
-                  <span className="body-large text-foreground">Gårdsnr. 92, bruksnr. 1</span>
-                </div>
-              </div>
-            )}
+          {/* Hovedkontaktinformasjon */}
+          <div className="flex flex-col gap-1 px-4 py-1">
+            <span className="label-small text-muted-foreground">Hovedkontaktinformasjon</span>
+            <div className="body-large text-foreground">
+              <p>98 76 54 32</p>
+            </div>
           </div>
+
+          {/* Details Section - REMOVED - Moved to Kontaktinformasjon tab */}
         </div>
 
         {/* Revision Details Card - Right Section with Background - Fixed width and height on desktop, max 800px */}
@@ -744,12 +718,29 @@ export function PlanleggRevisjonPage() {
 
           {activeTab === 'kontaktinformasjon' && (
             <div className="flex-1 overflow-auto relative">
+              {/* Foretaksinformasjon Section - Above table */}
+              <div className="px-10 py-6 border-b border-border">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="label-small text-muted-foreground">Organisasjonsnummer</span>
+                    <span className="body-large text-foreground">4204015467</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="label-small text-muted-foreground">Produksentnummer</span>
+                    <span className="body-large text-foreground">4204015467</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="label-small text-muted-foreground">Gårds- og bruksnummer</span>
+                    <span className="body-large text-foreground">Gårdsnr. 92, bruksnr. 1</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Contact Info Table */}
               <table className="w-full">
                 <thead className="bg-surface-container-low sticky top-0 z-10">
                   <tr className="border-b border-border">
-                    <th className="px-10 py-2 text-left bg-surface-container-low w-64">
-                      <span className="label-medium text-foreground">Område</span>
+                    <th className="px-10 py-2 text-left bg-surface-container-low w-64"><span className="label-medium text-foreground">Kontaktinformasjon</span>
                     </th>
                     <th className="px-4 py-2 text-left bg-surface-container-low w-48">
                       <span className="label-medium text-foreground">Navn</span>

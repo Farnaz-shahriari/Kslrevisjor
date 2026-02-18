@@ -57,7 +57,7 @@ function ImprovementPointDetail({
       </div>
       
       {/* Question Text */}
-      <p className="label-large text-foreground">{point.questionText}</p>
+      <p className="label-large text-foreground">{point.questionNumber} {point.questionText}</p>
 
       {/* Krav & Veileder Section */}
       {questionInfo && (
@@ -156,75 +156,67 @@ function ImprovementPointDetail({
       {/* Tab Content */}
       {activeTab === 'observasjoner' && (
         <div className="flex flex-col gap-2 w-full">
-          {/* Forbedringspunkter Card */}
-          <div className="relative rounded-[var(--radius)] w-full border border-border">
-            <div className="flex flex-col gap-2 p-4 w-full">
-              {/* Header */}
-              <div className="flex items-center gap-4 min-h-14 w-full">
-                <Lightbulb className="w-6 h-6 text-muted-foreground" />
-                <div className="flex flex-col flex-1">
-                  <span className="body-large text-foreground">Forbedringspunkter</span>
-                  <span className="body-medium text-muted-foreground">Anbefalinger for videre forbedring</span>
+          {/* Forbedringspunkter Card - Only show if type is improvement */}
+          {point.type === 'improvement' && (
+            <div className="relative rounded-[var(--radius)] w-full border border-border">
+              <div className="flex flex-col gap-2 p-4 w-full">
+                {/* Header */}
+                <div className="flex items-center gap-4 min-h-14 w-full">
+                  <Lightbulb className="w-6 h-6 text-muted-foreground" />
+                  <div className="flex flex-col flex-1">
+                    <span className="body-large text-foreground">Forbedringspunkter</span>
+                    <span className="body-medium text-muted-foreground">Anbefalinger for videre forbedring</span>
+                  </div>
                 </div>
+
+                {/* Text Content */}
+                {point.improvementText ? (
+                  <div className="px-4">
+                    <p className="body-large text-foreground m-0">
+                      {point.improvementText}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="px-4">
+                    <p className="body-large text-muted-foreground m-0 italic">
+                      Ingen forbedringspunkter registrert
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {/* Text Content - Only show if type is improvement */}
-              {point.type === 'improvement' && point.improvementText ? (
-                <div className="px-4">
-                  <p className="body-large text-foreground m-0">
-                    {point.improvementText}
-                  </p>
-                </div>
-              ) : (
-                <div className="px-4">
-                  <p className="body-large text-muted-foreground m-0 italic">
-                    Ingen forbedringspunkter registrert
-                  </p>
-                </div>
-              )}
-
-              {/* Upload Button */}
-              <button className="flex items-center justify-center gap-2 h-12 px-6 rounded-full hover:bg-muted transition-colors">
-                <Upload className="w-5 h-5 text-primary" />
-                <span className="label-medium text-primary">Last opp bilde</span>
-              </button>
             </div>
-          </div>
+          )}
 
-          {/* Positive observasjoner Card */}
-          <div className="relative rounded-[var(--radius)] w-full border border-border">
-            <div className="flex flex-col gap-2 p-4 w-full">
-              {/* Header */}
-              <div className="flex items-center gap-4 min-h-14 w-full">
-                <SmilePlus className="w-6 h-6 text-muted-foreground" />
-                <div className="flex flex-col flex-1">
-                  <span className="body-large text-foreground">Positive observasjoner</span>
-                  <span className="body-medium text-muted-foreground">Tydelige funn som viser god praksis</span>
+          {/* Positive observasjoner Card - Only show if type is positive */}
+          {point.type === 'positive' && (
+            <div className="relative rounded-[var(--radius)] w-full border border-border">
+              <div className="flex flex-col gap-2 p-4 w-full">
+                {/* Header */}
+                <div className="flex items-center gap-4 min-h-14 w-full">
+                  <SmilePlus className="w-6 h-6 text-muted-foreground" />
+                  <div className="flex flex-col flex-1">
+                    <span className="body-large text-foreground">Positive observasjoner</span>
+                    <span className="body-medium text-muted-foreground">Tydelige funn som viser god praksis</span>
+                  </div>
                 </div>
+
+                {/* Text Content */}
+                {point.positiveText ? (
+                  <div className="px-4">
+                    <p className="body-large text-foreground m-0">
+                      {point.positiveText}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="px-4">
+                    <p className="body-large text-muted-foreground m-0 italic">
+                      Ingen positive observasjoner registrert
+                    </p>
+                  </div>
+                )}
               </div>
-
-              {/* Text Content - Only show if type is positive */}
-              {point.type === 'positive' && point.positiveText ? (
-                <div className="px-4">
-                  <p className="body-large text-foreground m-0">
-                    {point.positiveText}
-                  </p>
-                </div>
-              ) : (
-                <div className="px-4">
-                  <p className="body-large text-muted-foreground m-0 italic">
-                    Ingen positive observasjoner registrert
-                  </p>
-                </div>
-              )}
-
-              {/* Upload Button */}
-              <button className="flex items-center justify-center gap-2 h-12 px-6 rounded-full hover:bg-muted transition-colors">
-                <Upload className="w-5 h-5 text-primary" />
-                <span className="label-medium text-primary">Last opp bilde</span>
-              </button>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -388,7 +380,7 @@ export function PreviousRevisionImprovementPoints({ improvementPoints }: Previou
 
         {/* Detail Panel - Desktop only */}
         {selectedPoint && (
-          <div className="w-[400px] h-full flex flex-col bg-background overflow-y-auto">
+          <div className="w-[520px] h-full flex flex-col bg-background overflow-y-auto">
             <ImprovementPointDetail 
               point={selectedPoint} 
               activeTab={activeTab}

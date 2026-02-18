@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
-import { ChevronLeft, Search, List, MapPin, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, Search, List, MapPin, SlidersHorizontal, Table } from 'lucide-react';
 import { MaterialCheckbox } from './ui/material-checkbox';
 import { DatePicker } from './ui/date-picker';
 import { formatNorwegianDate } from '../utils/dateFormat';
@@ -41,7 +41,7 @@ interface TildelteRevisjonerPageProps {
 
 export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPageProps) {
   const [showingMenu, setShowingMenu] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list'); // New state for view toggle
+  const [viewMode, setViewMode] = useState<'list' | 'map' | 'table'>('list'); // Updated to include 'table'
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set()); // Track accepted revisjoner
   const [searchFilters, setSearchFilters] = useState<TildeltRevisjonSearchFilters>({});
   const [selectedRevisjonstyper, setSelectedRevisjonstyper] = useState<string[]>([]);
@@ -50,6 +50,7 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
   const [selectedKommune, setSelectedKommune] = useState<string[]>([]);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const [sortBy, setSortBy] = useState<'akseptfrist' | 'revisjonsfrist' | 'ordning' | 'revisjonstype'>('akseptfrist');
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false); // New state for toggling advanced search
   
   // Date range states
   const [akseptfristFrom, setAkseptfristFrom] = useState<Date | null>(new Date('2025-01-01'));
@@ -305,13 +306,21 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
   return (
     <div className="flex h-full w-full overflow-hidden flex-col bg-background">
       {/* Header with title */}
-      <div className="flex flex-col border-b border-[var(--border)] bg-background">
+      <div className="flex flex-col bg-background">
         {/* Title */}
-        <div className="px-6 pt-6 pb-4">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <h2 className="headline-small text-foreground">Tildelte Revisjoner</h2>
+          
+          {/* Avansert søk button - Desktop only */}
+          <Button
+            variant="secondary"
+            onClick={() => setIsAdvancedSearchOpen(!isAdvancedSearchOpen)}
+            className="max-[1400px]:hidden"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+            Avansert søk
+          </Button>
         </div>
-
-        {/* Divider after title (no tabs for now) */}
       </div>
 
       {/* Main content area with advanced search and content */}
@@ -426,206 +435,220 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
           </div>
         )}
 
-        {/* DESKTOP: Advanced Search - Always visible */}
-        <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
-          <div className="flex-1 overflow-y-auto">
-            {/* Search field */}
-            <div className="px-4 py-4">
-              <div className="relative">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                  <Search className="w-5 h-5 text-muted-foreground" />
+        {/* DESKTOP: Advanced Search - Conditionally visible */}
+        {isAdvancedSearchOpen && (
+          <div className="max-[1400px]:hidden w-[320px] h-full flex flex-col border-r border-[var(--border)] bg-background overflow-hidden">
+            {/* Close button at the top */}
+            <div className="px-4 py-4 border-b border-[var(--border)]">
+              <Button 
+                variant="tertiary"
+                onClick={() => setIsAdvancedSearchOpen(false)}
+                className="w-full justify-start"
+              >
+                <ChevronLeft className="w-5 h-5 mr-2" />
+                Lukk søkepanel
+              </Button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {/* Search field */}
+              <div className="px-4 py-4">
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <Search className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Søk foretak, kommune, etc."
+                    className="w-full h-14 pl-12 pr-4 rounded-[28px] bg-muted border-none body-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
-                <input
-                  type="text"
-                  placeholder="Søk foretak, kommune, etc."
-                  className="w-full h-14 pl-12 pr-4 rounded-[28px] bg-muted border-none body-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
               </div>
-            </div>
 
-            {/* Divider */}
-            <div className="px-4">
-              <div className="h-px bg-[var(--border)]" />
-            </div>
-
-            {/* Revisjonstype section */}
-            <div className="px-4 py-4">
-              <h3 className="label-medium text-foreground mb-2">Revisjonstype</h3>
-              <div className="flex flex-col gap-1">
-                {[
-                  { value: 'prioritert-revisjon', label: 'Prioritert revisjon', count: 8 },
-                  { value: 'oppfolging-gyldig-ksl', label: 'Oppfølging gyldig KSL', count: 5 },
-                  { value: 'ordinar', label: 'Ordinær', count: 15 },
-                ].map((item) => (
-                  <div
-                    key={item.value}
-                    className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
-                  >
-                    <MaterialCheckbox
-                      checked={selectedRevisjonstyper.includes(item.value)}
-                      onChange={(checked) => {
-                        const newList = checked
-                          ? [...selectedRevisjonstyper, item.value]
-                          : selectedRevisjonstyper.filter(s => s !== item.value);
-                        setSelectedRevisjonstyper(newList);
-                      }}
-                      label={`${item.label} (${item.count})`}
-                    />
-                  </div>
-                ))}
+              {/* Divider */}
+              <div className="px-4">
+                <div className="h-px bg-[var(--border)]" />
               </div>
-            </div>
 
-            {/* Divider */}
-            <div className="px-4">
-              <div className="h-px bg-[var(--border)]" />
-            </div>
-
-            {/* Ordning section - MOVED ABOVE Produksjon */}
-            <div className="px-4 py-4">
-              <h3 className="label-medium text-foreground mb-2">Ordning</h3>
-              <div className="flex flex-col gap-1">
-                {[
-                  { value: 'ksl', label: 'KSL', count: 12 },
-                  { value: 'nyt-norge', label: 'Nyt Norge', count: 6 },
-                  { value: 'lokalmat', label: 'LokalMat', count: 8 },
-                  { value: 'spesialitet', label: 'Spesialitet', count: 4 },
-                ].map((item) => (
-                  <div
-                    key={item.value}
-                    className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
-                  >
-                    <MaterialCheckbox
-                      checked={selectedOrdning?.includes(item.value) || false}
-                      onChange={(checked) => {
-                        const newList = checked
-                          ? [...(selectedOrdning || []), item.value]
-                          : (selectedOrdning || []).filter(s => s !== item.value);
-                        setSelectedOrdning(newList);
-                      }}
-                      label={`${item.label} (${item.count})`}
-                    />
-                  </div>
-                ))}
+              {/* Revisjonstype section */}
+              <div className="px-4 py-4">
+                <h3 className="label-medium text-foreground mb-2">Revisjonstype</h3>
+                <div className="flex flex-col gap-1">
+                  {[
+                    { value: 'prioritert-revisjon', label: 'Prioritert revisjon', count: 8 },
+                    { value: 'oppfolging-gyldig-ksl', label: 'Oppfølging gyldig KSL', count: 5 },
+                    { value: 'ordinar', label: 'Ordinær', count: 15 },
+                  ].map((item) => (
+                    <div
+                      key={item.value}
+                      className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
+                    >
+                      <MaterialCheckbox
+                        checked={selectedRevisjonstyper.includes(item.value)}
+                        onChange={(checked) => {
+                          const newList = checked
+                            ? [...selectedRevisjonstyper, item.value]
+                            : selectedRevisjonstyper.filter(s => s !== item.value);
+                          setSelectedRevisjonstyper(newList);
+                        }}
+                        label={`${item.label} (${item.count})`}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Divider */}
-            <div className="px-4">
-              <div className="h-px bg-[var(--border)]" />
-            </div>
-
-            {/* Akseptfrist section - MOVED UNDER Ordning */}
-            <div className="px-4 py-4">
-              <h3 className="label-medium text-foreground mb-2">Akseptfrist</h3>
-              <div className="flex flex-col gap-6">
-                <DatePicker
-                  label="Fra og med"
-                  value={akseptfristFrom}
-                  onChange={setAkseptfristFrom}
-                />
-                <DatePicker
-                  label="Til og med"
-                  value={akseptfristTo}
-                  onChange={setAkseptfristTo}
-                />
+              {/* Divider */}
+              <div className="px-4">
+                <div className="h-px bg-[var(--border)]" />
               </div>
-            </div>
 
-            {/* Divider */}
-            <div className="px-4">
-              <div className="h-px bg-[var(--border)]" />
-            </div>
-
-            {/* Revisjonsfrist section - MOVED UNDER Akseptfrist */}
-            <div className="px-4 py-4">
-              <h3 className="label-medium text-foreground mb-2">Revisjonsfrist</h3>
-              <div className="flex flex-col gap-6">
-                <DatePicker
-                  label="Fra og med"
-                  value={revisjonsfristFrom}
-                  onChange={setRevisjonsfristFrom}
-                />
-                <DatePicker
-                  label="Til og med"
-                  value={revisjonsfristTo}
-                  onChange={setRevisjonsfristTo}
-                />
+              {/* Ordning section - MOVED ABOVE Produksjon */}
+              <div className="px-4 py-4">
+                <h3 className="label-medium text-foreground mb-2">Ordning</h3>
+                <div className="flex flex-col gap-1">
+                  {[
+                    { value: 'ksl', label: 'KSL', count: 12 },
+                    { value: 'nyt-norge', label: 'Nyt Norge', count: 6 },
+                    { value: 'lokalmat', label: 'LokalMat', count: 8 },
+                    { value: 'spesialitet', label: 'Spesialitet', count: 4 },
+                  ].map((item) => (
+                    <div
+                      key={item.value}
+                      className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
+                    >
+                      <MaterialCheckbox
+                        checked={selectedOrdning?.includes(item.value) || false}
+                        onChange={(checked) => {
+                          const newList = checked
+                            ? [...(selectedOrdning || []), item.value]
+                            : (selectedOrdning || []).filter(s => s !== item.value);
+                          setSelectedOrdning(newList);
+                        }}
+                        label={`${item.label} (${item.count})`}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Divider */}
-            <div className="px-4">
-              <div className="h-px bg-[var(--border)]" />
-            </div>
-
-            {/* Produksjon section - MOVED BELOW date sections */}
-            <div className="px-4 py-4">
-              <h3 className="label-medium text-foreground mb-2">Produksjon</h3>
-              <div className="flex flex-col gap-1">
-                {[
-                  { value: 'sau', label: 'Sau', count: 9 },
-                  { value: 'geit', label: 'Geit', count: 5 },
-                  { value: 'korn-fro-olje-belgvekster', label: 'Korn, frø, olje- og belgvekster', count: 7 },
-                  { value: 'grovfor', label: 'Grovfôr', count: 14 },
-                  { value: 'storfe', label: 'Storfe', count: 11 },
-                ].map((item) => (
-                  <div
-                    key={item.value}
-                    className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
-                  >
-                    <MaterialCheckbox
-                      checked={selectedProduksjon?.includes(item.value) || false}
-                      onChange={(checked) => {
-                        const newList = checked
-                          ? [...(selectedProduksjon || []), item.value]
-                          : (selectedProduksjon || []).filter(s => s !== item.value);
-                        setSelectedProduksjon(newList);
-                      }}
-                      label={`${item.label} (${item.count})`}
-                    />
-                  </div>
-                ))}
+              {/* Divider */}
+              <div className="px-4">
+                <div className="h-px bg-[var(--border)]" />
               </div>
-            </div>
 
-            {/* Divider */}
-            <div className="px-4">
-              <div className="h-px bg-[var(--border)]" />
-            </div>
+              {/* Akseptfrist section - MOVED UNDER Ordning */}
+              <div className="px-4 py-4">
+                <h3 className="label-medium text-foreground mb-2">Akseptfrist</h3>
+                <div className="flex flex-col gap-6">
+                  <DatePicker
+                    label="Fra og med"
+                    value={akseptfristFrom}
+                    onChange={setAkseptfristFrom}
+                  />
+                  <DatePicker
+                    label="Til og med"
+                    value={akseptfristTo}
+                    onChange={setAkseptfristTo}
+                  />
+                </div>
+              </div>
 
-            {/* Kommune section - AT THE END */}
-            <div className="px-4 py-4">
-              <h3 className="label-medium text-foreground mb-2">Kommune</h3>
-              <div className="flex flex-col gap-1">
-                {[
-                  { value: 'oslo', label: 'Oslo', count: 8 },
-                  { value: 'bergen', label: 'Bergen', count: 6 },
-                  { value: 'trondheim', label: 'Trondheim', count: 5 },
-                  { value: 'stavanger', label: 'Stavanger', count: 4 },
-                  { value: 'drammen', label: 'Drammen', count: 3 },
-                  { value: 'fredrikstad', label: 'Fredrikstad', count: 4 },
-                ].map((item) => (
-                  <div
-                    key={item.value}
-                    className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
-                  >
-                    <MaterialCheckbox
-                      checked={selectedKommune?.includes(item.value) || false}
-                      onChange={(checked) => {
-                        const newList = checked
-                          ? [...(selectedKommune || []), item.value]
-                          : (selectedKommune || []).filter(s => s !== item.value);
-                        setSelectedKommune(newList);
-                      }}
-                      label={`${item.label} (${item.count})`}
-                    />
-                  </div>
-                ))}
+              {/* Divider */}
+              <div className="px-4">
+                <div className="h-px bg-[var(--border)]" />
+              </div>
+
+              {/* Revisjonsfrist section - MOVED UNDER Akseptfrist */}
+              <div className="px-4 py-4">
+                <h3 className="label-medium text-foreground mb-2">Revisjonsfrist</h3>
+                <div className="flex flex-col gap-6">
+                  <DatePicker
+                    label="Fra og med"
+                    value={revisjonsfristFrom}
+                    onChange={setRevisjonsfristFrom}
+                  />
+                  <DatePicker
+                    label="Til og med"
+                    value={revisjonsfristTo}
+                    onChange={setRevisjonsfristTo}
+                  />
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="px-4">
+                <div className="h-px bg-[var(--border)]" />
+              </div>
+
+              {/* Produksjon section - MOVED BELOW date sections */}
+              <div className="px-4 py-4">
+                <h3 className="label-medium text-foreground mb-2">Produksjon</h3>
+                <div className="flex flex-col gap-1">
+                  {[
+                    { value: 'sau', label: 'Sau', count: 9 },
+                    { value: 'geit', label: 'Geit', count: 5 },
+                    { value: 'korn-fro-olje-belgvekster', label: 'Korn, frø, olje- og belgvekster', count: 7 },
+                    { value: 'grovfor', label: 'Grovfôr', count: 14 },
+                    { value: 'storfe', label: 'Storfe', count: 11 },
+                  ].map((item) => (
+                    <div
+                      key={item.value}
+                      className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
+                    >
+                      <MaterialCheckbox
+                        checked={selectedProduksjon?.includes(item.value) || false}
+                        onChange={(checked) => {
+                          const newList = checked
+                            ? [...(selectedProduksjon || []), item.value]
+                            : (selectedProduksjon || []).filter(s => s !== item.value);
+                          setSelectedProduksjon(newList);
+                        }}
+                        label={`${item.label} (${item.count})`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="px-4">
+                <div className="h-px bg-[var(--border)]" />
+              </div>
+
+              {/* Kommune section - AT THE END */}
+              <div className="px-4 py-4">
+                <h3 className="label-medium text-foreground mb-2">Kommune</h3>
+                <div className="flex flex-col gap-1">
+                  {[
+                    { value: 'oslo', label: 'Oslo', count: 8 },
+                    { value: 'bergen', label: 'Bergen', count: 6 },
+                    { value: 'trondheim', label: 'Trondheim', count: 5 },
+                    { value: 'stavanger', label: 'Stavanger', count: 4 },
+                    { value: 'drammen', label: 'Drammen', count: 3 },
+                    { value: 'fredrikstad', label: 'Fredrikstad', count: 4 },
+                  ].map((item) => (
+                    <div
+                      key={item.value}
+                      className="h-14 px-4 flex items-center hover:bg-muted rounded-[var(--radius)] transition-colors"
+                    >
+                      <MaterialCheckbox
+                        checked={selectedKommune?.includes(item.value) || false}
+                        onChange={(checked) => {
+                          const newList = checked
+                            ? [...(selectedKommune || []), item.value]
+                            : (selectedKommune || []).filter(s => s !== item.value);
+                          setSelectedKommune(newList);
+                        }}
+                        label={`${item.label} (${item.count})`}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Vertical Divider - Desktop only */}
         <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
@@ -633,21 +656,22 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
         {/* MOBILE/TABLET & DESKTOP: Main Content Area */}
         <div className={`flex-1 h-full flex-col ${showingMenu ? 'max-[1400px]:hidden' : 'max-[1400px]:flex'} min-[1400px]:flex max-[1400px]:w-full`}>
           {/* Main content - Placeholder for list of tildelte revisjoner */}
-          <div className="flex-1 overflow-y-auto px-4 pt-2 pr-10 min-[1500px]:pr-[200px]">
+          <div className="flex-1 overflow-y-auto px-0 pt-2  ">
             {/* Sorting and Bulk Actions Bar */}
-            <div className="flex items-center justify-between gap-4 py-0 mb-2 flex-wrap max-w-[1040px]">
+            <div className="flex w-full items-center justify-between gap-4 px-6 py-0 mb-2 flex-wrap">
+
               {/* LEFT GROUP: View toggle + Bulk action */}
               <div className="flex items-center gap-4 flex-wrap">
-                {/* View Mode Toggle - Liste/Kart - FIRST */}
+                {/* View Mode Toggle - Liste/Kart/Tabell - FIRST */}
                 <div className="flex gap-[2px] overflow-clip rounded-2xl">
                   {/* Liste button */}
                   <button
                     onClick={() => setViewMode('list')}
                     className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
                       viewMode === 'list'
-                        ? 'bg-[#365bae] rounded-l-2xl'
-                        : 'bg-[#dae2ff] rounded-l'
-                    }`}
+                        ? 'bg-[#365bae]'
+                        : 'bg-[#dae2ff]'
+                    } rounded-l-2xl`}
                   >
                     <List className={`w-6 h-6 ${viewMode === 'list' ? 'text-white' : 'text-[#174295]'}`} />
                     <span className={`label-medium ${viewMode === 'list' ? 'text-white' : 'text-[#174295]'}`}>
@@ -660,13 +684,28 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
                     onClick={() => setViewMode('map')}
                     className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
                       viewMode === 'map'
-                        ? 'bg-[#365bae] rounded-r-2xl'
-                        : 'bg-[#dae2ff] rounded-r'
+                        ? 'bg-[#365bae]'
+                        : 'bg-[#dae2ff]'
                     }`}
                   >
                     <MapPin className={`w-6 h-6 ${viewMode === 'map' ? 'text-white' : 'text-[#174295]'}`} />
                     <span className={`label-medium ${viewMode === 'map' ? 'text-white' : 'text-[#174295]'}`}>
                       Kart
+                    </span>
+                  </button>
+
+                  {/* Tabell button */}
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`flex items-center justify-center gap-2 px-6 py-4 min-w-[48px] transition-colors ${
+                      viewMode === 'table'
+                        ? 'bg-[#365bae]'
+                        : 'bg-[#dae2ff]'
+                    } rounded-r-2xl`}
+                  >
+                    <Table className={`w-6 h-6 ${viewMode === 'table' ? 'text-white' : 'text-[#174295]'}`} />
+                    <span className={`label-medium ${viewMode === 'table' ? 'text-white' : 'text-[#174295]'}`}>
+                      Tabell
                     </span>
                   </button>
                 </div>
@@ -679,8 +718,8 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
                 </div>
               </div>
               
-              {/* RIGHT GROUP: Sorting + Filter button - only show in list view */}
-              {viewMode === 'list' && (
+              {/* RIGHT GROUP: Sorting + Filter button - only show in list and table view */}
+              {(viewMode === 'list' || viewMode === 'table') && (
                 <div className="flex items-center gap-4 min-w-0 relative">
                   {/* \"Filtrer listen\" button - Mobile/Tablet only */}
                   <Button 
@@ -764,13 +803,181 @@ export function TildelteRevisjonerPage({ onRevisionClick }: TildelteRevisjonerPa
               )}
             </div>
             
-            {/* Conditional rendering: List or Map view */}
+            {/* Conditional rendering: List, Table, or Map view */}
             {viewMode === 'list' ? (
               /* Cards list */
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col px-6 gap-1">
                 {getSortedRevisjoner().map((revisjon) => (
                   <TildeltRevisjonCard key={revisjon.id} revisjon={revisjon} />
                 ))}
+              </div>
+            ) : viewMode === 'table' ? (
+              /* Table view - Full width */
+              <div className="w-full px-0">
+                <table className="w-full">
+                  <thead className="bg-surface-container-low sticky top-0 z-10">
+                    <tr className="border-b border-[var(--border)]">
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Foretak</span>
+                      </th>
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Akseptfrist</span>
+                      </th>
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Revisjonsfrist</span>
+                      </th>
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Adresse</span>
+                      </th>
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Kommune</span>
+                      </th>
+                      <th className="px-6 py-3 text-left max-[768px]:hidden">
+                        <span className="label-medium">Type</span>
+                      </th>
+                      <th className="px-6 py-3 text-right max-[768px]:hidden">
+                        <span className="label-medium">Handling</span>
+                      </th>
+                      {/* Mobile: Single column header */}
+                      <th className="px-6 py-3 text-left min-[768px]:hidden">
+                        <span className="label-medium">Tildelte revisjoner</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getSortedRevisjoner().map((revisjon) => (
+                      <tr key={revisjon.id} className="border-b border-[var(--border)] hover:bg-muted cursor-pointer">
+                        {/* Desktop: Multiple columns */}
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">{revisjon.foretakName}</span>
+                        </td>
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">{formatNorwegianDate(revisjon.visitDate)}</span>
+                        </td>
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">{revisjon.revisjonData.revisjonsfrist}</span>
+                        </td>
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">{revisjon.revisjonData.address}</span>
+                        </td>
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <span className="body-medium text-foreground">{revisjon.revisjonData.kommune}</span>
+                        </td>
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          {/* Type chip - Show only ONE or NONE */}
+                          {revisjon.revisjonData.isPriority ? (
+                            <div className="bg-[var(--error-container)] h-[32px] relative rounded-[8px] shrink-0 inline-block">
+                              <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                                <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                                  <div className="label-medium text-[var(--error-container-foreground)]">
+                                    Prioritert
+                                  </div>
+                                </div>
+                              </div>
+                              <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[8px]" />
+                            </div>
+                          ) : revisjon.revisjonData.isOppfolgingGyldigKSL ? (
+                            <div className="bg-[var(--l-avvik-container)] h-[32px] relative rounded-[8px] shrink-0 inline-block">
+                              <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                                <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                                  <div className="label-medium text-[var(--on-l-avvik-container)]">
+                                    Oppfølging gyldig KSL
+                                  </div>
+                                </div>
+                              </div>
+                              <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[8px]" />
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-6 py-4 max-[768px]:hidden">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button 
+                              variant="tertiary"
+                              onClick={() => handleReject(revisjon.id)}
+                              className="h-10"
+                            >
+                              Avvis
+                            </Button>
+                            <Button 
+                              variant="secondary"
+                              onClick={() => handleAccept(revisjon.id)}
+                              className="h-10"
+                            >
+                              Aksepter
+                            </Button>
+                          </div>
+                        </td>
+
+                        {/* Mobile: Responsive column */}
+                        <td className="px-6 py-4 min-[768px]:hidden">
+                          <div className="flex flex-col gap-2">
+                            {/* Line 1: Chips and short info */}
+                            <div className="flex flex-row items-center gap-1 flex-wrap">
+                              {/* Type chip - Show only ONE or NONE */}
+                              {revisjon.revisjonData.isPriority ? (
+                                <div className="bg-[var(--error-container)] h-[32px] relative rounded-[8px] shrink-0">
+                                  <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                                    <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                                      <div className="label-medium text-[var(--error-container-foreground)]">
+                                        Prioritert
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[8px]" />
+                                </div>
+                              ) : revisjon.revisjonData.isOppfolgingGyldigKSL ? (
+                                <div className="bg-[var(--l-avvik-container)] h-[32px] relative rounded-[8px] shrink-0">
+                                  <div className="content-stretch flex h-full items-center justify-center overflow-clip relative rounded-[inherit]">
+                                    <div className="content-stretch flex h-[32px] items-center justify-center px-[16px] py-[6px] relative shrink-0">
+                                      <div className="label-medium text-[var(--on-l-avvik-container)]">
+                                        Oppfølging gyldig KSL
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[8px]" />
+                                </div>
+                              ) : null}
+                              <span className="label-small text-muted-foreground">
+                                {revisjon.revisjonData.kommune}
+                              </span>
+                              <span className="label-small text-muted-foreground">
+                                Akseptfrist: {formatNorwegianDate(revisjon.visitDate)}
+                              </span>
+                            </div>
+                            
+                            {/* Line 2: Foretak name */}
+                            <span className="body-medium text-foreground font-semibold">
+                              {revisjon.foretakName}
+                            </span>
+                            
+                            {/* Line 3: Address */}
+                            <span className="body-medium text-muted-foreground">
+                              {revisjon.revisjonData.address}
+                            </span>
+
+                            {/* Line 4: Action buttons */}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Button 
+                                variant="tertiary"
+                                onClick={() => handleReject(revisjon.id)}
+                                className="h-10 flex-1"
+                              >
+                                Avvis
+                              </Button>
+                              <Button 
+                                variant="secondary"
+                                onClick={() => handleAccept(revisjon.id)}
+                                className="h-10 flex-1"
+                              >
+                                Aksepter
+                              </Button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
               /* Map view */

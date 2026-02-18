@@ -180,6 +180,16 @@ export function DatePicker({
     );
   };
 
+  // Check if current value is the recommended date
+  const isValueRecommended = () => {
+    if (!value || !recommendedDate) return false;
+    return (
+      value.getDate() === recommendedDate.getDate() &&
+      value.getMonth() === recommendedDate.getMonth() &&
+      value.getFullYear() === recommendedDate.getFullYear()
+    );
+  };
+
   const isDisabled = (day: number) => {
     if (!maxDate) return false;
     const date = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
@@ -199,7 +209,7 @@ export function DatePicker({
   const days = generateCalendar();
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative max-w-[400px] ${className}`}>
       {/* Input field */}
       <div className="relative">
         <label className="block mb-1.5">
@@ -215,14 +225,21 @@ export function DatePicker({
               : 'border-border hover:border-foreground'
           }`}
         >
-          <input
-            type="text"
-            value={inputValue}
-            onChange={handleInputChange}
-            onFocus={() => setIsOpen(true)}
-            placeholder={placeholder}
-            className="flex-1 body-large text-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground"
-          />
+          <div className="flex-1 flex items-center gap-2">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              onFocus={() => setIsOpen(true)}
+              placeholder={placeholder}
+              className="flex-1 body-large text-foreground bg-transparent border-none outline-none placeholder:text-muted-foreground"
+            />
+            {isValueRecommended() && (
+              <span className="label-small text-muted-foreground whitespace-nowrap">
+                Anbefalt lukke frist
+              </span>
+            )}
+          </div>
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}

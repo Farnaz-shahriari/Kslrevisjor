@@ -36,6 +36,7 @@ interface WriteReportPageProps {
   deviationsLocked?: boolean;
   onLockReport?: () => void; // New callback to lock the report
   reportLocked?: boolean; // New prop to track if report is locked
+  onBottomSheetOpenChange?: (isOpen: boolean) => void; // Callback to track bottom sheet state
 }
 
 export function WriteReportPage({ 
@@ -47,7 +48,8 @@ export function WriteReportPage({
   onLockDeviations,
   deviationsLocked,
   onLockReport,
-  reportLocked = false
+  reportLocked = false,
+  onBottomSheetOpenChange
 }: WriteReportPageProps) {
   // Check if desktop (≥1400px) - only auto-select on desktop, not mobile
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1400;
@@ -193,25 +195,104 @@ export function WriteReportPage({
       id: 'imp-1',
       questionNumber: '1.1.1',
       questionText: 'Har du oversikt over alle driftsmidler du har kjøpt, og alle produkter du har solgt?',
-      improvementText: 'Det mangler rutiner for registrering av fôrtype og mengde som brukes i ulike produksjonsperioder.',
+      improvementText: 'Det mangler rutiner for registrering av fôrtype og mengde som brukes i ulike produksjonsperioder. Anbefaler å opprette en digital logg for bedre sporbarhet.',
+      type: 'improvement' as const,
       date: '15. sep. 2024',
-      revisionType: 'Egenrevisjon'
+      revisionType: 'Eksternrevisjon'
     },
     {
       id: 'imp-2',
       questionNumber: '1.1.4',
       questionText: 'Er utstyr som krever det, kontrollert og sertifisert i tråd med forskrifter?',
-      improvementText: 'Planen for håndtering av sykdomsutbrudd eller dyretragedier er utdatert og bør revideres.',
+      improvementText: 'Planen for håndtering av sykdomsutbrudd eller dyretragedier er utdatert og bør revideres. Foreslår å oppdatere planen med kontaktinformasjon til veterinær og lokal mattilsyn.',
+      type: 'improvement' as const,
       date: '15. sep. 2024',
-      revisionType: 'Egenrevisjon'
+      revisionType: 'Eksternrevisjon'
     },
     {
       id: 'imp-3',
       questionNumber: '1.1.2',
       questionText: 'Noterer du gjødselmengdene som brukes?',
-      improvementText: 'Enkelte dyr mangler synlig eller korrekt merking; rutiner for kontroll av øremerker kan forbedres.',
+      improvementText: 'Enkelte dyr mangler synlig eller korrekt merking; rutiner for kontroll av øremerker kan forbedres. Vurder å innføre ukentlig kontroll av alle dyr.',
+      type: 'improvement' as const,
       date: '15. sep. 2024',
-      revisionType: 'Egenrevisjon'
+      revisionType: 'Eksternrevisjon'
+    },
+    {
+      id: 'imp-4',
+      questionNumber: '1.3.5',
+      questionText: 'Har du kontrollert gjødsellageret de siste 12 månedene?',
+      improvementText: 'Gjødsellageret kunne vært bedre organisert for å redusere risiko for lekkasje. Anbefaler å installere drenering og tettere inspeksjonsrunder.',
+      type: 'improvement' as const,
+      date: '15. sep. 2024',
+      revisionType: 'Eksternrevisjon'
+    },
+    {
+      id: 'imp-5',
+      questionNumber: '1.5.1',
+      questionText: 'Kan du dokumentere at plantevernmidler kun brukes av autorisert personell?',
+      improvementText: 'Dokumentasjonen av kurs og sertifiseringer bør samles på ett sted for enklere tilgang ved revisjoner.',
+      type: 'improvement' as const,
+      date: '15. sep. 2024',
+      revisionType: 'Eksternrevisjon'
+    }
+  ];
+
+  // Mock data for positive observations from previous revisions
+  const positiveObservationsData = [
+    {
+      id: 'pos-1',
+      questionNumber: '1.2.1',
+      questionText: 'Har du en gyldig gjødslingsplan og skiftekart for året?',
+      positiveText: 'Gården har en veldig god og detaljert gjødslingsplan som er oppdatert og lett tilgjengelig. Skiftekart er digitalisert og inkluderer alle relevante detaljer.',
+      type: 'positive' as const,
+      date: '15. sep. 2024',
+      revisionType: 'Eksternrevisjon'
+    },
+    {
+      id: 'pos-2',
+      questionNumber: '1.3.1',
+      questionText: 'Er husdyrgjødsel kun spredt på dyrket jord eller godkjent innmarksbeite?',
+      positiveText: 'Utmerket praksis rundt spredning av husdyrgjødsel. Gården har klare rutiner og dokumentasjon som viser at all gjødsel håndteres i henhold til regelverket.',
+      type: 'positive' as const,
+      date: '15. sep. 2024',
+      revisionType: 'Eksternrevisjon'
+    },
+    {
+      id: 'pos-3',
+      questionNumber: '1.3.6',
+      questionText: 'Har du nok lagringskapasitet (min. 8 måneder)?',
+      positiveText: 'Gjødsellageret er i svært god stand med mer enn tilstrekkelig kapasitet. God planlegging og vedlikehold sikrer at det ikke oppstår problemer.',
+      type: 'positive' as const,
+      date: '15. sep. 2024',
+      revisionType: 'Eksternrevisjon'
+    },
+    {
+      id: 'pos-4',
+      questionNumber: '1.4.1',
+      questionText: 'Følger du gjeldende regelverk og bruksbegrensninger for slike materialer?',
+      positiveText: 'Meget god oversikt over alle regelverk. Gården har etablert gode rutiner for å holde seg oppdatert på endringer i forskrifter.',
+      type: 'positive' as const,
+      date: '15. sep. 2024',
+      revisionType: 'Eksternrevisjon'
+    },
+    {
+      id: 'pos-5',
+      questionNumber: '1.5.5',
+      questionText: 'Oppbevares plantevernmidler forsvarlig (avlåst, merket, og iht. etikettkrav)?',
+      positiveText: 'Plantevernmidler oppbevares på en eksemplarisk måte i et eget avlåst rom med god ventilasjon. All merking er korrekt og tydelig.',
+      type: 'positive' as const,
+      date: '15. sep. 2024',
+      revisionType: 'Eksternrevisjon'
+    },
+    {
+      id: 'pos-6',
+      questionNumber: '1.6.1',
+      questionText: 'Følger du opplysningsplikten for meldepliktige skadegjørere og floghavre?',
+      positiveText: 'Gården har gode rutiner for overvåking av skadegjørere og rapporterer raskt ved mistanke. Dette er viktig for å forhindre spredning.',
+      type: 'positive' as const,
+      date: '15. sep. 2024',
+      revisionType: 'Eksternrevisjon'
     }
   ];
 
@@ -1186,7 +1267,7 @@ export function WriteReportPage({
                             <div className="box-border content-stretch flex flex-col items-center justify-center px-[16px] py-[14px] relative size-full">
                               <div className="basis-0 content-stretch flex gap-[4px] grow items-center justify-center min-h-px min-w-px relative shrink-0" data-name="Tab Contents">
                                 <div className={`label-medium text-center ${previousRevisionTab === 'ekstern' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                  <p className="m-0 whitespace-pre">Ekstern revisjon</p>
+                                  <p className="m-0 whitespace-pre">Eksterne revisjoner</p>
                                 </div>
                               </div>
                               {previousRevisionTab === 'ekstern' && (
@@ -1205,7 +1286,7 @@ export function WriteReportPage({
                         <div className="basis-0 box-border content-stretch flex flex-col grow items-center justify-center min-h-px min-w-px overflow-clip px-[16px] py-[14px] relative shrink-0" data-name="State-layer">
                           <div className="basis-0 content-stretch flex gap-[4px] grow items-center justify-center min-h-px min-w-px relative shrink-0" data-name="Tab Contents">
                             <div className={`label-medium text-center ${previousRevisionTab === 'egen' ? 'text-foreground' : 'text-muted-foreground'}`}>
-                              <p className="m-0 whitespace-pre">Egenrevisjon</p>
+                              <p className="m-0 whitespace-pre">Egenrevisjoner</p>
                             </div>
                           </div>
                           {previousRevisionTab === 'egen' && (
@@ -1315,42 +1396,7 @@ export function WriteReportPage({
 
                 {/* Positive observasjoner tab */}
                 {previousRevisionTab === 'positive' && (
-                  <>
-                    {/* Table */}
-                    <PreviousRevisionTable
-                      questions={previousRevisionData[previousRevisionTab]}
-                      selectedQuestionId={selectedPreviousQuestion}
-                      onSelectQuestion={setSelectedPreviousQuestion}
-                    />
-
-                    {/* Vertical Divider - Desktop only */}
-                    <div className="w-px h-full bg-[var(--border)] max-[1400px]:hidden" />
-
-                    {/* Detail Panel - Desktop only */}
-                    {selectedPreviousQuestion && (() => {
-                      const question = previousRevisionData[previousRevisionTab].find(
-                        q => q.id === selectedPreviousQuestion
-                      );
-                      return question ? (
-                        <div className="bg-background flex flex-col overflow-hidden max-[1400px]:hidden min-[1400px]:flex" style={{ width: '520px' }}>
-                          <PreviousRevisionQuestionDetail
-                            questionNumber={question.questionNumber}
-                            questionText={question.questionText}
-                            answer={question.answer}
-                            notes={question.notes}
-                            date={question.date}
-                            revisionType={question.revisionType}
-                          />
-                        </div>
-                      ) : null;
-                    })()}
-                    
-                    {!selectedPreviousQuestion && (
-                      <div className="flex items-center justify-center bg-background max-[1400px]:hidden min-[1400px]:flex" style={{ width: '520px' }}>
-                        <p className="body-medium text-muted-foreground">Velg et spørsmål fra tabellen</p>
-                      </div>
-                    )}
-                  </>
+                  <PreviousRevisionImprovementPoints improvementPoints={positiveObservationsData} />
                 )}
               </div>
             </div>
@@ -1369,6 +1415,7 @@ export function WriteReportPage({
             onNavigateToDocument={onNavigateToDocument}
             deviationsLocked={deviationsLocked}
             initialFilter={svaroversiktInitialFilter}
+            onBottomSheetOpenChange={onBottomSheetOpenChange}
           />
         )}
 
@@ -1392,6 +1439,7 @@ export function WriteReportPage({
             onIsLockedChange={setAvvikIsLocked}
             closureData={avvikClosureData}
             onClosureDataChange={setAvvikClosureData}
+            onBottomSheetOpenChange={onBottomSheetOpenChange}
           />
         )}
 
