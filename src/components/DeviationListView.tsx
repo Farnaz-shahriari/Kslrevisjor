@@ -38,16 +38,13 @@ export function DeviationListView({
     }
   }, [deviations]);
 
-  // Check if a deviation is complete (all required fields filled)
+  // Check if a deviation is complete enough to allow adding another one
+  // Only requires severity and mangel to be filled
   const isDeviationComplete = (deviation: DeviationItem): boolean => {
     const hasSeverity = !!deviation.severity;
     const hasMangel = !!deviation.mangel && deviation.mangel.trim().length > 0;
-    const hasBevis = 
-      (!!deviation.bevis && deviation.bevis.trim().length > 0) ||
-      (!!deviation.bevisImages && deviation.bevisImages.length > 0);
-    const hasKrav = !!deviation.krav && deviation.krav.trim().length > 0;
 
-    return hasSeverity && hasMangel && hasBevis && hasKrav;
+    return hasSeverity && hasMangel;
   };
 
   // Check if we should show the "Add new deviation" button

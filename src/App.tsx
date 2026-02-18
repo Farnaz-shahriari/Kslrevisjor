@@ -64,12 +64,11 @@ export default function App() {
       answer: 'ja'
     },
     '1.1.3': { 
-      answer: 'ja', 
-      improvementText: 'Det anbefales å digitalisere dokumentasjonen for bedre sporbarhet og enklere tilgang. Vurder bruk av sky-basert dokumenthåndteringssystem.', 
-      improvementImages: [] 
+      // This question has a previous open avvik, so no pre-filled answer
+      // The QuestionView will auto-set to 'nei' when loaded
     },
     '1.1.4': { 
-      answer: 'ja'
+      // This question has an egenrevisjonsavvik (self-registered by producer), so no pre-filled answer
     },
     
     // Group 1.2 - Only 1 positive observation and 1 improvement point

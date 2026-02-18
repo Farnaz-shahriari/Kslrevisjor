@@ -1,16 +1,21 @@
-import { ChevronDown, ChevronLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { ObservationView } from './ObservationView';
 import { DeviationListView } from './DeviationListView';
+import { DeviationDetailPanel } from './DeviationDetailPanel';
 import { NotatView } from './NotatView';
 import { DocumentsMenu } from './DocumentsMenu';
 import { AttachedDocumentCard } from './AttachedDocumentCard';
 import { KravVeiledningMobile } from './KravVeiledningMobile';
 import { QuestionHeadingWithNavigation } from './QuestionHeadingWithNavigation';
 import { getQuestionById, getNextQuestionId, getPreviousQuestionId } from '../data/questions';
+import { getPreviousAvvikForQuestion, hasOpenPreviousAvvik } from '../data/previousAvvik';
+import { getEgenrevisjonsAvvikByQuestionId, hasOpenEgenrevisjonsAvvik } from '../data/egenrevisjonsavvik';
+import { formatNorwegianDate } from '../utils/dateFormat';
 import svgPaths from '../imports/svg-4o5ww5kgwr';
 import DocumentationChip from '../imports/DocumentationChip';
 import { RadioButton } from './ui/radio-button';
+import { Button } from './ui/button';
+import { ChevronLeft, Plus, Info } from 'lucide-react';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
 type TabType = 'observasjoner' | 'egenvurderinger' | 'notat' | 'avvik';
@@ -24,6 +29,7 @@ export interface QuestionData {
   notatText?: string;
   deviations?: any[];
   attachedDocuments?: string[];
+  closedPreviousAvvikId?: string; // Track if previous avvik has been closed
 }
 
 interface QuestionViewProps {
@@ -43,9 +49,35 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
   const [selectedAnswer, setSelectedAnswer] = useState<AnswerType | null>(savedData.answer || null);
   const [activeTab, setActiveTab] = useState<TabType>('egenvurderinger');
   const [showDocumentsMenu, setShowDocumentsMenu] = useState(false);
+  const [showNewAvvikForm, setShowNewAvvikForm] = useState(false);
+  const [showCloseAndRegisterDialog, setShowCloseAndRegisterDialog] = useState(false);
+  
+  // Check if this question has a previous open avvik from external audit
+  const previousAvvik = getPreviousAvvikForQuestion(questionId);
+  const hasPreviousAvvik = !!previousAvvik;
+  const isPreviousAvvikClosed = savedData.closedPreviousAvvikId === previousAvvik?.id;
+  
+  // Only show previous avvik if it exists AND has NOT been closed
+  const shouldShowPreviousAvvik = hasPreviousAvvik && !isPreviousAvvikClosed;
 
-  // Update selected answer when question changes or saved answer changes
+  // Check if this question has an egenrevisjonsavvik (self-registered avvik by producer)
+  const egenrevisjonsAvvik = getEgenrevisjonsAvvikByQuestionId(questionId);
+  const hasEgenrevisjonsAvvik = !!egenrevisjonsAvvik;
+
+  // Combined effect to handle answer and tab setting
   useEffect(() => {
+    // Check if we need to auto-set to "Nei" for previous avvik
+    // Only if previous avvik exists AND it hasn't been closed yet
+    if (shouldShowPreviousAvvik && !savedData.answer) {
+      setSelectedAnswer('nei');
+      setActiveTab('avvik');
+      if (onAnswer) {
+        onAnswer(questionId, 'nei');
+      }
+      return; // Exit early
+    }
+    
+    // Otherwise, use saved answer
     setSelectedAnswer(savedData.answer || null);
     
     // Set the appropriate tab based on saved answer
@@ -55,10 +87,13 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
       setActiveTab('avvik');
     } else if (savedData.answer) {
       setActiveTab('egenvurderinger');
+    } else if (hasPreviousAvvik) {
+      // If no answer but has previous avvik, show avvik tab
+      setActiveTab('avvik');
     } else {
       setActiveTab('egenvurderinger');
     }
-  }, [questionId, savedData.answer]);
+  }, [questionId, savedData.answer, hasPreviousAvvik, isPreviousAvvikClosed, onAnswer]);
 
   const handleAnswerSelect = (answer: AnswerType) => {
     // If clicking on already selected answer, unselect it
@@ -306,11 +341,95 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
                 />
               )}
               {activeTab === 'avvik' && (
-                <DeviationListView 
-                  deviations={savedData.deviations}
-                  onUpdate={(deviations) => onUpdateData?.(questionId, { deviations })}
-                  showTrengerUtfylling={false}
-                />
+                <>
+                  {/* Only show button if there's a previous avvik that is STILL OPEN */}
+                  {shouldShowPreviousAvvik && !showNewAvvikForm && (
+                    <button
+                      onClick={() => setShowNewAvvikForm(true)}
+                      className="flex items-center gap-2 px-6 py-3.5 h-14 rounded-[var(--radius-button)] border border-border hover:bg-muted transition-colors label-medium w-full mb-4"
+                    >
+                      <Plus className="size-5" />
+                      Legg til nytt avvik
+                    </button>
+                  )}
+                  
+                  {/* Show new avvik registration form */}
+                  {/* If there's a previous avvik that's STILL OPEN, only show when button is clicked */}
+                  {/* If there's NO previous avvik OR the previous avvik has been closed, show the form directly */}
+                  {(showNewAvvikForm || !shouldShowPreviousAvvik) && (
+                    <div className="mb-4">
+                      <DeviationListView 
+                        deviations={savedData.deviations}
+                        onUpdate={(deviations) => {
+                          onUpdateData?.(questionId, { deviations });
+                          // Close the form after adding an avvik (only if there's an open previous avvik)
+                          if (shouldShowPreviousAvvik && deviations && deviations.length > 0) {
+                            setShowNewAvvikForm(false);
+                          }
+                        }}
+                        showTrengerUtfylling={false}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Show previous avvik from external audit if it exists AND has NOT been closed */}
+                  {shouldShowPreviousAvvik && previousAvvik && (
+                    <div className="border border-[var(--border)] rounded-[var(--radius-lg)] overflow-hidden max-w-full">
+                      <DeviationDetailPanel
+                        deviation={{
+                          id: previousAvvik.id,
+                          severity: previousAvvik.severity,
+                          foretakName: previousAvvik.foretakName,
+                          checklist: previousAvvik.checklist,
+                          deadline: previousAvvik.deadline,
+                          status: previousAvvik.status,
+                          requiresAction: previousAvvik.requiresAction,
+                          confirmationMethod: previousAvvik.confirmationMethod
+                        }}
+                        context="register-revisjon"
+                        onStatusUpdate={(deviationId, newStatus) => {
+                          // When previous avvik is closed (status = 'lukket')
+                          // Change the answer from "nei" to "ja" (avvik has been corrected)
+                          if (newStatus === 'lukket') {
+                            // Store that this previous avvik has been closed
+                            if (onUpdateData) {
+                              onUpdateData(questionId, { closedPreviousAvvikId: deviationId });
+                            }
+                            
+                            // Change answer to "ja"
+                            setSelectedAnswer('ja');
+                            // Switch to observasjoner tab (for "ja" answers)
+                            setActiveTab('observasjoner');
+                            // Notify parent to update the answer to "ja"
+                            if (onAnswer) {
+                              onAnswer(questionId, 'ja');
+                            }
+                            // Clear deviations since we're changing to "ja"
+                            if (onUpdateData) {
+                              onUpdateData(questionId, { deviations: [] });
+                            }
+                          }
+                        }}
+                        onCloseAndRegisterNew={(deviationId) => {
+                          // When clicking "Avviket forekommer i en annen form":
+                          // 1. Close the previous avvik
+                          // 2. Keep answer as "nei"
+                          // 3. Show the new avvik registration form
+                          
+                          // Mark that this previous avvik has been closed
+                          if (onUpdateData) {
+                            onUpdateData(questionId, { closedPreviousAvvikId: deviationId });
+                          }
+                          
+                          // Answer stays as "nei" (no change needed)
+                          // The previous avvik will now be hidden because it's closed
+                          // DeviationListView form will be shown automatically since shouldShowPreviousAvvik will be false
+                        }}
+                        onUpdateData={onUpdateData}
+                      />
+                    </div>
+                  )}
+                </>
               )}
               {activeTab === 'notat' && (
                 <NotatView 
@@ -324,38 +443,120 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
           {/* Show farmer's self-audit answer when viewing Egenrevisjonssvar tab (before answer selection) */}
           {activeTab === 'egenvurderinger' && !selectedAnswer && (
             <div className="flex flex-col gap-4 items-start shrink-0 w-full">
-                <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
-                  <div className="shrink-0 w-full">
-                    <div className="size-full">
-                      <div className="flex gap-4 items-start p-2 w-full">
-                        <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
-                          <div className="flex flex-col justify-center shrink-0 w-full">
-                            <p className="label-small text-muted-foreground m-0">Svarvalg</p>
-                          </div>
-                          <div className="flex flex-col justify-center shrink-0 w-full">
-                            <p className="body-large text-foreground m-0">Ja</p>
+                {/* Info banner about open egenrevisjonsavvik */}
+                {hasEgenrevisjonsAvvik && egenrevisjonsAvvik && egenrevisjonsAvvik.status === 'åpent' && (
+                  <div className="flex items-center gap-3 w-full h-10 px-4 rounded-[var(--radius)] bg-[var(--surface-container-high)] border border-[var(--border)]">
+                    <Info className="w-5 h-5 text-foreground flex-shrink-0" />
+                    <p className="body-medium text-foreground m-0">
+                      Åpne egenrevisjonsavvik vil bli lukket etter lukking av rapport
+                    </p>
+                  </div>
+                )}
+                
+                {/* Show egenrevisjonsavvik details if exists */}
+                {hasEgenrevisjonsAvvik && egenrevisjonsAvvik ? (
+                  <>
+                    <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                      <div className="shrink-0 w-full">
+                        <div className="size-full">
+                          <div className="flex gap-4 items-start p-2 w-full">
+                            <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="label-small text-muted-foreground m-0">Svarvalg</p>
+                              </div>
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="body-large text-foreground m-0 capitalize">{egenrevisjonsAvvik.answer}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
-                  <div className="shrink-0 w-full">
-                    <div className="size-full">
-                      <div className="flex gap-4 items-start p-2 w-full">
-                        <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
-                          <div className="flex flex-col justify-center shrink-0 w-full">
-                            <p className="label-small text-muted-foreground m-0">Svartekst</p>
-                          </div>
-                          <div className="flex flex-col justify-center shrink-0 w-full">
-                            <p className="body-large text-foreground m-0">{questionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}</p>
+                    <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                      <div className="shrink-0 w-full">
+                        <div className="size-full">
+                          <div className="flex gap-4 items-start p-2 w-full">
+                            <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="label-small text-muted-foreground m-0">Mangel</p>
+                              </div>
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="body-large text-foreground m-0">{egenrevisjonsAvvik.mangel}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                    <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                      <div className="shrink-0 w-full">
+                        <div className="size-full">
+                          <div className="flex gap-4 items-start p-2 w-full">
+                            <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="label-small text-muted-foreground m-0">Frist for lukking av avvik</p>
+                              </div>
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="body-large text-foreground m-0">{formatNorwegianDate(egenrevisjonsAvvik.deadline)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                      <div className="shrink-0 w-full">
+                        <div className="size-full">
+                          <div className="flex gap-4 items-start p-2 w-full">
+                            <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="label-small text-muted-foreground m-0">Status</p>
+                              </div>
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="body-large text-foreground m-0 capitalize">{egenrevisjonsAvvik.status}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                      <div className="shrink-0 w-full">
+                        <div className="size-full">
+                          <div className="flex gap-4 items-start p-2 w-full">
+                            <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="label-small text-muted-foreground m-0">Svarvalg</p>
+                              </div>
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="body-large text-foreground m-0">Ja</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 items-center justify-center min-h-16 pb-0 pt-2 px-0 shrink-0 w-full">
+                      <div className="shrink-0 w-full">
+                        <div className="size-full">
+                          <div className="flex gap-4 items-start p-2 w-full">
+                            <div className="basis-0 flex flex-col grow items-start justify-center min-h-px min-w-px overflow-hidden shrink-0">
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="label-small text-muted-foreground m-0">Svartekst</p>
+                              </div>
+                              <div className="flex flex-col justify-center shrink-0 w-full">
+                                <p className="body-large text-foreground m-0">{questionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
                 
                 {/* Attached documents section */}
                 {savedData.attachedDocuments && savedData.attachedDocuments.length > 0 && (

@@ -14,6 +14,7 @@ export interface QuestionData {
   deviationData?: any;
   deviations?: any[];
   attachedDocuments?: string[];
+  closedPreviousAvvikId?: string;
 }
 
 interface RegisterRevisjonPageProps {
@@ -74,6 +75,15 @@ export function RegisterRevisjonPage({
     setShowingMenu(true);
   };
 
+  // Extract closedPreviousAvvikIds from questionData
+  const closedPreviousAvvikIds: Record<string, string> = {};
+  Object.keys(questionData).forEach(questionId => {
+    const data = questionData[questionId];
+    if (data.closedPreviousAvvikId) {
+      closedPreviousAvvikIds[questionId] = data.closedPreviousAvvikId;
+    }
+  });
+
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* MOBILE/TABLET: Menu Panel - Shows ONLY when showingMenu is true */}
@@ -88,6 +98,7 @@ export function RegisterRevisjonPage({
             manuallyRemovedQuestions={manuallyRemovedQuestions}
             onAddQuestionToRegister={onAddQuestionToRegister}
             onRemoveQuestionFromRegister={onRemoveQuestionFromRegister}
+            closedPreviousAvvikIds={closedPreviousAvvikIds}
           />
         </div>
       )}
@@ -103,6 +114,7 @@ export function RegisterRevisjonPage({
           manuallyRemovedQuestions={manuallyRemovedQuestions}
           onAddQuestionToRegister={onAddQuestionToRegister}
           onRemoveQuestionFromRegister={onRemoveQuestionFromRegister}
+          closedPreviousAvvikIds={closedPreviousAvvikIds}
         />
       </div>
 

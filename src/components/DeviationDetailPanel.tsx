@@ -11,6 +11,7 @@ import { ChevronDown, ChevronUp, X, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { ListItem } from './ui/list-item';
 import { AlertTriangle } from 'lucide-react';
+import { RadioButton } from './ui/radio-button';
 
 type SeverityType = 'kritisk' | 'avvik' | 'lite';
 type StatusType = 'tidspunkt-foreslatt' | 'besok-planlagt' | 'venter-godkjenning' | 'onsker-fristforlengelse' | 'dokument-levert' | 'avventer-moteforslag' | 'avventer-dokumentasjon' | 'lukket';
@@ -38,6 +39,9 @@ interface DeviationDetailPanelProps {
   onStatusUpdate?: (deviationId: string, newStatus: StatusType) => void;
   onAddRejectedDocuments?: (deviationId: string, documents: RejectedDocument[]) => void;
   onClose?: () => void;
+  context?: 'avvikoversikt' | 'register-revisjon' | 'tidligere-revisjon'; // Context for conditional rendering
+  onCloseAndRegisterNew?: (deviationId: string) => void; // For "Avviket forekommer i en annen form" flow
+  onUpdateData?: (questionId: string, data: { closedPreviousAvvikId: string }) => void; // For updating data in parent component
 }
 
 interface RejectedDocument {
@@ -113,7 +117,7 @@ function getInitials(name: string): string {
   return name.substring(0, 2).toUpperCase();
 }
 
-export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedDocuments, onClose }: DeviationDetailPanelProps) {
+export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedDocuments, onClose, context, onCloseAndRegisterNew, onUpdateData }: DeviationDetailPanelProps) {
   const details = getDeviationDetails(deviation);
   
   // Get question ID from checklist string (e.g., "1.1.1")
@@ -132,6 +136,10 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
   const [showRejectedDocs, setShowRejectedDocs] = useState(false);
   const [showConfirmCloseDialog, setShowConfirmCloseDialog] = useState(false);
   const [closedDate, setClosedDate] = useState<Date | undefined>(deviation.closedDate);
+  const [showCloseAndRegisterDialog, setShowCloseAndRegisterDialog] = useState(false);
+  
+  // State for previous avvik status (only used in register-revisjon context)
+  const [previousAvvikStatus, setPreviousAvvikStatus] = useState<'rettet' | 'annen-form' | 'gjeldende' | null>(null);
   
   // Use rejected documents from the parent deviation object
   const rejectedDocuments = deviation.rejectedDocuments || [];
@@ -229,9 +237,437 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
     }
   };
 
+  // Special rendering for Register revisjon context
+  if (context === 'register-revisjon') {
+    // Random registration date (in the past)
+    const registrationDate = new Date(2024, 10, 15); // November 15, 2024
+    
+    // Handler for "Avviket er rettet og lukket" - shows confirmation dialog
+    const handleAvvikRettet = () => {
+      setShowConfirmCloseDialog(true);
+    };
+    
+    // Handler for confirming closure of previous avvik
+    const handleConfirmClosePreviousAvvik = () => {
+      const currentDate = new Date();
+      setClosedDate(currentDate);
+      setCurrentStatus('lukket');
+      setShowConfirmCloseDialog(false);
+      
+      // Notify parent component to close avvik and clear question answer
+      if (onStatusUpdate) {
+        onStatusUpdate(deviation.id, 'lukket');
+      }
+      
+      // Note: Parent component should handle:
+      // 1. Closing the avvik
+      // 2. Clearing the question answer (no answer selected)
+      // 3. Removing the avvik mark from question
+    };
+    
+    // Handler for "Avviket forekommer i en annen form" - shows confirmation dialog first
+    const handleAvvikAnnenForm = () => {
+      setShowCloseAndRegisterDialog(true);
+    };
+    
+    // Handler for confirming "close and register new"
+    const handleConfirmCloseAndRegister = () => {
+      setShowCloseAndRegisterDialog(false);
+      
+      // Mark as closed in parent (this will close the previous avvik)
+      if (onUpdateData) {
+        onUpdateData(questionId, { closedPreviousAvvikId: deviation.id });
+      }
+      
+      // Notify parent that we want to close and register new
+      if (onCloseAndRegisterNew) {
+        onCloseAndRegisterNew(deviation.id);
+      }
+    };
+    
+    // Handler for "Avviket er fortsatt gjeldende" - marks as ongoing
+    const handleAvvikFortsattGjeldende = () => {
+      setPreviousAvvikStatus('gjeldende');
+    };
+    
+    // Handler to undo/return to selection state
+    const handleAngre = () => {
+      setPreviousAvvikStatus(null);
+    };
+    
+    return (
+      <div className="flex flex-col h-full overflow-y-auto bg-background">
+        <div className="px-6 py-3 space-y-3">
+          {/* List item with overline date and title */}
+          <div className="px-0 py-1">
+            <div className="flex flex-col">
+              <span className="label-small text-muted-foreground">
+                {formatNorwegianDate(registrationDate)}
+              </span>
+              <span className="body-large text-foreground">
+                Tidligere registrert avvik
+              </span>
+            </div>
+          </div>
+
+          {/* Outline buttons for answer options - Only show if no option selected */}
+          {!previousAvvikStatus && (
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleAvvikRettet}
+                className="flex items-center justify-center h-14 px-6 rounded-[var(--radius-button)] border border-[var(--border)] bg-transparent text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="label-medium">
+                  Avviket er rettet og lukket
+                </span>
+              </button>
+
+              <button
+                onClick={handleAvvikAnnenForm}
+                className="flex items-center justify-center h-14 px-6 rounded-[var(--radius-button)] border border-[var(--border)] bg-transparent text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="label-medium">
+                  Avviket forekommer i en annen form
+                </span>
+              </button>
+
+              <button
+                onClick={handleAvvikFortsattGjeldende}
+                className="flex items-center justify-center h-14 px-6 rounded-[var(--radius-button)] border border-[var(--border)] bg-transparent text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="label-medium">
+                  Avviket er fortsatt gjeldende
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Status: Avviket forekommer i en annen form */}
+          {previousAvvikStatus === 'annen-form' && (
+            <div className="space-y-3">
+              {/* Status message with undo button */}
+              <div className="bg-[var(--primary-container)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="body-medium text-[var(--primary-container-foreground)]">
+                      Dette avviket er lukket. Avviket forekommer i en annen form.
+                    </p>
+                  </div>
+                  <Button
+                    variant="tertiary"
+                    onClick={handleAngre}
+                    className="shrink-0"
+                  >
+                    Angre
+                  </Button>
+                </div>
+              </div>
+
+              {/* New avvik registration section */}
+              <div className="border border-[var(--border)] rounded-[var(--radius-lg)] p-4 space-y-3">
+                <h4 className="title-medium text-foreground">
+                  Registrer nytt avvik
+                </h4>
+                <p className="body-medium text-muted-foreground">
+                  Registrer et nytt avvik for denne situasjonen.
+                </p>
+                
+                {/* Placeholder for new avvik registration - can be expanded later */}
+                <Button variant="primary" className="w-full" onClick={() => onCloseAndRegisterNew?.(deviation.id)}>
+                  Start registrering
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Status: Avviket er fortsatt gjeldende */}
+          {previousAvvikStatus === 'gjeldende' && (
+            <div className="bg-[var(--l-avvik-container)] border border-[var(--on-l-avvik-container)] rounded-[var(--radius-lg)] p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 space-y-1">
+                  <p className="label-medium text-[var(--on-l-avvik-container)]">
+                    Avviket er fortsatt gjeldende
+                  </p>
+                  <p className="body-medium text-[var(--on-l-avvik-container)]">
+                    Dette avviket blir ført videre i rapporten.
+                  </p>
+                </div>
+                <Button
+                  variant="tertiary"
+                  onClick={handleAngre}
+                  className="shrink-0"
+                >
+                  Angre
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Show avvik details below (severity, mangel, deadline, etc.) */}
+          <div className="space-y-3">
+            {/* Deviation Level/Severity Badge */}
+            <div className={`flex gap-4 items-center px-2 py-0 min-h-[56px] rounded-[var(--radius-lg)] ${getSeverityColor(deviation.severity)}`}>
+              <div className="size-10 flex items-center justify-center shrink-0">
+                <div className="relative size-10">
+                  <div className="absolute inset-0 rounded-full" style={{ backgroundColor: getSeverityColor(deviation.severity).replace('bg-', '') }}>
+                    <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-6" fill="none" viewBox="0 0 24 24">
+                      <path d={svgPathsOld.p24139a00} fill={deviation.severity === 'kritisk' ? '#410002' : '#3d2e00'} />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1">
+                <p className="label-small text-muted-foreground">
+                  Resultat av vurdering
+                </p>
+                <p className="body-large text-foreground">
+                  {getSeverityLabel(deviation.severity)}
+                </p>
+              </div>
+              <button className="size-10 flex items-center justify-center shrink-0 hover:bg-black/5 rounded-full transition-colors">
+                <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                  <path d={svgPathsOld.p2668ba00} fill="#44483B" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Mangel */}
+            <div className="p-0 w-full">
+              <p className="label-small text-muted-foreground">
+                Mangel
+              </p>
+              <p className="body-large text-foreground">
+                {mangel}
+              </p>
+              
+              {/* Expand/Collapse Button for Krav and Bevis */}
+              <button
+                onClick={() => setKravBevisExpanded(!kravBevisExpanded)}
+                className="flex items-center gap-2 mt-2 text-primary hover:opacity-70 transition-opacity label-medium"
+              >
+                {kravBevisExpanded ? (
+                  <>
+                    <ChevronUp className="w-5 h-5" />
+                    Skjul krav og bevis
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-5 h-5" />
+                    Vis krav og bevis
+                  </>
+                )}
+              </button>
+              
+              {/* Collapsible Krav and Bevis Section */}
+              {kravBevisExpanded && (
+                <div className="mt-4 space-y-4">
+                  {/* Krav */}
+                  <div>
+                    <p className="label-small text-muted-foreground">
+                      Krav
+                    </p>
+                    <p className="body-large text-foreground">
+                      {krav}
+                    </p>
+                  </div>
+
+                  {/* Bevis - Read-only */}
+                  <div>
+                    <p className="label-small text-muted-foreground">
+                      Bevis
+                    </p>
+                    <p className="body-large text-foreground">
+                      {bevis}
+                    </p>
+                  </div>
+
+                  {/* Rapportert avvik */}
+                  <div>
+                    <p className="label-small text-muted-foreground">
+                      Rapportert avvik
+                    </p>
+                    <p className="body-large text-foreground">
+                      {rapportertAvvik}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Deadline */}
+            <div className="w-full">
+              <p className="label-small text-muted-foreground">
+                Tidsfrist for lukking av avvik
+              </p>
+              <p className="body-large text-foreground">
+                {formatNorwegianDate(deviation.deadline)}
+              </p>
+            </div>
+
+            {/* Ansvarlig */}
+            <div className="w-full">
+              <p className="label-small text-muted-foreground">
+                Ansvarlig for lukking:
+              </p>
+              <p className="body-large text-foreground">
+                {responsible}
+              </p>
+            </div>
+
+            {/* Closing Avvik Container */}
+            <div className="bg-[#fafaf0] border border-[var(--border)] rounded-[var(--radius-lg)] p-6 space-y-2">
+              {/* Type of Closing */}
+              <div className="flex gap-2 items-center py-2">
+                {confirmationMethod === 'fysisk-besok' ? (
+                  <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                    <path d={svgPathsFysiskBesok.p1d73bd00} fill="#44483B" />
+                    <path d={svgPathsFysiskBesok.p17184600} fill="#44483B" />
+                    <path d={svgPathsFysiskBesok.pfba46c0} fill="#44483B" />
+                    <path d={svgPathsFysiskBesok.p33b21a00} fill="#44483B" />
+                  </svg>
+                ) : confirmationMethod === 'dokumentasjon' ? (
+                  <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                    <path d={svgPathsDokumentasjon.p1a55f400} fill="#44483B" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                    <path d={svgPathsOld.p3b7e4b92} fill="#44483B" />
+                  </svg>
+                )}
+                <p className="label-medium text-foreground">
+                  {getConfirmationMethodLabel(confirmationMethod)}
+                </p>
+              </div>
+
+              {/* Comment */}
+              <div className="flex gap-4 items-start p-2 w-full">
+                <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                  <path d={confirmationMethod === 'dokumentasjon' ? svgPathsDokumentasjon.p1bbda200 : svgPathsOld.p1bbda200} fill="#44483B" />
+                </svg>
+                <div className="flex-1">
+                  <p className="label-small text-muted-foreground">
+                    Kommentar
+                  </p>
+                  <p className="body-large text-foreground">
+                    {comment}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Confirm Close Avvik Dialog - For Register revisjon context */}
+        <Dialog open={showConfirmCloseDialog} onOpenChange={setShowConfirmCloseDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="title-large text-foreground">Bekreft lukking av avvik</DialogTitle>
+              <DialogDescription className="body-medium text-muted-foreground pt-2">
+                Er du sikker på at du vil bekrefte lukking av følgende avvik?
+              </DialogDescription>
+            </DialogHeader>
+            
+            {/* Deviation details */}
+            <div className="space-y-4 py-2">
+              {/* Question */}
+              <div>
+                <p className="label-small text-muted-foreground">Sjekklistespørsmål</p>
+                <p className="body-large text-foreground">
+                  {questionId} – {deviation.checklist.split('–')[1]?.trim() || deviation.checklist}
+                </p>
+              </div>
+              
+              {/* Foretak */}
+              <div>
+                <p className="label-small text-muted-foreground">Foretak</p>
+                <p className="body-large text-foreground">{deviation.foretakName}</p>
+              </div>
+              
+              {/* Mangel */}
+              <div>
+                <p className="label-small text-muted-foreground">Mangel</p>
+                <p className="body-large text-foreground">{mangel}</p>
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowConfirmCloseDialog(false)}
+                className="flex-1"
+              >
+                Avbryt
+              </Button>
+              <Button 
+                variant="primary"
+                onClick={handleConfirmClosePreviousAvvik}
+                className="flex-1"
+              >
+                Bekreft lukking
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Close and Register New Avvik Dialog */}
+        <Dialog open={showCloseAndRegisterDialog} onOpenChange={setShowCloseAndRegisterDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="title-large text-foreground">Lukk og registrer nytt avvik</DialogTitle>
+              <DialogDescription className="body-medium text-muted-foreground pt-2">
+                Er du sikker på at du vil lukke dette avviket og registrere et nytt avvik for denne situasjonen?
+              </DialogDescription>
+            </DialogHeader>
+            
+            {/* Deviation details */}
+            <div className="space-y-4 py-2">
+              {/* Question */}
+              <div>
+                <p className="label-small text-muted-foreground">Sjekklistespørsmål</p>
+                <p className="body-large text-foreground">
+                  {questionId} – {deviation.checklist.split('–')[1]?.trim() || deviation.checklist}
+                </p>
+              </div>
+              
+              {/* Foretak */}
+              <div>
+                <p className="label-small text-muted-foreground">Foretak</p>
+                <p className="body-large text-foreground">{deviation.foretakName}</p>
+              </div>
+              
+              {/* Mangel */}
+              <div>
+                <p className="label-small text-muted-foreground">Mangel</p>
+                <p className="body-large text-foreground">{mangel}</p>
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowCloseAndRegisterDialog(false)}
+                className="flex-1"
+              >
+                Avbryt
+              </Button>
+              <Button 
+                variant="primary"
+                onClick={handleConfirmCloseAndRegister}
+                className="flex-1"
+              >
+                Lukk og registrer nytt avvik
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Original rendering for other contexts (avvikoversikt, tidligere-revisjon)
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background">
-      <div className="px-6 py-4 space-y-4">
+      <div className="px-6 py-3 space-y-3">
         {/* Question Header with Actions - Desktop */}
         <div className="hidden min-[768px]:flex gap-4 items-center justify-between">
           <h3 className="title-large">
@@ -312,7 +748,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
         </div>
 
         {/* Question Text */}
-        <h4 className="title-large">
+        <h4 className="title-medium">
           {deviation.checklist.split('–')[1]?.trim() || deviation.checklist}
         </h4>
 
@@ -320,23 +756,6 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
         {questionInfo && (
           <KravVeilederSection question={questionInfo} />
         )}
-
-        {/* Foretak/Company */}
-        <div className="flex gap-4 items-center p-2 w-full">
-          <div className="bg-primary-container rounded-full size-10 flex items-center justify-center">
-            <p className="label-medium text-primary-container-foreground">
-              {initials}
-            </p>
-          </div>
-          <div className="flex-1">
-            <p className="body-large text-foreground">
-              {deviation.foretakName}
-            </p>
-          </div>
-          <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-            <path d="M10 17V7L15 12L10 17Z" fill="#44483B" />
-          </svg>
-        </div>
 
         {/* Deviation Level/Severity Badge */}
         <div className={`flex gap-4 items-center px-2 py-0 min-h-[56px] rounded-[var(--radius-lg)] ${getSeverityColor(deviation.severity)}`}>
@@ -365,7 +784,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
         </div>
 
         {/* Mangel */}
-        <div className="p-2 w-full">
+        <div className="p-0 w-full">
           <p className="label-small text-muted-foreground">
             Mangel
           </p>

@@ -6,6 +6,7 @@ import svgPathsDone from '../imports/svg-492gvby77f';
 import { Switch } from './ui/switch';
 import { QuestionListDropdown } from './QuestionListDropdown';
 import { DividerWithSubtitle } from './ui/divider-with-subtitle';
+import { hasOpenPreviousAvvik } from '../data/previousAvvik';
 
 interface LeftSidebarProps {
   currentQuestionId: string;
@@ -16,6 +17,7 @@ interface LeftSidebarProps {
   manuallyRemovedQuestions?: Set<string>;
   onAddQuestionToRegister?: (questionId: string) => void;
   onRemoveQuestionFromRegister?: (questionId: string) => void;
+  closedPreviousAvvikIds?: Record<string, string>; // Map of questionId to closed avvik ID
 }
 
 export function LeftSidebar({ 
@@ -26,7 +28,8 @@ export function LeftSidebar({
   manuallyAddedQuestions = new Set(),
   manuallyRemovedQuestions = new Set(),
   onAddQuestionToRegister,
-  onRemoveQuestionFromRegister
+  onRemoveQuestionFromRegister,
+  closedPreviousAvvikIds = {}
 }: LeftSidebarProps) {
   const [expandedMainCategories, setExpandedMainCategories] = useState<Set<string>>(
     new Set(['category-1'])
@@ -658,7 +661,7 @@ export function LeftSidebar({
 
                                       {/* Icons Row */}
                                       <div className="flex items-center gap-2 mt-2">
-                                        {(question.hasDeviation || questionsWithDeviations.has(question.id)) && (
+                                        {(question.hasDeviation || questionsWithDeviations.has(question.id) || (hasOpenPreviousAvvik(question.id) && !closedPreviousAvvikIds[question.id])) && (
                                           <div className="flex items-center gap-1">
                                             <AlertTriangle className="w-4 h-4 text-destructive" />
                                             <span className="label-xsmall text-destructive">Avvik</span>

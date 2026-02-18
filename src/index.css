@@ -2425,6 +2425,10 @@
     background-color: var(--secondary-container);
   }
 
+  .bg-\[var\(--surface-container-high\)\] {
+    background-color: var(--surface-container-high);
+  }
+
   .bg-\[var\(--surface-container-low\)\] {
     background-color: var(--surface-container-low);
   }
@@ -3258,6 +3262,10 @@
 
   .text-white {
     color: var(--color-white);
+  }
+
+  .capitalize {
+    text-transform: capitalize;
   }
 
   .italic {
