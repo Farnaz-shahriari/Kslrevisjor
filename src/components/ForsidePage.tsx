@@ -4,29 +4,9 @@ import { formatNorwegianDate } from '../utils/dateFormat';
 import { RevisjonCard } from './RevisjonCard';
 import { allDeviations } from './AvvikoversiktPage';
 import { mockAksepterteRevisjoner } from './AksepterteRevisjonerPage';
+import { AvvikActionCard } from './AvvikActionCard';
 import { useState } from 'react';
-
-// SVG paths for icons
-const svgPathsProfileDetailsNew = {
-  // Avatar person icon paths
-  pb9ab680: "M9 11C10.66 11 12 9.66 12 8C12 6.34 10.66 5 9 5C7.34 5 6 6.34 6 8C6 9.66 7.34 11 9 11ZM9 13C6.67 13 2 14.17 2 16.5V18H16V16.5C16 14.17 11.33 13 9 13Z",
-  p14aadaf0: "M9 2C13.97 2 18 6.03 18 11C18 15.97 13.97 20 9 20C4.03 20 0 15.97 0 11C0 6.03 4.03 2 9 2Z",
-  // Statistics/percent icon
-  p37d26b00: "M7.5 11.5C8.88 11.5 10 10.38 10 9C10 7.62 8.88 6.5 7.5 6.5C6.12 6.5 5 7.62 5 9C5 10.38 6.12 11.5 7.5 11.5ZM16.5 6.5C15.12 6.5 14 7.62 14 9C14 10.38 15.12 11.5 16.5 11.5C17.88 11.5 19 10.38 19 9C19 7.62 17.88 6.5 16.5 6.5ZM21 9C21 6.79 19.21 5 17 5C15.76 5 14.66 5.57 14 6.45C13.34 5.57 12.24 5 11 5C8.79 5 7 6.79 7 9C7 11.21 8.79 13 11 13C12.24 13 13.34 12.43 14 11.55C14.66 12.43 15.76 13 17 13C19.21 13 21 11.21 21 9Z",
-  // Profile/identity icon
-  p24cfbd00: "M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z",
-  // Assignment/document icon paths
-  p15082280: "M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3Z",
-  p141e7e00: "M7 7H17V9H7V7Z",
-  p1e924700: "M7 11H17V13H7V11Z",
-  p3be0780: "M7 15H14V17H7V15Z",
-  // Calendar icon
-  p1c86d00: "M19 4H18V2H16V4H8V2H6V4H5C3.89 4 3.01 4.9 3.01 6L3 20C3 21.1 3.89 22 5 22H19C20.1 22 21 21.1 21 20V6C21 4.9 20.1 4 19 4ZM19 20H5V10H19V20ZM19 8H5V6H19V8Z",
-  // Description/report icon
-  p38bb600: "M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM16 18H8V16H16V18ZM16 14H8V12H16V14ZM13 9V3.5L18.5 9H13Z",
-  // Follow-up/checklist icon
-  p24139a00: "M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"
-};
+import svgPathsSorting from "../imports/svg-59lykn648d";
 
 // Import data counts from other pages
 // These would normally come from a shared state management solution or backend API
@@ -243,7 +223,7 @@ interface Section2Props {
   onNavigateToTildelteRevisjoner?: () => void;
   onNavigateToVenterPaPlanlegging?: () => void;
   onRevisionClick?: (revisionId: string) => void;
-  onNavigateToAvvikoversikt?: () => void;
+  onNavigateToAvvikoversikt?: (deviationId?: string) => void;
 }
 
 function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick, onNavigateToAvvikoversikt }: Section2Props) {
@@ -398,261 +378,261 @@ function Section2PlanlagteRevisjoner({ onNavigateToTildelteRevisjoner, onNavigat
         </div>
       </div>
 
-        {/* Scrollable Content Area - Only on desktop */}
-        <div className="flex-1 w-full overflow-y-auto max-[1400px]:overflow-visible mt-4 px-10 max-[1400px]:px-0">
-          {/* Calendar View */}
-          {viewMode === 'calendar' && (
-            <div className="bg-[#f4f4ea] rounded-xl p-6 w-full max-[1400px]:mx-6 max-[1400px]:mb-6">
-              {/* Calendar header with month navigation */}
-              <div className="flex items-center justify-center gap-1 py-2 mb-4">
-                <button 
+        {/* Scrollable Content Area - List or Calendar View - only scrollable on desktop */}
+        <div className="flex-1 w-full min-[1400px]:overflow-y-auto mt-4 px-10 max-[1400px]:px-6">
+          {viewMode === 'list' ? (
+            /* List View */
+            <div className="flex flex-col gap-1 w-full max-[1400px]:pb-4">
+              {Array.from(groupedRevisjoner.entries()).map(([dateKey, revisjoner]) => (
+                <div key={dateKey} className="flex flex-col gap-1">
+                  {/* Date heading - HIDDEN as per user request */}
+                  {/* <div className="label-large text-foreground py-2">
+                    {dateKey}
+                  </div> */}
+                  
+                  {/* Revisjoner for this date */}
+                  {revisjoner.map((revisjon) => (
+                    <RevisjonCard
+                      key={revisjon.id}
+                      revisjon={{
+                        id: revisjon.id,
+                        foretakName: revisjon.foretakName,
+                        visitDate: revisjon.visitDate,
+                        visitTime: revisjon.visitTime,
+                        revisjonData: revisjon.revisjonData
+                      }}
+                      onCardClick={() => onRevisionClick?.(revisjon.id)}
+                    />
+                  ))}
+                </div>
+              ))}
+
+              {allPlannedRevisjoner.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Calendar className="w-12 h-12 text-muted-foreground mb-4" />
+                  <p className="body-large text-muted-foreground">Ingen planlagte revisjoner</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Calendar View */
+            <div className="bg-[#e0e4d3] rounded-[16px] p-4">
+              {/* Calendar Header */}
+              <div className="flex items-center justify-between mb-6">
+                <button
                   onClick={goToPreviousMonth}
-                  className="w-14 h-14 flex items-center justify-center hover:bg-muted/30 rounded-full transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                    <path d="M15.41 7.41L14 6L8 12L14 18L15.41 16.59L10.83 12L15.41 7.41Z" fill="var(--muted-foreground)" />
-                  </svg>
+                  <ChevronLeft className="w-6 h-6 text-foreground" />
                 </button>
-                
-                <h2 className="title-large text-foreground min-w-[200px] text-center">
+
+                <div className="title-medium text-foreground">
                   {currentMonthName}
-                </h2>
-                
-                <button 
+                </div>
+
+                <button
                   onClick={goToNextMonth}
-                  className="w-14 h-14 flex items-center justify-center hover:bg-muted/30 rounded-full transition-colors"
+                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                    <path d="M10 6L8.59 7.41L13.17 12L8.59 16.59L10 18L16 12L10 6Z" fill="var(--muted-foreground)" />
-                  </svg>
+                  <ChevronRight className="w-6 h-6 text-foreground" />
                 </button>
               </div>
 
-              {/* Calendar grid - Full width with flexible cells */}
-              <div className="grid grid-cols-7 w-full" style={{ gap: '1px' }}>
-                {/* Day headers */}
-                {['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map(day => (
-                  <div key={day} className="title-medium text-foreground text-center py-4 bg-[#f4f4ea]">
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-2">
+                {/* Day names header */}
+                {['Ma', 'Ti', 'On', 'To', 'Fr', 'Lø', 'Sø'].map((day) => (
+                  <div key={day} className="label-small text-center text-muted-foreground py-2">
                     {day}
                   </div>
                 ))}
 
                 {/* Calendar days */}
                 {calendarDays.map((day, index) => {
-                  const revisjoner = getRevisjonerForDate(day.fullDate);
+                  const revisjonerForDay = getRevisjonerForDate(day.fullDate);
+                  const hasRevisjoner = revisjonerForDay.length > 0;
                   const isCurrentMonth = day.month === 'current';
-                  
+
                   return (
-                    <div 
-                      key={index} 
-                      className={`bg-white p-3 min-h-[120px] flex flex-col gap-2 ${
-                        !isCurrentMonth ? 'opacity-40' : ''
-                      }`}
+                    <div
+                      key={index}
+                      className={`min-h-[80px] p-2 rounded-lg ${
+                        isCurrentMonth ? 'bg-white' : 'bg-white/40'
+                      } ${hasRevisjoner ? 'ring-2 ring-primary' : ''}`}
                     >
-                      <div className={`title-medium ${isCurrentMonth ? 'text-[var(--muted-foreground)]' : 'text-[var(--muted-foreground)]'} text-left`}>
-                        {day.date.toString().padStart(2, '0')}.
+                      <div className={`label-small mb-1 ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        {day.date}
                       </div>
                       
-                      {/* Show revisjoner for this date */}
-                      {revisjoner.map((rev, idx) => {
-                        const time = rev.visitTime?.split(' - ')[0] || '';
-                        const foretakShort = rev.foretakName.split(' ').slice(0, 2).join(' ');
-                        
-                        return (
-                          <button 
-                            key={idx}
-                            className="bg-[#fafaf0] px-2 py-1.5 text-center cursor-pointer hover:bg-[#f0f0e8] active:bg-[#e8e8e0] transition-colors w-full rounded border border-[#e8e8e0] hover:border-[#d0d0c8] focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            title={`${time} ${rev.foretakName}`}
-                            onClick={() => {
-                              if (onRevisionClick) {
-                                onRevisionClick(rev.id);
-                              }
-                            }}
-                          >
-                            <p className="label-small text-[var(--muted-foreground)] truncate">
-                              {time}
-                            </p>
-                            <p className="label-small text-[var(--muted-foreground)] truncate">
-                              {foretakShort}
-                            </p>
-                          </button>
-                        );
-                      })}
+                      {hasRevisjoner && (
+                        <div className="flex flex-col gap-1">
+                          {revisjonerForDay.slice(0, 2).map((rev) => (
+                            <div
+                              key={rev.id}
+                              className="text-[10px] bg-primary text-primary-foreground px-1 py-0.5 rounded truncate"
+                            >
+                              {rev.foretakName}
+                            </div>
+                          ))}
+                          {revisjonerForDay.length > 2 && (
+                            <div className="text-[10px] text-muted-foreground">
+                              +{revisjonerForDay.length - 2} flere
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
           )}
-
-          {/* List View */}
-          {viewMode === 'list' && (
-            <div className="w-full max-[1400px]:pb-4">
-              {/* All revisjon cards with consistent gap-1 spacing */}
-              <div className="flex flex-col gap-1 max-[1400px]:px-6">
-                {allPlannedRevisjoner.map((revisjon) => (
-                  <RevisjonCard 
-                    key={revisjon.id} 
-                    revisjon={revisjon}
-                    onCardClick={() => {
-                      if (onRevisionClick) {
-                        onRevisionClick(revisjon.id);
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Section3SidePanelToDoList() {
+// ============================================================================
+// Section 3 - To-Do List Component  
+// ============================================================================
+
+function Section3SidePanelToDoList({ onNavigateToAvvikoversikt }: { onNavigateToAvvikoversikt?: (deviationId?: string) => void }) {
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'tidsfrist' | 'innmeldt-dato'>('tidsfrist');
+
   const handleOpenAvvik = (deviationId: string) => {
-    // This will navigate to Avvikoversikt page with this deviation selected
-    console.log('Navigate to Avvikoversikt with deviation:', deviationId);
-    // TODO: Add navigation to AvvikoversiktPage
+    // Navigate to Avvikoversikt page with this deviation selected
+    if (onNavigateToAvvikoversikt) {
+      onNavigateToAvvikoversikt(deviationId);
+    }
   };
 
-  // Filter and sort the deviations
-  const todoItems = allDeviations
-    .filter(deviation => deviation.requiresAction)
-    .sort((a, b) => getSeveritySortOrder(a.severity) - getSeveritySortOrder(b.severity));
+  const handleSortChange = (newSort: 'tidsfrist' | 'innmeldt-dato') => {
+    setSortBy(newSort);
+    setSortDropdownOpen(false);
+  };
+
+  const getSortLabel = () => {
+    switch (sortBy) {
+      case 'tidsfrist':
+        return 'Tidsfrist for lukking';
+      case 'innmeldt-dato':
+        return 'Innmeldt dato';
+      default:
+        return 'Tidsfrist for lukking';
+    }
+  };
+
+  // Filter deviations that require action
+  const filteredDeviations = allDeviations.filter(deviation => deviation.requiresAction);
+
+  // Sort the deviations based on sortBy
+  const sortedTodoItems = [...filteredDeviations].sort((a, b) => {
+    if (sortBy === 'tidsfrist') {
+      // Sort by deadline (closest first)
+      return a.deadline.getTime() - b.deadline.getTime();
+    } else if (sortBy === 'innmeldt-dato') {
+      // Sort by reported date (most recent first)
+      // For now, using deadline as a proxy - in production this would be a separate field
+      return b.deadline.getTime() - a.deadline.getTime();
+    }
+    return 0;
+  });
 
   console.log('ForsidePage - Total deviations:', allDeviations.length);
-  console.log('ForsidePage - Filtered todo items:', todoItems.length);
-  console.log('ForsidePage - Todo items:', todoItems.map(d => ({ id: d.id, foretak: d.foretakName, status: d.status })));
+  console.log('ForsidePage - Filtered todo items:', sortedTodoItems.length);
+  console.log('ForsidePage - Todo items:', sortedTodoItems.map(d => ({ id: d.id, foretak: d.foretakName, status: d.status })));
 
   return (
     <div className="bg-background flex h-full max-[1400px]:h-auto shrink-0 w-[520px] max-[1400px]:w-full" data-name="Section 3 - Side panel to-do list">
       {/* Content container that hugs cards - scrollable on desktop */}
       <div className="flex flex-col py-[16px] relative h-full max-[1400px]:h-auto w-full max-[1400px]:w-full min-[1400px]:max-w-max">
-        {/* Fixed Header - Title with badge */}
-        <div className="flex items-center gap-2 shrink-0 px-10">
-          <div className="title-large text-foreground">
-            <p>Avviksbehandling</p>
+        {/* Fixed Header - Title with badge and sorting dropdown */}
+        <div className="flex flex-col gap-[16px] shrink-0 px-10">
+          {/* Title row with badge */}
+          <div className="flex items-center gap-2">
+            <div className="title-large text-foreground">
+              <p>Avviksbehandling</p>
+            </div>
+            {/* Badge showing count */}
+            <div className="bg-[var(--error)] rounded-full min-w-6 h-6 px-2 flex items-center justify-center">
+              <span className="label-xsmall text-[var(--error-foreground)]">{sortedTodoItems.length}</span>
+            </div>
           </div>
-          {/* Badge showing count */}
-          <div className="bg-[var(--error)] rounded-full min-w-6 h-6 px-2 flex items-center justify-center">
-            <span className="label-xsmall text-[var(--error-foreground)]">{todoItems.length}</span>
-          </div>
-        </div>
 
-        {/* Scrollable Content Area - Only on desktop */}
-        <div className="flex-1 w-full overflow-y-auto max-[1400px]:overflow-visible mt-6 px-10">
-        {/* To-do cards */}
-        <div className="flex flex-col gap-4 w-full max-[1400px]:pb-4">
-          {todoItems.map((deviation) => {
-            const severityConfig = getSeverityConfig(deviation.severity);
-            const actionText = getActionText(deviation.status, deviation.confirmationMethod);
-            const isVisit = deviation.confirmationMethod !== 'dokumentasjon';
-            
-            return (
-              <div 
-                key={deviation.id} 
-                className="bg-card border border-border rounded-xl shadow-sm w-full"
-              >
-                {/* List item header */}
-                <div className="flex gap-4 items-start px-4 py-3 min-h-[88px]">
-                  {/* Content */}
-                  <div className="flex-1 flex flex-col gap-0 min-w-0">
-                    {/* Overline - Farm name */}
-                    <div className="label-medium text-muted-foreground">
-                      <p>{deviation.foretakName}</p>
-                    </div>
-                    
-                    {/* Main text - Action required */}
-                    <div className="body-large text-foreground">
-                      <p>{actionText}</p>
-                    </div>
-                    
-                    {/* Supporting text - Severity + Question */}
-                    <div className="flex flex-col">
-                      <span 
-                        className="label-medium inline-block"
-                        style={{ color: severityConfig.text }}
-                      >
-                        {severityConfig.label}
-                      </span>
-                      <p className="label-medium text-muted-foreground truncate">
-                        {deviation.checklist}
-                      </p>
-                    </div>
+          {/* Sorting row - same style as TildelteRevisjonerPage - matched height with Liste/Kalender buttons */}
+          <div className="flex items-center gap-2 relative min-h-[56px]">
+            <div className="label-large text-foreground whitespace-nowrap">
+              Sortering:
+            </div>
+            <button 
+              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+              className="h-8 relative rounded-lg shrink-0 hover:bg-muted transition-colors"
+            >
+              <div className="flex h-full items-center justify-center overflow-hidden relative rounded-inherit">
+                <div className="flex gap-2 h-8 items-center justify-center pl-4 pr-2 py-1.5 relative">
+                  <div className="label-medium text-foreground">
+                    {getSortLabel()}
                   </div>
-
-                  {/* Trailing element - Open in new icon */}
-                  <button
-                    onClick={() => handleOpenAvvik(deviation.id)}
-                    className="flex items-center justify-center w-6 h-6 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label="Åpne avvik"
-                  >
-                    <ExternalLink className="w-6 h-6" />
-                  </button>
-                </div>
-
-                {/* Content section */}
-                <div className="px-4 py-2">
-                  {isVisit ? (
-                    // Visit section with date
-                    <div className="flex gap-4 items-center h-14 w-full">
-                      <Calendar className="w-6 h-6 text-muted-foreground shrink-0" />
-                      <div className="flex-1 flex flex-col justify-center min-w-0">
-                        <p className="label-medium text-muted-foreground">
-                          Forslag til {deviation.confirmationMethod === 'digitalt-besok' ? 'digitalt' : 'fysisk'} besøk
-                        </p>
-                        <p className="body-large text-muted-foreground">
-                          {formatNorwegianDate(deviation.deadline)}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    // Document section with attachment
-                    <div className="flex gap-4 items-center h-14 w-full">
-                      <Paperclip className="w-6 h-6 text-muted-foreground shrink-0" />
-                      <div className="flex-1 flex flex-col justify-center min-w-0">
-                        <p className="label-medium text-muted-foreground">
-                          Attachment
-                        </p>
-                        <p className="body-large text-muted-foreground truncate">
-                          kontrollrapport.jpg
-                        </p>
-                      </div>
-                      <button className="text-muted-foreground hover:text-foreground transition-colors">
-                        <Download className="w-6 h-6" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="flex gap-2 mt-2 w-full">
-                    {isVisit ? (
-                      <>
-                        <Button variant="secondary" className="flex-1">
-                          Foreslå nytt tidspunkt
-                        </Button>
-                        <Button variant="secondary" className="flex-1">
-                          <Check className="w-5 h-5" />
-                          Godta tidspunkt
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button variant="secondary" className="flex-1">
-                          Avvis dokument og be om nytt
-                        </Button>
-                        <Button variant="secondary" className="flex-1">
-                          Lukk avviket
-                        </Button>
-                      </>
-                    )}
+                  <div className="relative shrink-0 size-[18px]">
+                    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 18 18">
+                      <path d={svgPathsSorting.p1e934100} fill="var(--foreground)" />
+                    </svg>
                   </div>
                 </div>
               </div>
-            );
-          })}
+              <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-lg" />
+            </button>
+            
+            {/* Dropdown menu */}
+            {sortDropdownOpen && (
+              <>
+                {/* Backdrop to close dropdown */}
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setSortDropdownOpen(false)}
+                />
+                
+                {/* Dropdown content */}
+                <div className="absolute top-full left-0 mt-2 z-20 bg-card border border-[var(--border)] rounded-lg shadow-lg min-w-[220px] overflow-hidden">
+                  <button
+                    onClick={() => handleSortChange('tidsfrist')}
+                    className={`w-full px-4 py-3 text-left body-medium hover:bg-muted transition-colors ${
+                      sortBy === 'tidsfrist' ? 'bg-secondary-container text-secondary-container-foreground' : 'text-foreground'
+                    }`}
+                  >
+                    Tidsfrist for lukking
+                  </button>
+                  <button
+                    onClick={() => handleSortChange('innmeldt-dato')}
+                    className={`w-full px-4 py-3 text-left body-medium hover:bg-muted transition-colors ${
+                      sortBy === 'innmeldt-dato' ? 'bg-secondary-container text-secondary-container-foreground' : 'text-foreground'
+                    }`}
+                  >
+                    Innmeldt dato
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Scrollable Content Area - Only on desktop - no margin top to align with left cards */}
+        <div className="flex-1 w-full overflow-y-auto max-[1400px]:overflow-visible mt-4 px-10">
+        {/* To-do cards */}
+        <div className="flex flex-col gap-1 w-full max-[1400px]:pb-4">
+          {sortedTodoItems.map((deviation) => (
+            <AvvikActionCard
+              key={deviation.id}
+              foretakName={deviation.foretakName}
+              deadline={formatNorwegianDate(deviation.deadline)}
+              checklist={deviation.checklist}
+              severity={deviation.severity}
+              status={deviation.status}
+              onClick={() => handleOpenAvvik(deviation.id)}
+            />
+          ))}
         </div>
         </div>
       </div>
@@ -660,7 +640,11 @@ function Section3SidePanelToDoList() {
   );
 }
 
-function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onNavigateToAvvikoversikt }: Section2Props) {
+// ============================================================================
+// Section 1 - Home Heading Component
+// ============================================================================
+
+function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onNavigateToAvvikoversikt, onNavigateToStatistics, onNavigateToRevisorprofil }: Section2Props & { onNavigateToStatistics?: () => void; onNavigateToRevisorprofil?: () => void }) {
   return (
     <div className="content-stretch flex flex-col gap-[16px] items-start justify-center px-[24px] py-[16px] relative w-full" data-name="Profile Details">
       {/* Information - User greeting and action buttons */}
@@ -674,7 +658,7 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
             </svg>
           </div>
 
-          {/* User Info - Reordered: Revisorprofil above, Liv Berg below, button at bottom */}
+          {/* User Info - Reordered: Revisorprofil above, Liv Berg below */}
           <div className="content-stretch flex flex-[1_0_0] flex-col gap-[4px] items-start justify-center leading-[0] min-h-px min-w-px relative" data-name="User Info">
             <div className="label-large text-muted-foreground w-full">
               <p>Revisorprofil</p>
@@ -682,28 +666,7 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
             <div className="title-large text-foreground w-full">
               <p>Liv Berg</p>
             </div>
-            <button className="label-medium text-primary hover:opacity-70 transition-opacity mt-1">
-              Rediger revisorsprofil
-            </button>
           </div>
-        </div>
-
-        {/* Actions - Only "Se på statistik" button */}
-        <div className="content-center flex flex-wrap gap-[8px] items-center relative shrink-0" data-name="Actions">
-          {/* Button - Se på statistik with percent icon */}
-          <button className="content-stretch flex items-center justify-center overflow-clip relative rounded-[100px] shrink-0 hover:opacity-80 transition-opacity" data-name="Button">
-            <div className="content-stretch flex gap-[8px] items-center justify-center px-[24px] py-[16px] relative shrink-0" data-name="State-layer">
-              {/* Percent icon % */}
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="19" y1="5" x2="5" y2="19" />
-                <circle cx="6.5" cy="6.5" r="2.5" />
-                <circle cx="17.5" cy="17.5" r="2.5" />
-              </svg>
-              <div className="label-medium text-primary">
-                <p>Se på statistikk</p>
-              </div>
-            </div>
-          </button>
         </div>
       </div>
 
@@ -758,10 +721,9 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
                 {/* Icon with larger badge */}
                 <div className="relative shrink-0">
                   <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    {/* Material Design check_circle icon */}
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                      <g>
-                        <path d={svgPathsProfileDetailsNew.p1c86d00} fill="var(--primary)" />
-                      </g>
+                      <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z" fill="var(--primary)" />
                     </svg>
                   </div>
                   {/* Larger Badge */}
@@ -793,10 +755,9 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
                 {/* Icon with larger badge */}
                 <div className="relative shrink-0">
                   <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    {/* Material Design description (report) icon */}
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                      <g>
-                        <path d={svgPathsProfileDetailsNew.p38bb600} fill="var(--primary)" />
-                      </g>
+                      <path d="M8 16H16V18H8V16ZM8 12H16V14H8V12ZM14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z" fill="var(--primary)" />
                     </svg>
                   </div>
                   {/* Larger Badge */}
@@ -816,7 +777,7 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
           </div>
         </button>
 
-        {/* Card 4 - Klar for oppfølging - Hidden on desktop (≥1400px) when "Til handling nå" panel is visible */}
+        {/* Card 4 - Avviksbehandling - Hidden on desktop (≥1400px) when "Til handling nå" panel is visible */}
         <button
           onClick={onNavigateToAvvikoversikt}
           className="bg-white flex-[1_0_0] max-w-[280px] min-h-px min-w-[232px] max-[900px]:flex-none max-[900px]:w-auto max-[900px]:h-[120px] max-[900px]:min-w-0 max-[900px]:max-w-none relative rounded-[16px] max-[900px]:rounded-[12px] hover:bg-muted/30 transition-colors cursor-pointer max-[1399px]:flex min-[1400px]:hidden"
@@ -829,10 +790,9 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
                 {/* Icon with larger badge */}
                 <div className="relative shrink-0">
                   <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    {/* Material Design report_problem outlined icon */}
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                      <g>
-                        <path d={svgPathsProfileDetailsNew.p24139a00} fill="var(--primary)" />
-                      </g>
+                      <path d="M12 5.99L19.53 19H4.47L12 5.99ZM12 2L1 21H23L12 2ZM13 16H11V18H13V16ZM13 10H11V14H13V10Z" fill="var(--primary)" />
                     </svg>
                   </div>
                   {/* Larger Badge */}
@@ -844,7 +804,71 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
                 {/* Text */}
                 <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Ready for Follow-up">
                   <div className="title-medium text-foreground w-full">
-                    <p>Klar for oppfølging</p>
+                    <p>Avviksbehandling</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* Card 5 - Se på statistikk */}
+        <button
+          onClick={onNavigateToStatistics}
+          className="bg-white flex-[1_0_0] max-w-[280px] min-h-px min-w-[232px] max-[900px]:flex-none max-[900px]:w-auto max-[900px]:h-[120px] max-[900px]:min-w-0 max-[900px]:max-w-none relative rounded-[16px] max-[900px]:rounded-[12px] hover:bg-muted/30 transition-colors cursor-pointer"
+          data-name="Quick access card"
+        >
+          <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[16px] max-[900px]:rounded-[12px]" />
+          <div className="flex flex-col items-center max-w-[inherit] min-w-[inherit] size-full">
+            <div className="content-stretch flex flex-col items-center max-w-[inherit] min-w-[inherit] p-[12px] max-[900px]:px-[24px] max-[900px]:py-[16px] relative w-full">
+              <div className="content-stretch flex flex-col gap-[16px] max-[900px]:gap-[8px] items-center justify-center relative shrink-0" data-name="Container">
+                {/* Icon without badge */}
+                <div className="relative shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    {/* Percent icon % */}
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="19" y1="5" x2="5" y2="19" />
+                      <circle cx="6.5" cy="6.5" r="2.5" />
+                      <circle cx="17.5" cy="17.5" r="2.5" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Text */}
+                <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Statistics">
+                  <div className="title-medium text-foreground w-full">
+                    <p>Se på statistikk</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </button>
+
+        {/* Card 6 - Revisorprofil */}
+        <button
+          onClick={onNavigateToRevisorprofil}
+          className="bg-white flex-[1_0_0] max-w-[280px] min-h-px min-w-[232px] max-[900px]:flex-none max-[900px]:w-auto max-[900px]:h-[120px] max-[900px]:min-w-0 max-[900px]:max-w-none relative rounded-[16px] max-[900px]:rounded-[12px] hover:bg-muted/30 transition-colors cursor-pointer"
+          data-name="Quick access card"
+        >
+          <div aria-hidden="true" className="absolute border border-[var(--border)] border-solid inset-0 pointer-events-none rounded-[16px] max-[900px]:rounded-[12px]" />
+          <div className="flex flex-col items-center max-w-[inherit] min-w-[inherit] size-full">
+            <div className="content-stretch flex flex-col items-center max-w-[inherit] min-w-[inherit] p-[12px] max-[900px]:px-[24px] max-[900px]:py-[16px] relative w-full">
+              <div className="content-stretch flex flex-col gap-[16px] max-[900px]:gap-[8px] items-center justify-center relative shrink-0" data-name="Container">
+                {/* Icon without badge */}
+                <div className="relative shrink-0">
+                  <div className="w-12 h-12 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center p-2">
+                    {/* Material Design account_circle icon */}
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 5C13.66 5 15 6.34 15 8C15 9.66 13.66 11 12 11C10.34 11 9 9.66 9 8C9 6.34 10.34 5 12 5ZM12 19.2C9.5 19.2 7.29 17.92 6 15.98C6.03 13.99 10 12.9 12 12.9C13.99 12.9 17.97 13.99 18 15.98C16.71 17.92 14.5 19.2 12 19.2Z" fill="var(--primary)" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Text */}
+                <div className="content-stretch flex flex-col items-start relative shrink-0 text-center" data-name="Revisor Profile">
+                  <div className="title-medium text-foreground w-full">
+                    <p>Rediger revisorprofil</p>
                   </div>
                 </div>
               </div>
@@ -856,9 +880,13 @@ function Section1HomeHeading({ onNavigateToTildelteRevisjoner, onNavigateToVente
   );
 }
 
-function MainContentArea({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick }: Section2Props) {
+// ============================================================================
+// Main Content Area Component
+// ============================================================================
+
+function MainContentArea({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick, onNavigateToAvvikoversikt }: Section2Props & { onNavigateToAvvikoversikt?: (deviationId?: string) => void }) {
   return (
-    <div className="bg-background content-stretch flex flex-1 items-start justify-start relative w-full h-full max-[1400px]:overflow-y-auto max-[1400px]:h-auto overflow-hidden" data-name="Main Content Area">
+    <div className="bg-background content-stretch flex flex-1 items-start justify-start relative w-full h-full max-[1400px]:h-auto min-[1400px]:overflow-hidden" data-name="Main Content Area">
       {/* Container with max gap between sections */}
       <div className="flex items-start w-full h-full max-[1400px]:h-auto max-[1400px]:flex-col max-[1400px]:gap-0">
         {/* Section 2 - Planned Revisjoner - Full width on mobile, constrained on desktop */}
@@ -875,27 +903,35 @@ function MainContentArea({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaP
 
         {/* Section 3 - To-do list - shown only on desktop (≥1400px), hidden on mobile/tablet */}
         <div className="max-[1399px]:hidden min-[1400px]:block h-full">
-          <Section3SidePanelToDoList />
+          <Section3SidePanelToDoList onNavigateToAvvikoversikt={onNavigateToAvvikoversikt} />
         </div>
       </div>
     </div>
   );
 }
 
+// ============================================================================
+// Main ForsidePage Component
+// ============================================================================
+
 interface ForsidePageProps {
   onNavigateToTildelteRevisjoner?: () => void;
   onNavigateToVenterPaPlanlegging?: () => void;
   onRevisionClick?: (revisionId: string) => void;
-  onNavigateToAvvikoversikt?: () => void;
+  onNavigateToAvvikoversikt?: (deviationId?: string) => void;
+  onNavigateToStatistics?: () => void;
+  onNavigateToRevisorprofil?: () => void;
 }
 
-function ForsidePage({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick, onNavigateToAvvikoversikt }: ForsidePageProps) {
+function ForsidePage({ onNavigateToTildelteRevisjoner, onNavigateToVenterPaPlanlegging, onRevisionClick, onNavigateToAvvikoversikt, onNavigateToStatistics, onNavigateToRevisorprofil }: ForsidePageProps) {
   return (
     <div className="bg-background content-stretch flex flex-col items-start relative size-full max-w-[1680px] mx-auto max-[1400px]:h-auto max-[1400px]:overflow-y-auto" data-name="Forside Page">
       <Section1HomeHeading 
         onNavigateToTildelteRevisjoner={onNavigateToTildelteRevisjoner}
         onNavigateToVenterPaPlanlegging={onNavigateToVenterPaPlanlegging}
         onNavigateToAvvikoversikt={onNavigateToAvvikoversikt}
+        onNavigateToStatistics={onNavigateToStatistics}
+        onNavigateToRevisorprofil={onNavigateToRevisorprofil}
       />
       
       <MainContentArea 

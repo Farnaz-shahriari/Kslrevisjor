@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { DeviationDetailPanel } from './DeviationDetailPanel';
+import { PreviousAvvik } from '../data/previousAvvik';
 
 type SeverityType = 'kritisk' | 'avvik' | 'lite';
 type StatusType = 'lukket' | 'apent';
@@ -11,6 +12,7 @@ interface PreviousDeviation {
   questionText: string;
   status: StatusType;
   source: 'ekstern' | 'egen'; // To differentiate between external and internal
+  fullAvvikData?: PreviousAvvik; // Optional: Full avvik data for detailed view
 }
 
 interface PreviousAvvikTableProps {
@@ -33,7 +35,7 @@ export function PreviousAvvikTable({ deviations }: PreviousAvvikTableProps) {
       kritisk: {
         bg: 'bg-s-avvik-container',
         text: 'text-on-s-avvik-container',
-        label: 'Stort avvik'
+        label: 'Kritisk'
       },
       avvik: {
         bg: 'bg-avvik-container',
@@ -185,16 +187,31 @@ export function PreviousAvvikTable({ deviations }: PreviousAvvikTableProps) {
       {selectedDeviation && (
         <div className="max-[1400px]:hidden w-[520px] h-full overflow-hidden">
           <DeviationDetailPanel
-            deviation={{
+            deviation={selectedDeviation.fullAvvikData ? {
+              // Use fullAvvikData if available (for previous external avvik with complete details)
               id: selectedDeviation.id,
               severity: selectedDeviation.severity,
-              foretakName: '', // Not applicable for previous revisions
+              foretakName: selectedDeviation.fullAvvikData.foretakName,
+              checklist: selectedDeviation.fullAvvikData.checklist,
+              deadline: selectedDeviation.fullAvvikData.deadline,
+              status: selectedDeviation.fullAvvikData.status,
+              requiresAction: selectedDeviation.fullAvvikData.requiresAction,
+              confirmationMethod: selectedDeviation.fullAvvikData.confirmationMethod,
+              mangel: selectedDeviation.fullAvvikData.mangel,
+              bevis: selectedDeviation.fullAvvikData.bevis,
+              krav: selectedDeviation.fullAvvikData.krav,
+              closedDate: undefined
+            } : {
+              // Fallback for other types of avvik
+              id: selectedDeviation.id,
+              severity: selectedDeviation.severity,
+              foretakName: '',
               checklist: `${selectedDeviation.questionNumber} – ${selectedDeviation.questionText}`,
-              deadline: new Date(), // Placeholder
+              deadline: new Date(),
               status: selectedDeviation.status === 'lukket' ? 'lukket' : 'tidspunkt-foreslatt',
               requiresAction: false,
               confirmationMethod: 'dokumentasjon',
-              closedDate: selectedDeviation.status === 'lukket' ? new Date(2025, 2, 1) : undefined // March 1, 2025
+              closedDate: selectedDeviation.status === 'lukket' ? new Date(2025, 2, 1) : undefined
             }}
           />
         </div>

@@ -85,79 +85,31 @@ export function ExternalRevisionAvvikView({ deviations }: ExternalRevisionAvvikV
   }, [isResizingDetail]);
 
   const getSeverityChip = (severity: SeverityType) => {
-    switch (severity) {
-      case 'stort-avvik':
-        return (
-          <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#ffdad6] text-[#410002] cursor-default whitespace-nowrap">
-            <span className="label-medium">
-              Stort avvik
-            </span>
-          </div>
-        );
-      case 'avvik':
-        return (
-          <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#fdd19f] text-[#3d2100] cursor-default whitespace-nowrap">
-            <span className="label-medium">
-              Avvik
-            </span>
-          </div>
-        );
-      case 'lite-avvik':
-        return (
-          <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#fdeeb1] text-[#3d2c00] cursor-default whitespace-nowrap">
-            <span className="label-medium">
-              Lite avvik
-            </span>
-          </div>
-        );
-    }
+    // Always show "Kritisk" in table with critical color
+    return (
+      <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#ffdad6] text-[#410002] cursor-default whitespace-nowrap">
+        <span className="label-medium">
+          Kritisk
+        </span>
+      </div>
+    );
   };
 
   const getSeverityBadge = (severity: SeverityType) => {
-    switch (severity) {
-      case 'stort-avvik':
-        return (
-          <div className="flex items-center gap-4 px-4 py-2 rounded-[var(--radius-md)] bg-[#ffdad6] text-[#410002] min-h-[56px]">
-            <div className="shrink-0 w-6 h-6 flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <path d={svgPathsDeviation.p04b1b000} fill="currentColor" transform="scale(1.6) translate(0, 0)" />
-              </svg>
-            </div>
-            <div className="flex-1 flex flex-col justify-center">
-              <p className="label-medium m-0">Beregnet alvorlighetsgrad</p>
-              <p className="body-large m-0">Stort avvik</p>
-            </div>
-          </div>
-        );
-      case 'avvik':
-        return (
-          <div className="flex items-center gap-4 px-4 py-2 rounded-[var(--radius-md)] bg-[#fdd19f] text-[#3d2100] min-h-[56px]">
-            <div className="shrink-0 w-6 h-6 flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <path d={svgPathsDeviation.p04b1b000} fill="currentColor" transform="scale(1.6) translate(0, 0)" />
-              </svg>
-            </div>
-            <div className="flex-1 flex flex-col justify-center">
-              <p className="label-medium m-0">Beregnet alvorlighetsgrad</p>
-              <p className="body-large m-0">Avvik</p>
-            </div>
-          </div>
-        );
-      case 'lite-avvik':
-        return (
-          <div className="flex items-center gap-4 px-4 py-2 rounded-[var(--radius-md)] bg-[#fdeeb1] text-[#3d2c00] min-h-[56px]">
-            <div className="shrink-0 w-6 h-6 flex items-center justify-center">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                <path d={svgPathsDeviation.p04b1b000} fill="currentColor" transform="scale(1.6) translate(0, 0)" />
-              </svg>
-            </div>
-            <div className="flex-1 flex flex-col justify-center">
-              <p className="label-medium m-0">Beregnet alvorlighetsgrad</p>
-              <p className="body-large m-0">Lite avvik</p>
-            </div>
-          </div>
-        );
-    }
+    // Detail panel - always show "Kritisk avvik" with icon
+    return (
+      <div className="flex items-center gap-4 px-4 py-2 rounded-[var(--radius-md)] bg-[#ffdad6] text-[#410002] min-h-[56px]">
+        <div className="shrink-0 w-6 h-6 flex items-center justify-center">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+            <path d={svgPathsDeviation.p04b1b000} fill="currentColor" transform="scale(1.6) translate(0, 0)" />
+          </svg>
+        </div>
+        <div className="flex-1 flex flex-col justify-center">
+          <p className="label-medium m-0">Beregnet alvorlighetsgrad</p>
+          <p className="body-large m-0">Kritisk avvik</p>
+        </div>
+      </div>
+    );
   };
 
   // Detail content component (reused in both desktop panel and mobile bottom sheet)

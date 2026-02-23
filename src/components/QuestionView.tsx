@@ -74,6 +74,40 @@ export function QuestionView({ questionId, questionData: savedData, onAnswer, on
       if (onAnswer) {
         onAnswer(questionId, 'nei');
       }
+      
+      // Add the previous avvik to the deviations array if it doesn't exist
+      if (previousAvvik && onUpdateData) {
+        const existingDeviations = savedData.deviations || [];
+        const previousAvvikExists = existingDeviations.some(
+          (dev: any) => dev.isPreviousAvvik && dev.previousAvvikId === previousAvvik.id
+        );
+        
+        if (!previousAvvikExists) {
+          // Convert previousAvvik to deviation format
+          const previousAvvikAsDeviation = {
+            id: `prev-${previousAvvik.id}`,
+            isPreviousAvvik: true,
+            previousAvvikId: previousAvvik.id,
+            severity: previousAvvik.severity,
+            foretakName: previousAvvik.foretakName,
+            checklist: previousAvvik.checklist,
+            deadline: previousAvvik.deadline,
+            status: previousAvvik.status,
+            requiresAction: previousAvvik.requiresAction,
+            confirmationMethod: previousAvvik.confirmationMethod,
+            source: 'external',
+            locked: true, // Lock it because it's from a previous revision
+            mangel: previousAvvik.mangel,
+            bevis: previousAvvik.bevis,
+            krav: previousAvvik.krav
+          };
+          
+          onUpdateData(questionId, {
+            deviations: [...existingDeviations, previousAvvikAsDeviation]
+          });
+        }
+      }
+      
       return; // Exit early
     }
     

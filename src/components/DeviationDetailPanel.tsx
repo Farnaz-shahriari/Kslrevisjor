@@ -7,10 +7,9 @@ import svgPathsPostpone from '../imports/svg-1q9ydsa8k6';
 import { KravVeilederSection } from './KravVeilederSection';
 import { getQuestionById } from '../data/questions';
 import { Button } from './ui/button';
-import { ChevronDown, ChevronUp, X, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, X, Check, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { ListItem } from './ui/list-item';
-import { AlertTriangle } from 'lucide-react';
 import { RadioButton } from './ui/radio-button';
 
 type SeverityType = 'kritisk' | 'avvik' | 'lite';
@@ -80,6 +79,18 @@ function getDeviationDetails(deviation: Deviation) {
     "Besøket gjør det mulig for oss å gjennomgå tiltakene sammen og sikre at alt er i tråd med kravene. Send forslag til tidspunkt."
   ];
   
+  // Availability texts - what the producer writes about their availability
+  const availabilityTexts = [
+    "Jeg er tilgjengelig mandager og onsdager mellom kl. 09:00-15:00. Fredager fungerer også bra, men fortrinnsvis før kl. 14:00. Unngå gjerne tirsdager da jeg har fast møte hele dagen.",
+    "Morgener fungerer best for meg, helst mellom kl. 08:00-11:00 på hverdager. Onsdager og torsdager er mest praktisk. Ettermiddager etter kl. 15:00 er også mulig ved behov.",
+    "Jeg er fleksibel de fleste hverdager mellom kl. 10:00-16:00. Mandager og fredager er best, men kan også stille på tirsdager og torsdager. Unngå gjerne onsdag da jeg ofte er ute i marken.",
+    "Ettermiddager passer best, gjerne mellom kl. 13:00-17:00. Tirsdager, onsdager og torsdager er optimalt. Kan også stille mandag ettermiddag ved behov.",
+    "Jeg foretrekker morgen mellom kl. 07:00-10:00 eller ettermiddag etter kl. 15:00. Mandager, onsdager og fredager fungerer best for meg. Vennligst gi meg beskjed minst 2 dager i forveien.",
+    "Tilgjengelig alle hverdager mellom kl. 09:00-14:00. Onsdager og torsdager er mest praktisk, men kan også mandager og fredager. Unngå gjerne tirsdager da jeg har andre forpliktelser.",
+    "Morgener før kl. 11:00 fungerer best, spesielt tirsdager og torsdager. Kan også fredager, men helst i tidlig formiddag. Ettermiddager er vanskeligere pga. driftsoppgaver.",
+    "Jeg er fleksibel de fleste dager mellom kl. 10:00-15:00. Mandager og onsdager er optimal, men kan også tirsdager. Fredager er også mulig, men fortrinnsvis før kl. 13:00."
+  ];
+  
   // Extract question text for context-aware content
   const questionText = deviation.checklist.split('–')[1]?.trim() || 'kravet';
   
@@ -88,7 +99,7 @@ function getDeviationDetails(deviation: Deviation) {
   
   // Select random comment based on method
   let comment: string;
-  if (method === 'fysisk-besok') {
+  if (method === 'fysisk-besok' || method === 'digitalt-besok') {
     comment = fysiskBesokComments[parseInt(deviation.id) % fysiskBesokComments.length];
   } else if (method === 'dokumentasjon') {
     comment = 'Send meg relevante dokumentasjon her';
@@ -96,15 +107,20 @@ function getDeviationDetails(deviation: Deviation) {
     comment = `Ring meg på telefon først, og vi fortsetter dialogen på Messenger.`;
   }
   
+  // Select random availability text
+  const availability = availabilityTexts[parseInt(deviation.id) % availabilityTexts.length];
+  
   return {
     responsible: responsibleNames[parseInt(deviation.id) % responsibleNames.length],
     confirmationMethod: method,
     comment,
+    availability,
     mangel: `Ingen dokumentasjon fremvist for truckkontroll.`,
     bevis: `Ingen dokumentasjon fremvist for truckkontroll.`,
     krav: `Ingen dokumentasjon fremvist for truckkontroll.`,
     rapportertAvvik: `Stort avvik fra kravet.`,
-    proposedDate: new Date(2025, 5, 16) // June 16, 2025
+    proposedDate: new Date(2025, 5, 16), // June 16, 2025
+    proposedTime: '10:00' // Default time
   };
 }
 
@@ -127,9 +143,11 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
   // Local state for deviation status to handle user interactions
   const [currentStatus, setCurrentStatus] = useState<StatusType>(deviation.status);
   const [isLoading, setIsLoading] = useState(false);
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [isEditingTime, setIsEditingTime] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string>('10:00');
   const [currentProposedDate, setCurrentProposedDate] = useState<Date>(details.proposedDate);
+  const [currentProposedTime, setCurrentProposedTime] = useState<string>(details.proposedTime);
   const [kravBevisExpanded, setKravBevisExpanded] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectComment, setRejectComment] = useState('');
@@ -152,6 +170,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
   // All fields are read-only in Avvikoversikt
   const responsible = details.responsible;
   const comment = details.comment;
+  const availability = details.availability;
   const mangel = details.mangel;
   const bevis = details.bevis;
   const krav = details.krav;
@@ -163,7 +182,7 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
     const labels = {
       'dokumentasjon': 'Lukking krever dokumentasjon',
       'digitalt-besok': 'Lukking krever digitalt besøk',
-      'fysisk-besok': 'Lukking krever fysisk besøk'
+      'fysisk-besok': 'Lukking krever digitalt besøk'
     };
     return labels[method];
   };
@@ -205,36 +224,42 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
     }
   };
   
-  // Handler for accepting the proposed time with loading state
-  const handleAcceptTime = () => {
-    setIsLoading(true);
-    // Simulate API call with timeout
-    setTimeout(() => {
+  // Handler for setting time (when revisor sets the visit time)
+  const handleSetTime = () => {
+    setIsEditingTime(true);
+    // Initialize with current date
+    setSelectedDate(currentProposedDate);
+    setSelectedTime(currentProposedTime);
+  };
+  
+  // Handler for proposing new time - shows inline inputs
+  const handleProposeNewTime = () => {
+    setIsEditingTime(true);
+    // Keep current values
+    setSelectedDate(currentProposedDate);
+    setSelectedTime(currentProposedTime);
+  };
+  
+  // Handler for confirming date and time selection
+  const handleConfirmDateTime = () => {
+    if (selectedDate && selectedTime) {
+      setCurrentProposedDate(selectedDate);
+      setCurrentProposedTime(selectedTime);
+      setIsEditingTime(false);
+      // Change status to "besok-planlagt" (visit planned)
       setCurrentStatus('besok-planlagt');
       // Notify parent component to update the table
       if (onStatusUpdate) {
         onStatusUpdate(deviation.id, 'besok-planlagt');
       }
-      setIsLoading(false);
-    }, 1500);
-  };
-  
-  // Handler for proposing new time - opens calendar
-  const handleProposeNewTime = () => {
-    setShowCalendar(true);
-  };
-  
-  // Handler for selecting a date from calendar
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-    setCurrentProposedDate(date);
-    setShowCalendar(false);
-    // Change status to "venter-godkjenning" (waiting for farmer's approval)
-    setCurrentStatus('venter-godkjenning');
-    // Notify parent component to update the table
-    if (onStatusUpdate) {
-      onStatusUpdate(deviation.id, 'venter-godkjenning');
     }
+  };
+  
+  // Handler for canceling time edit
+  const handleCancelTimeEdit = () => {
+    setIsEditingTime(false);
+    setSelectedDate(null);
+    setSelectedTime('10:00');
   };
 
   // Special rendering for Register revisjon context
@@ -664,7 +689,404 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
     );
   }
 
-  // Original rendering for other contexts (avvikoversikt, tidligere-revisjon)
+  // Special rendering for Skriv rapport - Svaroversikt (tidligere-revisjon context)
+  if (context === 'tidligere-revisjon') {
+    const { responsible, confirmationMethod, comment, mangel, bevis, krav, rapportertAvvik } = details;
+    const registrationDate = new Date(2024, 10, 15); // November 15, 2024
+    
+    // Handlers for the three action buttons
+    const handleAvvikRettet = () => {
+      setShowConfirmCloseDialog(true);
+    };
+    
+    const handleConfirmClosePreviousAvvik = () => {
+      const currentDate = new Date();
+      setClosedDate(currentDate);
+      setCurrentStatus('lukket');
+      setShowConfirmCloseDialog(false);
+      
+      if (onStatusUpdate) {
+        onStatusUpdate(deviation.id, 'lukket');
+      }
+    };
+    
+    const handleAvvikAnnenForm = () => {
+      setShowCloseAndRegisterDialog(true);
+    };
+    
+    const handleConfirmCloseAndRegister = () => {
+      setShowCloseAndRegisterDialog(false);
+      
+      if (onUpdateData && questionId) {
+        onUpdateData(questionId, { closedPreviousAvvikId: deviation.id });
+      }
+      
+      if (onCloseAndRegisterNew) {
+        onCloseAndRegisterNew(deviation.id);
+      }
+    };
+    
+    const handleAvvikFortsattGjeldende = () => {
+      setPreviousAvvikStatus('gjeldende');
+    };
+    
+    const handleAngre = () => {
+      setPreviousAvvikStatus(null);
+    };
+    
+    return (
+      <div className="flex flex-col h-full overflow-y-auto bg-background">
+        <div className="px-6 py-3 space-y-3">
+          {/* List item with overline date and title */}
+          <div className="px-0 py-1">
+            <div className="flex flex-col">
+              <span className="label-small text-muted-foreground">
+                {formatNorwegianDate(registrationDate)}
+              </span>
+              <span className="body-large text-foreground">
+                Tidligere registrert avvik
+              </span>
+            </div>
+          </div>
+
+          {/* Question Text */}
+          <h4 className="title-medium">
+            {deviation.checklist}
+          </h4>
+
+          {/* Krav Veileder Section */}
+          {questionInfo && (
+            <KravVeilederSection question={questionInfo} />
+          )}
+
+          {/* Deviation Level/Severity Badge */}
+          <div className={`flex gap-4 items-center px-2 py-0 min-h-[56px] rounded-[var(--radius-lg)] ${getSeverityColor(deviation.severity)}`}>
+            <div className="size-10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <p className="label-small text-muted-foreground">
+                Resultat av vurdering
+              </p>
+              <p className="body-large text-foreground">
+                {getSeverityLabel(deviation.severity)}
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons - Only show if no option selected */}
+          {!previousAvvikStatus && (
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleAvvikRettet}
+                className="flex items-center justify-center h-14 px-6 rounded-[var(--radius-button)] border border-[var(--border)] bg-transparent text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="label-medium">
+                  Avviket er rettet og lukket
+                </span>
+              </button>
+
+              <button
+                onClick={handleAvvikAnnenForm}
+                className="flex items-center justify-center h-14 px-6 rounded-[var(--radius-button)] border border-[var(--border)] bg-transparent text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="label-medium">
+                  Avviket forekommer i en annen form
+                </span>
+              </button>
+
+              <button
+                onClick={handleAvvikFortsattGjeldende}
+                className="flex items-center justify-center h-14 px-6 rounded-[var(--radius-button)] border border-[var(--border)] bg-transparent text-foreground hover:bg-muted transition-colors"
+              >
+                <span className="label-medium">
+                  Avviket er fortsatt gjeldende
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Attention box - Only for tidligere-revisjon context in Skriv rapport */}
+          <div className="flex gap-3 px-4 py-3 bg-[#fff4e5] border border-[#e0c068] rounded-[var(--radius-lg)]">
+            <AlertCircle className="w-5 h-5 text-[#8b6914] shrink-0 mt-0.5" />
+            <p className="body-medium text-foreground">
+              Du kan angi en annen tidsfrist og ansvarlig og avslutningsmetode for dette avviket etter at alle avvikene er låst i avvikshåndtering.
+            </p>
+          </div>
+
+          {/* Show avvik details */}
+          <div className="space-y-3">
+            {/* Mangel */}
+            <div className="p-0 w-full">
+              <p className="label-small text-muted-foreground">
+                Mangel
+              </p>
+              <p className="body-large text-foreground">
+                {mangel}
+              </p>
+            </div>
+
+            {/* Bevis */}
+            <div className="w-full">
+              <p className="label-small text-muted-foreground">
+                Bevis
+              </p>
+              <p className="body-large text-foreground">
+                {bevis}
+              </p>
+            </div>
+
+            {/* Krav */}
+            <div className="w-full">
+              <p className="label-small text-muted-foreground">
+                Krav
+              </p>
+              <p className="body-large text-foreground">
+                {krav}
+              </p>
+            </div>
+
+            {/* Rapportert avvik */}
+            <div className="w-full">
+              <p className="label-small text-muted-foreground">
+                Rapportert avvik
+              </p>
+              <p className="body-large text-foreground">
+                {rapportertAvvik}
+              </p>
+            </div>
+
+            {/* Tidsfrist */}
+            <div className="w-full">
+              <p className="label-small text-muted-foreground">
+                Tidsfrist
+              </p>
+              <p className="body-large text-foreground">
+                {formatNorwegianDate(deviation.deadline)}
+              </p>
+            </div>
+
+            {/* Ansvarlig */}
+            <div className="w-full">
+              <p className="label-small text-muted-foreground">
+                Ansvarlig for lukking:
+              </p>
+              <p className="body-large text-foreground">
+                {responsible}
+              </p>
+            </div>
+
+            {/* Closing Avvik Container */}
+            <div className="bg-[#fafaf0] border border-[var(--border)] rounded-[var(--radius-lg)] p-6 space-y-2">
+              {/* Type of Closing */}
+              <div className="flex gap-2 items-center py-2">
+                {confirmationMethod === 'fysisk-besok' ? (
+                  <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                    <path d={svgPathsFysiskBesok.p1d73bd00} fill="#44483B" />
+                    <path d={svgPathsFysiskBesok.p17184600} fill="#44483B" />
+                    <path d={svgPathsFysiskBesok.pfba46c0} fill="#44483B" />
+                    <path d={svgPathsFysiskBesok.p33b21a00} fill="#44483B" />
+                  </svg>
+                ) : confirmationMethod === 'dokumentasjon' ? (
+                  <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                    <path d={svgPathsDokumentasjon.p1a55f400} fill="#44483B" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                    <path d={svgPathsOld.p3b7e4b92} fill="#44483B" />
+                  </svg>
+                )}
+                <p className="label-medium text-foreground">
+                  {getConfirmationMethodLabel(confirmationMethod)}
+                </p>
+              </div>
+
+              {/* Comment */}
+              <div className="flex gap-4 items-start p-2 w-full">
+                <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
+                  <path d={confirmationMethod === 'dokumentasjon' ? svgPathsDokumentasjon.p1bbda200 : svgPathsOld.p1bbda200} fill="#44483B" />
+                </svg>
+                <div className="flex-1">
+                  <p className="label-small text-muted-foreground">
+                    Kommentar
+                  </p>
+                  <p className="body-large text-foreground">
+                    {comment}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Status: Avviket forekommer i en annen form */}
+          {previousAvvikStatus === 'annen-form' && (
+            <div className="space-y-3">
+              {/* Status message with undo button */}
+              <div className="bg-[var(--primary-container)] border border-[var(--border)] rounded-[var(--radius-lg)] p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="body-medium text-[var(--primary-container-foreground)]">
+                      Dette avviket er lukket. Avviket forekommer i en annen form.
+                    </p>
+                  </div>
+                  <Button
+                    variant="tertiary"
+                    onClick={handleAngre}
+                    className="shrink-0"
+                  >
+                    Angre
+                  </Button>
+                </div>
+              </div>
+
+              {/* New avvik registration section */}
+              <div className="border border-[var(--border)] rounded-[var(--radius-lg)] p-4 space-y-3">
+                <h4 className="title-medium text-foreground">
+                  Registrer nytt avvik
+                </h4>
+                <p className="body-medium text-muted-foreground">
+                  Registrer et nytt avvik for denne situasjonen.
+                </p>
+                
+                <Button variant="primary" className="w-full" onClick={() => onCloseAndRegisterNew?.(deviation.id)}>
+                  Start registrering
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Status: Avviket er fortsatt gjeldende */}
+          {previousAvvikStatus === 'gjeldende' && (
+            <div className="bg-[var(--l-avvik-container)] border border-[var(--on-l-avvik-container)] rounded-[var(--radius-lg)] p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 space-y-1">
+                  <p className="label-medium text-[var(--on-l-avvik-container)]">
+                    Avviket er fortsatt gjeldende
+                  </p>
+                  <p className="body-medium text-[var(--on-l-avvik-container)]">
+                    Dette avviket blir ført videre i rapporten.
+                  </p>
+                </div>
+                <Button
+                  variant="tertiary"
+                  onClick={handleAngre}
+                  className="shrink-0"
+                >
+                  Angre
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Confirm Close Avvik Dialog */}
+        <Dialog open={showConfirmCloseDialog} onOpenChange={setShowConfirmCloseDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="title-large text-foreground">Bekreft lukking av avvik</DialogTitle>
+              <DialogDescription className="body-medium text-muted-foreground pt-2">
+                Er du sikker på at du vil bekrefte lukking av følgende avvik?
+              </DialogDescription>
+            </DialogHeader>
+            
+            {/* Deviation details */}
+            <div className="space-y-4 py-2">
+              {/* Question */}
+              <div>
+                <p className="label-small text-muted-foreground">Sjekklistespørsmål</p>
+                <p className="body-large text-foreground">
+                  {questionId} – {deviation.checklist.split('–')[1]?.trim() || deviation.checklist}
+                </p>
+              </div>
+              
+              {/* Foretak */}
+              <div>
+                <p className="label-small text-muted-foreground">Foretak</p>
+                <p className="body-large text-foreground">{deviation.foretakName}</p>
+              </div>
+              
+              {/* Mangel */}
+              <div>
+                <p className="label-small text-muted-foreground">Mangel</p>
+                <p className="body-large text-foreground">{mangel}</p>
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowConfirmCloseDialog(false)}
+                className="flex-1"
+              >
+                Avbryt
+              </Button>
+              <Button 
+                variant="primary"
+                onClick={handleConfirmClosePreviousAvvik}
+                className="flex-1"
+              >
+                Bekreft lukking
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Close and Register New Avvik Dialog */}
+        <Dialog open={showCloseAndRegisterDialog} onOpenChange={setShowCloseAndRegisterDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="title-large text-foreground">Lukk og registrer nytt avvik</DialogTitle>
+              <DialogDescription className="body-medium text-muted-foreground pt-2">
+                Er du sikker på at du vil lukke dette avviket og registrere et nytt avvik for denne situasjonen?
+              </DialogDescription>
+            </DialogHeader>
+            
+            {/* Deviation details */}
+            <div className="space-y-4 py-2">
+              {/* Question */}
+              <div>
+                <p className="label-small text-muted-foreground">Sjekklistespørsmål</p>
+                <p className="body-large text-foreground">
+                  {questionId} – {deviation.checklist.split('–')[1]?.trim() || deviation.checklist}
+                </p>
+              </div>
+              
+              {/* Foretak */}
+              <div>
+                <p className="label-small text-muted-foreground">Foretak</p>
+                <p className="body-large text-foreground">{deviation.foretakName}</p>
+              </div>
+              
+              {/* Mangel */}
+              <div>
+                <p className="label-small text-muted-foreground">Mangel</p>
+                <p className="body-large text-foreground">{mangel}</p>
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowCloseAndRegisterDialog(false)}
+                className="flex-1"
+              >
+                Avbryt
+              </Button>
+              <Button 
+                variant="primary"
+                onClick={handleConfirmCloseAndRegister}
+                className="flex-1"
+              >
+                Bekreft
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+  
+  // Original rendering for avvikoversikt context
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background">
       <div className="px-6 py-3 space-y-3">
@@ -913,24 +1335,8 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
 
         {/* Closing Avvik Container */}
         <div className="bg-[#fafaf0] border border-[var(--border)] rounded-[var(--radius-lg)] p-6 space-y-2">
-          {/* Type of Closing */}
-          <div className="flex gap-2 items-center py-2">
-            {confirmationMethod === 'fysisk-besok' ? (
-              <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                <path d={svgPathsFysiskBesok.p1d73bd00} fill="#44483B" />
-                <path d={svgPathsFysiskBesok.p17184600} fill="#44483B" />
-                <path d={svgPathsFysiskBesok.pfba46c0} fill="#44483B" />
-                <path d={svgPathsFysiskBesok.p33b21a00} fill="#44483B" />
-              </svg>
-            ) : confirmationMethod === 'dokumentasjon' ? (
-              <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                <path d={svgPathsDokumentasjon.p1a55f400} fill="#44483B" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                <path d={svgPathsOld.p3b7e4b92} fill="#44483B" />
-              </svg>
-            )}
+          {/* Type of Closing - Remove icon, keep text only */}
+          <div className="py-2">
             <p className="label-medium text-foreground">
               {getConfirmationMethodLabel(confirmationMethod)}
             </p>
@@ -963,12 +1369,9 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
                 </div>
               )}
 
-              {/* Comment */}
-              <div className="flex gap-4 items-start p-2 w-full">
-                <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                  <path d={svgPathsDokumentasjon.p1bbda200} fill="#44483B" />
-                </svg>
-                <div className="flex-1">
+              {/* Comment - Remove icon, left-align */}
+              <div className="p-2 w-full">
+                <div>
                   <p className="label-small text-muted-foreground">
                     Kommentar
                   </p>
@@ -1135,12 +1538,9 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
                 </div>
               )}
 
-              {/* Comment */}
-              <div className="flex gap-4 items-start p-2 w-full">
-                <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                  <path d={svgPathsOld.p1bbda200} fill="#44483B" />
-                </svg>
-                <div className="flex-1">
+              {/* Comment - Remove icon, left-align */}
+              <div className="p-2 w-full">
+                <div>
                   <p className="label-small text-muted-foreground">
                     Kommentar
                   </p>
@@ -1153,59 +1553,112 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
               {/* Divider */}
               <div className="h-px w-full bg-[var(--border)]" />
 
-              {/* Proposed Date */}
-              {showProposedDate && (
-                <div className="flex gap-4 items-center px-2 min-h-[56px] w-full">
-                  <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                    <path d={svgPathsOld.p13a8df70} fill="#44483B" />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="label-small text-muted-foreground">
-                      Forslag til {confirmationMethod === 'digitalt-besok' ? 'digitalt' : 'fysisk'} besøk
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="body-large text-muted-foreground">
-                        {formatNorwegianDate(currentProposedDate)}
-                      </p>
-                      {isVisitPlanned && (
-                        <p className="label-medium text-foreground">
-                          Godkjent
+              {/* Availability (for tidspunkt-foreslatt) or Scheduled Date/Time (for besok-planlagt) - Always visible */}
+              {(isTimeProposed || isVisitPlanned) && (confirmationMethod === 'digitalt-besok' || confirmationMethod === 'fysisk-besok') && (
+                <div className="px-2 w-full">
+                  <div>
+                    {isTimeProposed ? (
+                      <>
+                        <p className="label-small text-muted-foreground">
+                          Tilgjengelighet for digital revisjon
                         </p>
-                      )}
-                    </div>
+                        <p className="body-large text-foreground">
+                          {availability}
+                        </p>
+                      </>
+                    ) : isVisitPlanned ? (
+                      <>
+                        <p className="label-small text-muted-foreground">
+                          Planlagt tidspunkt
+                        </p>
+                        <p className="body-large text-foreground">
+                          {formatNorwegianDate(currentProposedDate)} kl. {currentProposedTime}
+                        </p>
+                      </>
+                    ) : null}
                   </div>
                 </div>
               )}
 
-              {/* Action Buttons */}
-              {showActionButtons && (
-                <div className="flex flex-wrap gap-4">
+              {/* Inline Date and Time Inputs - Shows when editing, replaces the button */}
+              {(isTimeProposed || isVisitPlanned) && isEditingTime && (confirmationMethod === 'digitalt-besok' || confirmationMethod === 'fysisk-besok') && (
+                <div className="flex flex-col gap-3 px-2">
+                  <div className="flex gap-3 max-[640px]:flex-col">
+                    {/* Date input */}
+                    <div className="flex-1 relative">
+                      <input 
+                        type="date"
+                        value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+                        onChange={(e) => {
+                          const date = new Date(e.target.value);
+                          setSelectedDate(date);
+                        }}
+                        max={deviation.deadline.toISOString().split('T')[0]}
+                        className="w-full h-14 pl-4 pr-12 border-2 border-border rounded-lg body-large text-foreground bg-background hover:border-foreground focus:border-primary focus:outline-none transition-colors"
+                        style={{
+                          colorScheme: 'light'
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                          <path d={svgPathsOld.p13a8df70} fill="#44483B" />
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    {/* Time input */}
+                    <div className="w-[160px] max-[640px]:w-full relative">
+                      <input 
+                        type="time"
+                        value={selectedTime}
+                        onChange={(e) => {
+                          setSelectedTime(e.target.value);
+                        }}
+                        className="w-full h-14 pl-4 pr-12 border-2 border-border rounded-lg body-large text-foreground bg-background hover:border-foreground focus:border-primary focus:outline-none transition-colors"
+                        style={{
+                          colorScheme: 'light'
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" stroke="#44483B" strokeWidth="2" fill="none" />
+                          <path d="M12 6V12L15 15" stroke="#44483B" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Action buttons for date/time inputs */}
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="secondary" 
+                      onClick={handleCancelTimeEdit}
+                    >
+                      Avbryt
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      onClick={handleConfirmDateTime}
+                      disabled={!selectedDate || !selectedTime}
+                    >
+                      Bekreft tidspunkt
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons - Only show when not editing */}
+              {(isTimeProposed || isVisitPlanned) && !isEditingTime && (confirmationMethod === 'digitalt-besok' || confirmationMethod === 'fysisk-besok') && (
+                <div className="flex flex-wrap gap-4 px-2">
                   {isTimeProposed && (
                     <Button 
                       variant="primary" 
-                      onClick={handleAcceptTime}
-                      disabled={isLoading}
-                      className="relative"
+                      onClick={handleSetTime}
                     >
-                      {isLoading ? (
-                        <>
-                          <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Godtar...
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                            <path d={svgPathsOld.p217bb200} fill="white" />
-                          </svg>
-                          Godta tidspunkt
-                        </>
-                      )}
+                      Sett tidspunkt
                     </Button>
                   )}
-                  {!isWaitingForApproval && (
+                  {isVisitPlanned && (
                     <Button variant="secondary" onClick={handleProposeNewTime}>
                       Foreslå nytt tidspunkt
                     </Button>
@@ -1216,37 +1669,6 @@ export function DeviationDetailPanel({ deviation, onStatusUpdate, onAddRejectedD
           )}
         </div>
       </div>
-
-      {/* Calendar Dialog */}
-      {showCalendar && (
-        <Dialog>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Velg nytt tidspunkt</DialogTitle>
-              <DialogDescription>
-                Velg en dato før {formatNorwegianDate(deviation.deadline)}
-              </DialogDescription>
-            </DialogHeader>
-            
-            {/* Simple date picker */}
-            <input 
-              type="date"
-              max={deviation.deadline.toISOString().split('T')[0]}
-              onChange={(e) => {
-                const date = new Date(e.target.value);
-                handleDateSelect(date);
-              }}
-              className="w-full px-4 py-3 border border-border rounded-[var(--radius)] body-large"
-            />
-            
-            <DialogFooter>
-              <Button variant="secondary" onClick={() => setShowCalendar(false)} className="flex-1">
-                Avbryt
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Reject Document Dialog */}
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>

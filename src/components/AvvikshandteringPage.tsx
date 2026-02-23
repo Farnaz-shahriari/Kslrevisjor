@@ -18,6 +18,7 @@ import { BottomSheet } from './ui/bottom-sheet';
 import { Button } from './ui/button';
 import { AvvikshandteringDetailPanel } from './AvvikshandteringDetailPanel';
 import { AvvikshandteringPreLockDetailPanel } from './AvvikshandteringPreLockDetailPanel';
+import { DeviationDetailPanel } from './DeviationDetailPanel';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
 type TabType = 'lukking' | 'avvik' | 'egenvurderinger' | 'notat';
@@ -33,6 +34,23 @@ interface QuestionData {
   notatText?: string;
   deviations?: any[];
   attachedDocuments?: string[];
+  closedPreviousAvvikId?: string; // Track if previous avvik has been closed
+  isPreviousAvvik?: boolean;
+  previousAvvikData?: {
+    id: string;
+    severity: 'kritisk' | 'avvik' | 'lite';
+    foretakName: string;
+    checklist: string;
+    deadline: Date;
+    status: string;
+    confirmationMethod: string;
+    requiresAction: boolean;
+    mangel?: string;
+    bevis?: string;
+    krav?: string;
+    rapportertAvvik?: string;
+    closedDate?: Date;
+  };
 }
 
 interface AvvikshandteringPageProps {
@@ -331,42 +349,33 @@ export function AvvikshandteringPage({
   };
 
   const getSeverityColor = (severity: SeverityType) => {
-    switch (severity) {
-      case 'kritisk':
-        return 'bg-[#ffdad6] text-[#410002]';
-      case 'stort-avvik':
-        return 'bg-[#ffdad6] text-[#410002]';
-      case 'avvik':
-        return 'bg-[#fdd19f] text-[#3d2100]';
-      case 'lite-avvik':
-        return 'bg-[#fdeeb1] text-[#3d2c00]';
-      default:
-        return 'bg-[#eeeee4] text-[#1a1c16]';
-    }
+    // Always use critical avvik color
+    return 'bg-[#ffdad6] text-[#410002]';
   };
 
   const getSeverityLabel = (severity: SeverityType) => {
-    switch (severity) {
-      case 'kritisk':
-        return 'Kritisk';
-      case 'stort-avvik':
-        return 'Stort avvik';
-      case 'avvik':
-        return 'Avvik';
-      case 'lite-avvik':
-        return 'Lite avvik';
-      default:
-        return 'Avvik';
-    }
+    // Always return "Kritisk" for tables
+    return 'Kritisk';
   };
 
-  // SeverityBadge component
-  function SeverityBadge({ severity }: { severity: SeverityType }) {
+  // SeverityBadge component for table (no icon)
+  function SeverityBadgeTable({ severity }: { severity: SeverityType }) {
     return (
-      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${getSeverityColor(severity)}`}>
-        <AlertTriangle className="w-4 h-4" />
+      <div className={`inline-flex items-center px-3 py-1.5 rounded-lg whitespace-nowrap ${getSeverityColor(severity)}`}>
         <span className="label-medium">
           {getSeverityLabel(severity)}
+        </span>
+      </div>
+    );
+  }
+
+  // SeverityBadge component for detail panel (with icon)
+  function SeverityBadgeDetail({ severity }: { severity: SeverityType }) {
+    return (
+      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg whitespace-nowrap ${getSeverityColor(severity)}`}>
+        <AlertTriangle className="w-4 h-4" />
+        <span className="label-medium">
+          Kritisk avvik
         </span>
       </div>
     );
@@ -509,7 +518,7 @@ export function AvvikshandteringPage({
                   </th>
                 )}
                 {isLocked && (
-                  <th className="w-48 px-4 py-2 text-left">
+                  <th className="w-56 px-4 py-2 text-left">
                     <span className="label-medium text-foreground">Gradering</span>
                   </th>
                 )}
@@ -535,79 +544,90 @@ export function AvvikshandteringPage({
               </tr>
             </thead>
             <tbody>
-              {displayedAnswers.map((answer) => (
-                <tr
-                  key={answer.id}
-                  onClick={() => {
-                    setSelectedQuestionId(answer.id);
-                    // On mobile/tablet, open bottom sheet
-                    if (window.innerWidth < 1400) {
-                      setIsDetailBottomSheetOpen(true);
-                    }
-                  }}
-                  className={`cursor-pointer border-b border-border transition-colors ${
-                    selectedQuestionId === answer.id
-                      ? 'bg-secondary-container'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  {isLocked && (
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center">
-                        {isAvvikComplete(answer.id) ? (
-                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z" fill="var(--muted-foreground)" />
-                          </svg>
+              {displayedAnswers.map((answer) => {
+                // Check if this question has a previous avvik
+                const data = questionData[answer.id];
+                const isPreviousAvvik = data?.isPreviousAvvik && data?.previousAvvikData;
+                
+                return (
+                  <tr
+                    key={answer.id}
+                    onClick={() => {
+                      setSelectedQuestionId(answer.id);
+                      // On mobile/tablet, open bottom sheet
+                      if (window.innerWidth < 1400) {
+                        setIsDetailBottomSheetOpen(true);
+                      }
+                    }}
+                    className={`cursor-pointer border-b border-border transition-colors ${
+                      selectedQuestionId === answer.id
+                        ? 'bg-secondary-container'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    {isLocked && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-center">
+                          {isAvvikComplete(answer.id) ? (
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM16.59 7.58L10 14.17L7.41 11.59L6 13L10 17L18 9L16.59 7.58Z" fill="var(--muted-foreground)" />
+                            </svg>
+                          ) : (
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                              <g>
+                                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20Z" fill="var(--muted-foreground)" />
+                                <path d="M7 13.5C7.82843 13.5 8.5 12.8284 8.5 12C8.5 11.1716 7.82843 10.5 7 10.5C6.17157 10.5 5.5 11.1716 5.5 12C5.5 12.8284 6.17157 13.5 7 13.5Z" fill="var(--muted-foreground)" />
+                                <path d="M12 13.5C12.8284 13.5 13.5 12.8284 13.5 12C13.5 11.1716 12.8284 10.5 12 10.5C11.1716 10.5 10.5 11.1716 10.5 12C10.5 12.8284 11.1716 13.5 12 13.5Z" fill="var(--muted-foreground)" />
+                                <path d="M17 13.5C17.8284 13.5 18.5 12.8284 18.5 12C18.5 11.1716 17.8284 10.5 17 10.5C16.1716 10.5 15.5 11.1716 15.5 12C15.5 12.8284 16.1716 13.5 17 13.5Z" fill="var(--muted-foreground)" />
+                              </g>
+                            </svg>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                    {isLocked && answer.severity && (
+                      <td className="px-4 py-3">
+                        <SeverityBadgeTable severity={answer.severity} />
+                      </td>
+                    )}
+                    {!isLocked && (
+                      <td className="px-10 py-3">
+                        {/* Show severity badge for previous avvik, or normal answer */}
+                        {isPreviousAvvik && data.previousAvvikData ? (
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#ffdad6] text-[#410002]">
+                           
+                            <span className="label-medium">
+                              Kritisk
+                            </span>
+                          </div>
                         ) : (
-                          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
-                            <g>
-                              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.58 20 4 16.42 4 12C4 7.58 7.58 4 12 4C16.42 4 20 7.58 20 12C20 16.42 16.42 20 12 20Z" fill="var(--muted-foreground)" />
-                              <path d="M7 13.5C7.82843 13.5 8.5 12.8284 8.5 12C8.5 11.1716 7.82843 10.5 7 10.5C6.17157 10.5 5.5 11.1716 5.5 12C5.5 12.8284 6.17157 13.5 7 13.5Z" fill="var(--muted-foreground)" />
-                              <path d="M12 13.5C12.8284 13.5 13.5 12.8284 13.5 12C13.5 11.1716 12.8284 10.5 12 10.5C11.1716 10.5 10.5 11.1716 10.5 12C10.5 12.8284 11.1716 13.5 12 13.5Z" fill="var(--muted-foreground)" />
-                              <path d="M17 13.5C17.8284 13.5 18.5 12.8284 18.5 12C18.5 11.1716 17.8284 10.5 17 10.5C16.1716 10.5 15.5 11.1716 15.5 12C15.5 12.8284 16.1716 13.5 17 13.5Z" fill="var(--muted-foreground)" />
-                            </g>
-                          </svg>
+                          <span className={`body-large ${
+                            selectedQuestionId === answer.id
+                              ? 'text-accent-foreground'
+                              : 'text-foreground'
+                          }`}>
+                            {answer.answer}
+                          </span>
                         )}
-                      </div>
-                    </td>
-                  )}
-                  {isLocked && answer.severity && (
+                      </td>
+                    )}
                     <td className="px-4 py-3">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${getSeverityColor(answer.severity)}`}>
-                        <AlertTriangle className="w-4 h-4" />
-                        <span className="label-medium">
-                          {getSeverityLabel(answer.severity)}
-                        </span>
-                      </div>
-                    </td>
-                  )}
-                  {!isLocked && (
-                    <td className="px-10 py-3">
-                      <span className={`body-large ${
+                      <span className={`body-medium line-clamp-1 ${
                         selectedQuestionId === answer.id
                           ? 'text-accent-foreground'
                           : 'text-foreground'
                       }`}>
-                        {answer.answer}
+                        {answer.id} {answer.questionText}
                       </span>
                     </td>
-                  )}
-                  <td className="px-4 py-3">
-                    <span className={`body-medium line-clamp-1 ${
-                      selectedQuestionId === answer.id
-                        ? 'text-accent-foreground'
-                        : 'text-foreground'
-                    }`}>
-                      {answer.id} {answer.questionText}
-                    </span>
-                  </td>
-                  {isLocked && (
-                    <td className="px-4 py-3">
-                      <StatusChip isComplete={isAvvikComplete(answer.id)} />
-                    </td>
-                  )}
-                </tr>
-              ))}
+                    {isLocked && (
+                      <td className="px-4 py-3">
+                        <StatusChip isComplete={isAvvikComplete(answer.id)} />
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
@@ -634,7 +654,7 @@ export function AvvikshandteringPage({
                   {/* Line 1: Chips and badges with gap-1 */}
                   <div className="flex flex-row items-center gap-1 flex-wrap">
                     {isLocked && answer.severity && (
-                      <SeverityBadge severity={answer.severity} />
+                      <SeverityBadgeTable severity={answer.severity} />
                     )}
                     {isLocked && (
                       <StatusChip isComplete={isAvvikComplete(answer.id)} />
@@ -658,33 +678,62 @@ export function AvvikshandteringPage({
       </div>
 
       {/* DESKTOP: Detail Panel - Shows selected deviation at 50% width */}
-      {selectedQuestionId && selectedQuestion && selectedQuestionInfo && (
-        <div 
-          className="max-[1400px]:hidden w-1/2 h-full bg-background overflow-y-auto border-l border-[var(--border)]"
-        >
-          {isLocked ? (
-            <AvvikshandteringDetailPanel
-              selectedQuestionId={selectedQuestionId}
-              selectedQuestionInfo={selectedQuestionInfo}
-              selectedQuestion={selectedQuestion}
-              selectedQuestionData={selectedQuestionData}
-              selectedClosureInfo={selectedClosureInfo}
-              updateClosureInfo={updateClosureInfo}
-              onUpdateQuestionData={onUpdateQuestionData}
-            />
-          ) : (
-            <AvvikshandteringPreLockDetailPanel
-              selectedQuestionId={selectedQuestionId}
-              selectedQuestionInfo={selectedQuestionInfo}
-              selectedQuestion={selectedQuestion}
-              selectedQuestionData={selectedQuestionData}
-              updateClosureInfo={updateClosureInfo}
-              onUpdateQuestionData={onUpdateQuestionData}
-              onAnswerChange={handleAnswerChange}
-            />
-          )}
-        </div>
-      )}
+      {selectedQuestionId && selectedQuestion && selectedQuestionInfo && (() => {
+        // Check if this is a previous avvik
+        const data = questionData[selectedQuestionId];
+        const isPreviousAvvik = data?.isPreviousAvvik && data?.previousAvvikData;
+        
+        // If it's a previous avvik, show DeviationDetailPanel instead
+        if (isPreviousAvvik && data.previousAvvikData) {
+          const previousAvvik = data.previousAvvikData;
+          return (
+            <div className="max-[1400px]:hidden w-1/2 h-full bg-background overflow-y-auto border-l border-[var(--border)]">
+              <DeviationDetailPanel
+                deviation={{
+                  id: previousAvvik.id,
+                  severity: previousAvvik.severity,
+                  foretakName: previousAvvik.foretakName,
+                  checklist: previousAvvik.checklist,
+                  deadline: previousAvvik.deadline,
+                  status: previousAvvik.status as any,
+                  requiresAction: previousAvvik.requiresAction,
+                  confirmationMethod: previousAvvik.confirmationMethod as any
+                }}
+                context="tidligere-revisjon"
+              />
+            </div>
+          );
+        }
+        
+        // Normal question view
+        return (
+          <div 
+            className="max-[1400px]:hidden w-1/2 h-full bg-background overflow-y-auto border-l border-[var(--border)]"
+          >
+            {isLocked ? (
+              <AvvikshandteringDetailPanel
+                selectedQuestionId={selectedQuestionId}
+                selectedQuestionInfo={selectedQuestionInfo}
+                selectedQuestion={selectedQuestion}
+                selectedQuestionData={selectedQuestionData}
+                selectedClosureInfo={selectedClosureInfo}
+                updateClosureInfo={updateClosureInfo}
+                onUpdateQuestionData={onUpdateQuestionData}
+              />
+            ) : (
+              <AvvikshandteringPreLockDetailPanel
+                selectedQuestionId={selectedQuestionId}
+                selectedQuestionInfo={selectedQuestionInfo}
+                selectedQuestion={selectedQuestion}
+                selectedQuestionData={selectedQuestionData}
+                updateClosureInfo={updateClosureInfo}
+                onUpdateQuestionData={onUpdateQuestionData}
+                onAnswerChange={handleAnswerChange}
+              />
+            )}
+          </div>
+        );
+      })()}
     </div>
 
     {/* Bottom Sheet for mobile/tablet - Shows detail view */}
@@ -696,31 +745,60 @@ export function AvvikshandteringPage({
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto">
-          {selectedQuestionId && selectedQuestion && selectedQuestionInfo && (
-            <div>
-              {isLocked ? (
-                <AvvikshandteringDetailPanel
-                  selectedQuestionId={selectedQuestionId}
-                  selectedQuestionInfo={selectedQuestionInfo}
-                  selectedQuestion={selectedQuestion}
-                  selectedQuestionData={selectedQuestionData}
-                  selectedClosureInfo={selectedClosureInfo}
-                  updateClosureInfo={updateClosureInfo}
-                  onUpdateQuestionData={onUpdateQuestionData}
-                />
-              ) : (
-                <AvvikshandteringPreLockDetailPanel
-                  selectedQuestionId={selectedQuestionId}
-                  selectedQuestionInfo={selectedQuestionInfo}
-                  selectedQuestion={selectedQuestion}
-                  selectedQuestionData={selectedQuestionData}
-                  updateClosureInfo={updateClosureInfo}
-                  onUpdateQuestionData={onUpdateQuestionData}
-                  onAnswerChange={handleAnswerChange}
-                />
-              )}
-            </div>
-          )}
+          {selectedQuestionId && selectedQuestion && selectedQuestionInfo && (() => {
+            // Check if this is a previous avvik
+            const data = questionData[selectedQuestionId];
+            const isPreviousAvvik = data?.isPreviousAvvik && data?.previousAvvikData;
+            
+            // If it's a previous avvik, show DeviationDetailPanel instead
+            if (isPreviousAvvik && data.previousAvvikData) {
+              const previousAvvik = data.previousAvvikData;
+              return (
+                <div>
+                  <DeviationDetailPanel
+                    deviation={{
+                      id: previousAvvik.id,
+                      severity: previousAvvik.severity,
+                      foretakName: previousAvvik.foretakName,
+                      checklist: previousAvvik.checklist,
+                      deadline: previousAvvik.deadline,
+                      status: previousAvvik.status as any,
+                      requiresAction: previousAvvik.requiresAction,
+                      confirmationMethod: previousAvvik.confirmationMethod as any
+                    }}
+                    context="tidligere-revisjon"
+                  />
+                </div>
+              );
+            }
+            
+            // Normal question view
+            return (
+              <div>
+                {isLocked ? (
+                  <AvvikshandteringDetailPanel
+                    selectedQuestionId={selectedQuestionId}
+                    selectedQuestionInfo={selectedQuestionInfo}
+                    selectedQuestion={selectedQuestion}
+                    selectedQuestionData={selectedQuestionData}
+                    selectedClosureInfo={selectedClosureInfo}
+                    updateClosureInfo={updateClosureInfo}
+                    onUpdateQuestionData={onUpdateQuestionData}
+                  />
+                ) : (
+                  <AvvikshandteringPreLockDetailPanel
+                    selectedQuestionId={selectedQuestionId}
+                    selectedQuestionInfo={selectedQuestionInfo}
+                    selectedQuestion={selectedQuestion}
+                    selectedQuestionData={selectedQuestionData}
+                    updateClosureInfo={updateClosureInfo}
+                    onUpdateQuestionData={onUpdateQuestionData}
+                    onAnswerChange={handleAnswerChange}
+                  />
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
     </BottomSheet>

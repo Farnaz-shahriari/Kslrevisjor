@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { Upload } from 'lucide-react';
-import svgPaths from '../imports/svg-8axi0x1eud';
 import svgPathsDeviation from '../imports/svg-rj5c6b7gl3';
 import { Button } from './ui/button';
 import { ExpandableInput } from './ExpandableInput';
@@ -163,8 +162,9 @@ export function AvvikshandteringDetailPanel({
             <div className="size-10 flex items-center justify-center shrink-0">
               <div className="relative size-10">
                 <div className="absolute inset-0 rounded-full" style={{ backgroundColor: getSeverityColor(selectedQuestion.severity).replace('bg-[', '').replace(']', '') }}>
+                  {/* Material Design report_problem icon */}
                   <svg className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-6" fill="none" viewBox="0 0 24 24">
-                    <path d={svgPaths.p24139a00} fill={selectedQuestion.severity === 'kritisk-avvik' ? '#410002' : '#3d2e00'} />
+                    <path d="M12 5.99L19.53 19H4.47L12 5.99ZM12 2L1 21H23L12 2ZM13 16H11V18H13V16ZM13 10H11V14H13V10Z" fill={selectedQuestion.severity === 'kritisk-avvik' ? '#410002' : '#3d2e00'} />
                   </svg>
                 </div>
               </div>
@@ -178,8 +178,9 @@ export function AvvikshandteringDetailPanel({
               </p>
             </div>
             <button className="size-10 flex items-center justify-center shrink-0 hover:bg-black/5 rounded-full transition-colors">
-              <svg className="w-6 h-6" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                <path d={svgPaths.p2668ba00} fill="#44483B" />
+              {/* Material Design edit icon */}
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
+                <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="#44483B" />
               </svg>
             </button>
           </div>
@@ -317,35 +318,16 @@ export function AvvikshandteringDetailPanel({
 
         {/* Closing Avvik Container - Hvordan bekreftes tiltaket */}
         <div className="bg-[var(--surface-container-low)] border border-[var(--border)] rounded-[var(--radius-lg)] p-6 space-y-4">
-          {/* Type of Closing */}
-          <div className="flex gap-2 items-center py-2">
-            {selectedClosureInfo.confirmationMethod === 'fysisk-besok' ? (
-              <>
-                <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                  <path d="M12 2C8.13 2 5 5.13 5 9C5 14.25 12 22 12 22C12 22 19 14.25 19 9C19 5.13 15.87 2 12 2ZM12 11.5C10.62 11.5 9.5 10.38 9.5 9C9.5 7.62 10.62 6.5 12 6.5C13.38 6.5 14.5 7.62 14.5 9C14.5 10.38 13.38 11.5 12 11.5Z" fill="#44483B" />
-                </svg>
-                <p className="label-medium text-foreground">
-                  Lukking krever fysisk besøk
-                </p>
-              </>
+          {/* Type of Closing - Remove icon, keep text only */}
+          <div className="py-2">
+            {selectedClosureInfo.confirmationMethod === 'fysisk-besok' || selectedClosureInfo.confirmationMethod === 'digitalt-besok' ? (
+              <p className="label-medium text-foreground">
+                Lukking krever digitalt besøk
+              </p>
             ) : selectedClosureInfo.confirmationMethod === 'dokumentasjon' ? (
-              <>
-                <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                  <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM16 18H8V16H16V18ZM16 14H8V12H16V14ZM13 9V3.5L18.5 9H13Z" fill="#44483B" />
-                </svg>
-                <p className="label-medium text-foreground">
-                  Lukking krever dokumentasjon
-                </p>
-              </>
-            ) : selectedClosureInfo.confirmationMethod === 'digitalt-besok' ? (
-              <>
-                <svg className="w-6 h-6 shrink-0" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-                  <path d={svgPaths.p3b7e4b92} fill="#44483B" />
-                </svg>
-                <p className="label-medium text-foreground">
-                  Lukking krever digitalt besøk
-                </p>
-              </>
+              <p className="label-medium text-foreground">
+                Lukking krever dokumentasjon
+              </p>
             ) : (
               <p className="label-medium text-muted-foreground">
                 Velg bekreftelsesmetode

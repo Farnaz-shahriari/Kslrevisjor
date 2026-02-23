@@ -20,6 +20,7 @@ import { AksepterteRevisjonerPage } from './components/AksepterteRevisjonerPage'
 import ForsidePage from './components/ForsidePage';
 import { FakturagrunnlagPage } from './components/FakturagrunnlagPage';
 import { RevisjonshistorikkPage } from './components/RevisjonshistorikkPage';
+import { StatisticsPage } from './components/StatisticsPage';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
 type TabType = 'forside' | 'tildelteRevisjoner' | 'aksepterteRevisjoner' | 'avviksoversikt' | 'fakturagrunnlag' | 'revisjonshistorikk' | 'byttRolle' | 'producer' | 'minProfil';
@@ -34,6 +35,23 @@ export interface QuestionData {
   notatText?: string;
   deviationData?: any; // You can type this more specifically if needed
   attachedDocuments?: string[];
+  deviations?: any[]; // Array of deviation objects
+  isPreviousAvvik?: boolean; // Flag to indicate this question has a previous avvik
+  previousAvvikData?: {
+    id: string;
+    severity: 'kritisk' | 'avvik' | 'lite';
+    foretakName: string;
+    checklist: string;
+    deadline: Date;
+    status: string;
+    confirmationMethod: string;
+    requiresAction: boolean;
+    mangel: string;
+    bevis: string;
+    krav: string;
+    rapportertAvvik: string;
+    closedDate: Date | undefined;
+  };
 }
 
 export interface SavedNote {
@@ -64,8 +82,24 @@ export default function App() {
       answer: 'ja'
     },
     '1.1.3': { 
-      // This question has a previous open avvik, so no pre-filled answer
-      // The QuestionView will auto-set to 'nei' when loaded
+      // This question has a previous open avvik - automatically set to 'nei'
+      answer: 'nei',
+      isPreviousAvvik: true,
+      previousAvvikData: {
+        id: 'prev-1.1.3-1',
+        severity: 'kritisk',
+        foretakName: 'Haugseter Gård',
+        checklist: '1.1.3 – Arkivert analyseresultater, vedtak og tilbakemeldinger fra varemottaker og myndigheter?',
+        deadline: new Date('2026-03-21'),
+        status: 'avventer-dokumentasjon',
+        confirmationMethod: 'dokumentasjon',
+        requiresAction: true,
+        mangel: 'Ingen dokumentasjon fremvist for trykkokontroll',
+        bevis: 'Må være helgent',
+        krav: 'Må være helgent\nTidsfrist for lukking av avvik\nFredag 21. mars 2026',
+        rapportertAvvik: 'Kritisk avvik',
+        closedDate: undefined
+      }
     },
     '1.1.4': { 
       // This question has an egenrevisjonsavvik (self-registered by producer), so no pre-filled answer
@@ -251,6 +285,7 @@ export default function App() {
   const [deviationsLocked, setDeviationsLocked] = useState(false);
   const [activeTopBarTab, setActiveTopBarTab] = useState<TopBarTab>('planlegg'); // Changed default to 'planlegg'
   const [reportLocked, setReportLocked] = useState(false);
+  const [selectedDeviationId, setSelectedDeviationId] = useState<string | null>(null); // Track which deviation to open in Avvikoversikt
   
   // State for tracking if we're viewing a specific revision detail or the list
   const [viewingRevisionDetail, setViewingRevisionDetail] = useState(false);
@@ -270,6 +305,9 @@ export default function App() {
   
   // State for Aksepterte Revisjoner filter (venter-pa-planlegging)
   const [aksepterteRevisjonerFilter, setAksepterteRevisjonerFilter] = useState<string[]>([]);
+  
+  // State for showing statistics page
+  const [showingStatistics, setShowingStatistics] = useState(false);
   
   // State for saved notes - with example notes
   const [savedNotes, setSavedNotes] = useState<SavedNote[]>([
@@ -585,7 +623,9 @@ export default function App() {
               
               {/* Main pages content */}
               <div className="flex flex-1 max-[1023px]:overflow-y-auto overflow-hidden">
-                {activeMainTab === 'forside' ? (
+                {showingStatistics ? (
+                  <StatisticsPage onBack={() => setShowingStatistics(false)} />
+                ) : activeMainTab === 'forside' ? (
                   <ForsidePage 
                     onNavigateToTildelteRevisjoner={() => setActiveMainTab('tildelteRevisjoner')}
                     onNavigateToVenterPaPlanlegging={() => {
@@ -597,7 +637,12 @@ export default function App() {
                       setActiveTopBarTab('planlegg'); // Reset to Planlegg revisjon tab
                       setViewingRevisionDetail(true);
                     }}
-                    onNavigateToAvvikoversikt={() => setActiveMainTab('avviksoversikt')}
+                    onNavigateToAvvikoversikt={(deviationId?: string) => {
+                      setSelectedDeviationId(deviationId || null);
+                      setActiveMainTab('avviksoversikt');
+                    }}
+                    onNavigateToStatistics={() => setShowingStatistics(true)}
+                    onNavigateToRevisorprofil={() => setActiveMainTab('minProfil')}
                   />
                 ) : activeMainTab === 'tildelteRevisjoner' ? (
                   <TildelteRevisjonerPage 
@@ -621,7 +666,7 @@ export default function App() {
                 ) : activeMainTab === 'fakturagrunnlag' ? (
                   <FakturagrunnlagPage />
                 ) : activeMainTab === 'avviksoversikt' ? (
-                  <AvvikoversiktPage />
+                  <AvvikoversiktPage initialDeviationId={selectedDeviationId || undefined} />
                 ) : activeMainTab === 'minProfil' ? (
                   <ProfilePage />
                 ) : (

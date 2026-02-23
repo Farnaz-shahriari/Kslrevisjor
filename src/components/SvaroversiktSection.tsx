@@ -10,6 +10,9 @@ import { Snackbar } from './Snackbar';
 import { BottomSheet } from './ui/bottom-sheet';
 import { Button } from './ui/button';
 import { KravVeilederSection } from './KravVeilederSection';
+import { formatNorwegianDate } from '../utils/dateFormat';
+import { PreviousAvvikCard } from './PreviousAvvikCard';
+import { DeviationDetailPanel } from './DeviationDetailPanel';
 import svgPathsChip from '../imports/svg-cne2b5etox';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
@@ -24,6 +27,13 @@ interface QuestionData {
   notatText?: string;
   deviations?: any[];
   attachedDocuments?: string[];
+  isPreviousAvvik?: boolean;
+  previousAvvikData?: {
+    severity: 'kritisk' | 'avvik' | 'lite';
+    checklist: string;
+    deadline: Date;
+    status: string;
+  };
 }
 
 interface SvaroversiktSectionProps {
@@ -495,6 +505,20 @@ export function SvaroversiktSection({
     return labels[tab];
   };
 
+  const getSeverityColor = (severity: 'kritisk' | 'avvik' | 'lite'): string => {
+    const colors = {
+      'kritisk': 'bg-[#ffdad6]',
+      'avvik': 'bg-[#fdd19f]',
+      'lite': 'bg-[#fdeeb1]'
+    };
+    return colors[severity] || 'bg-[#fdd19f]';
+  };
+
+  const getSeverityLabel = (severity: 'kritisk' | 'avvik' | 'lite'): string => {
+    // Always return just "Kritisk" for tables
+    return 'Kritisk';
+  };
+
   return (
     <div className="flex flex-col h-full w-full">
       {/* Header Section */}
@@ -692,63 +716,101 @@ export function SvaroversiktSection({
               </tr>
             </thead>
             <tbody>
-              {displayedAnswers.map((answer) => (
-                <tr
-                  key={answer.id}
-                  onClick={() => {
-                    setSelectedQuestionId(answer.id);
-                    // Open bottom sheet on mobile/tablet
-                    if (window.innerWidth < 1400) {
-                      setIsBottomSheetOpen(true);
+              {displayedAnswers.map((answer) => {
+                // Check if this question has a previous avvik
+                const data = questionData[answer.id];
+                const isPreviousAvvik = data?.isPreviousAvvik && data?.previousAvvikData;
+                
+                // Get severity config for previous avvik badge
+                const getSeverityConfig = (severity: 'kritisk' | 'avvik' | 'lite') => {
+                  const severityConfig = {
+                    kritisk: {
+                      bg: 'bg-s-avvik-container',
+                      text: 'text-on-s-avvik-container',
+                      label: 'Kritisk'
+                    },
+                    avvik: {
+                      bg: 'bg-avvik-container',
+                      text: 'text-on-avvik-container',
+                      label: 'Avvik'
+                    },
+                    lite: {
+                      bg: 'bg-l-avvik-container',
+                      text: 'text-on-l-avvik-container',
+                      label: 'Lite avvik'
                     }
-                  }}
-                  className={`cursor-pointer border-b border-border transition-colors ${
-                    selectedQuestionId === answer.id
-                      ? 'bg-secondary-container'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  <td className="px-10 py-3">
-                    {/* Show "Trenger utfylling" chip for unanswered, or the actual answer */}
-                    {!answer.answer || answer.answer === '' ? (
-                      <div className="bg-[#f4f4ea] box-border flex items-center justify-center overflow-clip relative rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_1px_3px_1px_rgba(0,0,0,0.15)] shrink-0">
-                        <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
-                          <div className="relative shrink-0 w-[18px] h-[18px]">
-                            <div className="absolute inset-[8.333%]">
-                              <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
-                                <path d={svgPathsChip.p1c3b4f80} fill="#BA1A1A" />
-                              </svg>
+                  };
+                  return severityConfig[severity];
+                };
+                
+                // Normal question row (including previous avvik - rendered as normal row)
+                return (
+                  <tr
+                    key={answer.id}
+                    onClick={() => {
+                      setSelectedQuestionId(answer.id);
+                      // Open bottom sheet on mobile/tablet
+                      if (window.innerWidth < 1400) {
+                        setIsBottomSheetOpen(true);
+                      }
+                    }}
+                    className={`cursor-pointer border-b border-border transition-colors ${
+                      selectedQuestionId === answer.id
+                        ? 'bg-secondary-container'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <td className="px-10 py-3">
+                      {/* Show severity badge for previous avvik, or normal answer */}
+                      {isPreviousAvvik && data.previousAvvikData ? (
+                        (() => {
+                          const config = getSeverityConfig(data.previousAvvikData.severity);
+                          return (
+                            <div className={`inline-flex items-center px-3 py-1.5 rounded-lg ${config.bg} ${config.text}`}>
+                              <span className="label-medium">{config.label}</span>
                             </div>
+                          );
+                        })()
+                      ) : !answer.answer || answer.answer === '' ? (
+                        <div className="bg-[#f4f4ea] box-border flex items-center justify-center overflow-clip relative rounded-[8px] shadow-[0px_1px_2px_0px_rgba(0,0,0,0.3),0px_1px_3px_1px_rgba(0,0,0,0.15)] shrink-0">
+                          <div className="box-border flex gap-2 h-8 items-center justify-center pl-2 pr-4 py-1.5">
+                            <div className="relative shrink-0 w-[18px] h-[18px]">
+                              <div className="absolute inset-[8.333%]">
+                                <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 15 15">
+                                  <path d={svgPathsChip.p1c3b4f80} fill="#BA1A1A" />
+                                </svg>
+                              </div>
+                            </div>
+                            <span className="label-medium text-foreground whitespace-nowrap">
+                              Trenger utfylling
+                            </span>
                           </div>
-                          <span className="label-medium text-foreground whitespace-nowrap">
-                            Trenger utfylling
-                          </span>
                         </div>
-                      </div>
-                    ) : (
-                      <span className={`body-large ${
+                      ) : (
+                        <span className={`body-large ${
+                          selectedQuestionId === answer.id
+                            ? 'text-accent-foreground'
+                            : 'text-foreground'
+                        }`}>
+                          {answer.answer}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`body-medium line-clamp-1 ${
                         selectedQuestionId === answer.id
                           ? 'text-accent-foreground'
                           : 'text-foreground'
                       }`}>
-                        {answer.answer}
+                        {answer.id} {answer.questionText}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`body-medium line-clamp-1 ${
-                      selectedQuestionId === answer.id
-                        ? 'text-accent-foreground'
-                        : 'text-foreground'
-                    }`}>
-                      {answer.id} {answer.questionText}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {/* Empty cell - "Trenger utfylling" moved to Svar column */}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-3">
+                      {/* Empty cell - "Trenger utfylling" moved to Svar column */}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
@@ -823,94 +885,307 @@ export function SvaroversiktSection({
         </div>
 
         {/* DESKTOP: Detail Panel - Shows selected question at 50% width */}
-        {selectedQuestion && selectedQuestionInfo && (
-          <div 
-            className="max-[1400px]:hidden w-1/2 h-full bg-background overflow-y-auto border-l border-[var(--border)]"
-            onMouseEnter={() => setShowResizeHandle(true)}
-            onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
-          >
-            {/* Resize Handle */}
-            <div
-              className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize transition-colors ${
-                showResizeHandle || isResizing ? 'bg-primary' : 'bg-transparent'
-              } hover:bg-primary`}
-              onMouseDown={handleMouseDown}
-              style={{ 
-                width: '4px', 
-                marginLeft: '-2px',
-                zIndex: 20
-              }}
-            />
-            <div className="overflow-auto flex-1">
-              {/* Question Header */}
-              <div className="px-6 py-4 border-b border-border">
-                <h3 className="body-large text-foreground mb-3">
-                  {selectedQuestion.id} {selectedQuestion.questionText}
-                </h3>
-                
-                {/* Krav & Veileder Section */}
-                {selectedQuestionInfo && (
-                  <KravVeilederSection question={selectedQuestionInfo} />
-                )}
+        {selectedQuestion && selectedQuestionInfo && (() => {
+          // Check if this is a previous avvik
+          const data = questionData[selectedQuestion.id];
+          const isPreviousAvvik = data?.isPreviousAvvik && data?.previousAvvikData;
+          
+          // If it's a previous avvik, show DeviationDetailPanel instead
+          if (isPreviousAvvik && data.previousAvvikData) {
+            const previousAvvik = data.previousAvvikData;
+            return (
+              <div className="max-[1400px]:hidden w-1/2 h-full bg-background overflow-y-auto border-l border-[var(--border)]">
+                <DeviationDetailPanel
+                  deviation={{
+                    id: previousAvvik.id,
+                    severity: previousAvvik.severity,
+                    foretakName: previousAvvik.foretakName,
+                    checklist: previousAvvik.checklist,
+                    deadline: previousAvvik.deadline,
+                    status: previousAvvik.status as any,
+                    requiresAction: previousAvvik.requiresAction,
+                    confirmationMethod: previousAvvik.confirmationMethod as any
+                  }}
+                  context="tidligere-revisjon"
+                />
               </div>
+            );
+          }
+          
+          // Normal question view
+          return (
+            <div 
+              className="max-[1400px]:hidden w-1/2 h-full bg-background overflow-y-auto border-l border-[var(--border)]"
+              onMouseEnter={() => setShowResizeHandle(true)}
+              onMouseLeave={() => !isResizing && setShowResizeHandle(false)}
+            >
+              {/* Resize Handle */}
+              <div
+                className={`absolute left-0 top-0 bottom-0 w-1 cursor-col-resize transition-colors ${
+                  showResizeHandle || isResizing ? 'bg-primary' : 'bg-transparent'
+                } hover:bg-primary`}
+                onMouseDown={handleMouseDown}
+                style={{ 
+                  width: '4px', 
+                  marginLeft: '-2px',
+                  zIndex: 20
+                }}
+              />
+              <div className="overflow-auto flex-1">
+                {/* Question Header */}
+                <div className="px-6 py-4 border-b border-border">
+                  <h3 className="body-large text-foreground mb-3">
+                    {selectedQuestion.id} {selectedQuestion.questionText}
+                  </h3>
+                  
+                  {/* Krav & Veileder Section */}
+                  {selectedQuestionInfo && (
+                    <KravVeilederSection question={selectedQuestionInfo} />
+                  )}
+                </div>
 
-            {/* Answer Options */}
-            <div className="px-6 py-4 border-b border-border">
-              <h4 className="label-medium text-foreground mb-3">Velg svar</h4>
-              <div className="space-y-2">
-                {(['Ja', 'Nei', 'Ikke relevant'] as const).map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => handleAnswerChange(option)}
-                    disabled={deviationsLocked}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] transition-colors ${
-                      deviationsLocked 
-                        ? 'opacity-40 cursor-not-allowed' 
-                        : 'hover:bg-muted'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      selectedQuestion?.answer === option
-                        ? 'border-primary bg-primary'
-                        : 'border-foreground'
-                    }`}>
-                      {selectedQuestion?.answer === option && (
-                        <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                {/* Answer Options */}
+                <div className="px-6 py-4 border-b border-border">
+                  <h4 className="label-medium text-foreground mb-3">Velg svar</h4>
+                  <div className="space-y-2">
+                    {(['Ja', 'Nei', 'Ikke relevant'] as const).map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => handleAnswerChange(option)}
+                        disabled={deviationsLocked}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] transition-colors ${
+                          deviationsLocked 
+                            ? 'opacity-40 cursor-not-allowed' 
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          selectedQuestion?.answer === option
+                            ? 'border-primary bg-primary'
+                            : 'border-foreground'
+                        }`}>
+                          {selectedQuestion?.answer === option && (
+                            <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                          )}
+                        </div>
+                        <span className={`body-medium ${
+                          selectedQuestion?.answer === option ? 'text-primary' : 'text-foreground'
+                        }`}>
+                          {option}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="border-b border-border">
+                  <div className="flex items-center px-4">
+                    {getVisibleTabs().map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className="px-3 py-3 label-medium relative transition-colors"
+                        style={{
+                          color: activeTab === tab ? '#1a1c16' : '#44483b'
+                        }}
+                      >
+                        {getTabLabel(tab)}
+                        {activeTab === tab && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tab Content */}
+                <div className="px-6 py-4">
+                  {selectedQuestionData.answer && (
+                    <>
+                      {activeTab === 'observasjoner' && (
+                        <div className="max-w-full">
+                          <ObservationView 
+                            improvementText={selectedQuestionData.improvementText}
+                            improvementImages={selectedQuestionData.improvementImages}
+                            positiveText={selectedQuestionData.positiveText}
+                            positiveImages={selectedQuestionData.positiveImages}
+                            onUpdate={(data) => onUpdateQuestionData?.(selectedQuestionId, data)}
+                          />
+                        </div>
                       )}
-                    </div>
-                    <span className={`body-medium ${
-                      selectedQuestion?.answer === option ? 'text-primary' : 'text-foreground'
-                    }`}>
-                      {option}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+                      {activeTab === 'avvik' && (
+                        <div className="max-w-full">
+                          <DeviationListView 
+                            deviations={selectedQuestionData.deviations}
+                            onUpdate={(deviations) => onUpdateQuestionData?.(selectedQuestionId, { deviations })}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
 
-            {/* Tabs */}
-            <div className="border-b border-border">
-              <div className="flex items-center px-4">
-                {getVisibleTabs().map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className="px-3 py-3 label-medium relative transition-colors"
-                    style={{
-                      color: activeTab === tab ? '#1a1c16' : '#44483b'
-                    }}
-                  >
-                    {getTabLabel(tab)}
-                    {activeTab === tab && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                    )}
-                  </button>
-                ))}
+                  {/* Show farmer's self-audit answer when viewing Egenrevisjonssvar tab */}
+                  {activeTab === 'egenvurderinger' && (
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-2">
+                        <p className="label-small text-muted-foreground m-0">Svarvalg</p>
+                        <p className="body-medium text-foreground m-0">Ja</p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <p className="label-small text-muted-foreground m-0">Svartekst</p>
+                        <p className="body-medium text-foreground m-0">
+                          {selectedQuestionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}
+                        </p>
+                      </div>
+                      
+                      {/* Attached documents section */}
+                      {selectedQuestionData.attachedDocuments && selectedQuestionData.attachedDocuments.length > 0 && (
+                        <div className="flex flex-col gap-2 pt-2">
+                          <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
+                          <div className="flex flex-col gap-2">
+                            {selectedQuestionData.attachedDocuments.map((doc, index) => (
+                              <AttachedDocumentCard
+                                key={index}
+                                documentName={doc}
+                                onRemove={() => handleRemoveDocument(index)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      <DocumentsMenu 
+                        isOpen={showDocumentsMenu} 
+                        onToggle={() => setShowDocumentsMenu(!showDocumentsMenu)}
+                        attachedDocuments={selectedQuestionData.attachedDocuments || []}
+                        onAttachDocuments={(documents) => onUpdateQuestionData?.(selectedQuestionId, { attachedDocuments: documents })}
+                        onNavigateToDocument={onNavigateToDocument}
+                      />
+                    </div>
+                  )}
+
+                  {activeTab === 'notat' && (
+                    <div className="max-w-full">
+                      <NotatView 
+                        notatText={selectedQuestionData.notatText}
+                        onUpdate={(text) => onUpdateQuestionData?.(selectedQuestionId, { notatText: text })}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+          );
+        })()}
+      </div>
+
+      {/* MOBILE/TABLET: Bottom Sheet */}
+      {selectedQuestion && selectedQuestionInfo && (() => {
+        // Check if this is a previous avvik
+        const data = questionData[selectedQuestion.id];
+        const isPreviousAvvik = data?.isPreviousAvvik && data?.previousAvvikData;
+        
+        // If it's a previous avvik, show DeviationDetailPanel instead
+        if (isPreviousAvvik && data.previousAvvikData) {
+          const previousAvvik = data.previousAvvikData;
+          return (
+            <BottomSheet
+              isOpen={isBottomSheetOpen}
+              onClose={() => setIsBottomSheetOpen(false)}
+              title={selectedQuestion.questionText}
+              maxHeight={90}
+            >
+              <DeviationDetailPanel
+                deviation={{
+                  id: previousAvvik.id,
+                  severity: previousAvvik.severity,
+                  foretakName: previousAvvik.foretakName,
+                  checklist: previousAvvik.checklist,
+                  deadline: previousAvvik.deadline,
+                  status: previousAvvik.status as any,
+                  requiresAction: previousAvvik.requiresAction,
+                  confirmationMethod: previousAvvik.confirmationMethod as any
+                }}
+                context="tidligere-revisjon"
+              />
+            </BottomSheet>
+          );
+        }
+        
+        // Normal question view
+        return (
+          <BottomSheet
+            isOpen={isBottomSheetOpen}
+            onClose={() => setIsBottomSheetOpen(false)}
+            title={selectedQuestion.questionText}
+            maxHeight={90}
+          >
+            <div className="px-6 py-4">
+              {/* Krav & Veileder Section */}
+              {selectedQuestionInfo && (
+                <div className="mb-4">
+                  <KravVeilederSection question={selectedQuestionInfo} />
+                </div>
+              )}
+
+              {/* Answer Options */}
+              <div className="mb-4">
+                <h4 className="label-medium text-foreground mb-3">Velg svar</h4>
+                <div className="space-y-2">
+                  {(['Ja', 'Nei', 'Ikke relevant'] as const).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleAnswerChange(option)}
+                      disabled={deviationsLocked}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] transition-colors ${
+                        deviationsLocked 
+                          ? 'opacity-40 cursor-not-allowed' 
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        selectedQuestion?.answer === option
+                          ? 'border-primary bg-primary'
+                          : 'border-foreground'
+                      }`}>
+                        {selectedQuestion?.answer === option && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-white" />
+                        )}
+                      </div>
+                      <span className={`body-medium ${
+                        selectedQuestion?.answer === option ? 'text-primary' : 'text-foreground'
+                      }`}>
+                        {option}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="border-b border-border mb-4">
+                <div className="flex overflow-x-auto scrollbar-hide">
+                  {getVisibleTabs().map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className="px-3 py-3 label-medium relative transition-colors whitespace-nowrap"
+                      style={{
+                        color: activeTab === tab ? '#1a1c16' : '#44483b'
+                      }}
+                    >
+                      {getTabLabel(tab)}
+                      {activeTab === tab && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Tab Content */}
-              <div className="px-6 py-4">
+              <div>
                 {selectedQuestionData.answer && (
                   <>
                     {activeTab === 'observasjoner' && (
@@ -985,159 +1260,9 @@ export function SvaroversiktSection({
                 )}
               </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* MOBILE/TABLET: Bottom Sheet */}
-      {selectedQuestion && selectedQuestionInfo && (
-        <BottomSheet
-          isOpen={isBottomSheetOpen}
-          onClose={() => setIsBottomSheetOpen(false)}
-          title={selectedQuestion.questionText}
-          maxHeight={90}
-        >
-          <div className="px-6 py-4">
-            {/* Krav & Veileder Section */}
-            {selectedQuestionInfo && (
-              <div className="mb-4">
-                <KravVeilederSection question={selectedQuestionInfo} />
-              </div>
-            )}
-
-            {/* Answer Options */}
-            <div className="mb-4">
-              <h4 className="label-medium text-foreground mb-3">Velg svar</h4>
-              <div className="space-y-2">
-                {(['Ja', 'Nei', 'Ikke relevant'] as const).map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => handleAnswerChange(option)}
-                    disabled={deviationsLocked}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-[var(--radius)] transition-colors ${
-                      deviationsLocked 
-                        ? 'opacity-40 cursor-not-allowed' 
-                        : 'hover:bg-muted'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      selectedQuestion?.answer === option
-                        ? 'border-primary bg-primary'
-                        : 'border-foreground'
-                    }`}>
-                      {selectedQuestion?.answer === option && (
-                        <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                      )}
-                    </div>
-                    <span className={`body-medium ${
-                      selectedQuestion?.answer === option ? 'text-primary' : 'text-foreground'
-                    }`}>
-                      {option}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="border-b border-border mb-4">
-              <div className="flex overflow-x-auto scrollbar-hide">
-                {getVisibleTabs().map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className="px-3 py-3 label-medium relative transition-colors whitespace-nowrap"
-                    style={{
-                      color: activeTab === tab ? '#1a1c16' : '#44483b'
-                    }}
-                  >
-                    {getTabLabel(tab)}
-                    {activeTab === tab && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            <div>
-              {selectedQuestionData.answer && (
-                <>
-                  {activeTab === 'observasjoner' && (
-                    <div className="max-w-full">
-                      <ObservationView 
-                        improvementText={selectedQuestionData.improvementText}
-                        improvementImages={selectedQuestionData.improvementImages}
-                        positiveText={selectedQuestionData.positiveText}
-                        positiveImages={selectedQuestionData.positiveImages}
-                        onUpdate={(data) => onUpdateQuestionData?.(selectedQuestionId, data)}
-                      />
-                    </div>
-                  )}
-                  {activeTab === 'avvik' && (
-                    <div className="max-w-full">
-                      <DeviationListView 
-                        deviations={selectedQuestionData.deviations}
-                        onUpdate={(deviations) => onUpdateQuestionData?.(selectedQuestionId, { deviations })}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Show farmer's self-audit answer when viewing Egenrevisjonssvar tab */}
-              {activeTab === 'egenvurderinger' && (
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-2">
-                    <p className="label-small text-muted-foreground m-0">Svarvalg</p>
-                    <p className="body-medium text-foreground m-0">Ja</p>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <p className="label-small text-muted-foreground m-0">Svartekst</p>
-                    <p className="body-medium text-foreground m-0">
-                      {selectedQuestionInfo.answerText || 'Rutinene for rengjøring av melkestallen kan forbedres ved å innføre en fast sjekkliste etter hver melking.'}
-                    </p>
-                  </div>
-                  
-                  {/* Attached documents section */}
-                  {selectedQuestionData.attachedDocuments && selectedQuestionData.attachedDocuments.length > 0 && (
-                    <div className="flex flex-col gap-2 pt-2">
-                      <p className="label-small text-muted-foreground m-0">Knyttede dokumenter</p>
-                      <div className="flex flex-col gap-2">
-                        {selectedQuestionData.attachedDocuments.map((doc, index) => (
-                          <AttachedDocumentCard
-                            key={index}
-                            documentName={doc}
-                            onRemove={() => handleRemoveDocument(index)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <DocumentsMenu 
-                    isOpen={showDocumentsMenu} 
-                    onToggle={() => setShowDocumentsMenu(!showDocumentsMenu)}
-                    attachedDocuments={selectedQuestionData.attachedDocuments || []}
-                    onAttachDocuments={(documents) => onUpdateQuestionData?.(selectedQuestionId, { attachedDocuments: documents })}
-                    onNavigateToDocument={onNavigateToDocument}
-                  />
-                </div>
-              )}
-
-              {activeTab === 'notat' && (
-                <div className="max-w-full">
-                  <NotatView 
-                    notatText={selectedQuestionData.notatText}
-                    onUpdate={(text) => onUpdateQuestionData?.(selectedQuestionId, { notatText: text })}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </BottomSheet>
-      )}
+          </BottomSheet>
+        );
+      })()}
     </div>
   );
 }

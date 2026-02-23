@@ -12,6 +12,7 @@ import { ExternalRevisionAvvikView } from './ExternalRevisionAvvikView';
 import { PreviousRevisionImprovementPoints } from './PreviousRevisionImprovementPoints';
 import { PreviousAvvikTable } from './PreviousAvvikTable';
 import { AuditCard, AuditCardData } from './AuditCard';
+import { previousAvvikData } from '../data/previousAvvik';
 
 type AnswerType = 'ja' | 'nei' | 'ikke-relevant';
 
@@ -24,6 +25,7 @@ interface QuestionData {
   notatText?: string;
   deviations?: any[];
   attachedDocuments?: string[];
+  closedPreviousAvvikId?: string; // Track if previous avvik has been closed
 }
 
 interface WriteReportPageProps {
@@ -321,7 +323,7 @@ export function WriteReportPage({
           severity: 'kritisk',
           question: '1.2.1 – Har du en gyldig gjødslingsplan og skiftekart for året?',
           mangel: 'Gjødslingsplanen for 2026 var ikke oppdatert med de nye arealene som ble tatt i bruk i fjor høst. Skiftekartet manglet også registrering av 15 dekar nytt kornområde.',
-          status: 'dokument-levert',
+          status: 'lukket',
           deadline: 'Tirsdag 25. mars 2026'
         },
         {
@@ -329,7 +331,7 @@ export function WriteReportPage({
           severity: 'lite-avvik',
           question: '1.3.6 – Har du nok lagringskapasitet (min. 8 måneder)?',
           mangel: 'Beregninger viste at lagringskapasiteten kun dekker 7,2 måneder basert på gjeldende dyretall. Kravet er minimum 8 måneder.',
-          status: 'tidspunkt-foreslatt',
+          status: 'lukket',
           deadline: 'Lørdag 5. april 2026'
         },
         {
@@ -422,7 +424,7 @@ export function WriteReportPage({
         {
           id: 'egen-dev-1',
           severity: 'avvik',
-          question: '1.2.4 – Er planteverndokumentasjonen fullstendig?',
+          question: '1.1.4 – Er planteverndokumentasjonen fullstendig?',
           mangel: 'Dokumentasjonen for behandling med soppmiddel i september manglet. Det var ikke registrert dosering eller værforhold for sprøytingen.',
           status: 'apent',
           deadline: 'Fredag 20. desember 2025'
@@ -561,8 +563,28 @@ export function WriteReportPage({
     })) || []
   );
 
+  // Extract avvik from previous external audits that are still open (not closed by revisor)
+  // Check if the avvik has been closed by checking questionData
+  const stillOpenPreviousAvvik = previousAvvikData
+    .filter(avvik => {
+      const questionInfo = questionData[avvik.questionId];
+      // Include the avvik if it hasn't been closed (closedPreviousAvvikId doesn't match)
+      return questionInfo?.closedPreviousAvvikId !== avvik.id;
+    })
+    .map(avvik => ({
+      id: avvik.id,
+      severity: avvik.severity,
+      questionNumber: avvik.questionId,
+      questionText: avvik.checklist.split('–')[1]?.trim() || avvik.checklist,
+      status: avvik.status === 'lukket' ? 'lukket' as const : 'apent' as const,
+      source: 'ekstern' as const,
+      revisionDate: avvik.auditDate || 'Tidligere revisjon',
+      // Pass through all the detailed avvik information
+      fullAvvikData: avvik
+    }));
+
   // Combine all avvik
-  const combinedPreviousAvvik = [...externalAvvik, ...internalAvvik];
+  const combinedPreviousAvvik = [...stillOpenPreviousAvvik, ...externalAvvik, ...internalAvvik];
   
   // Step 2: Svaroversikt
   const [answerOverviewConfirmed, setAnswerOverviewConfirmed] = useState(false);

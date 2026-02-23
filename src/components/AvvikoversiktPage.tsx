@@ -212,7 +212,7 @@ function getConfirmationMethodLabel(method: ConfirmationMethod): string {
   const labels: Record<ConfirmationMethod, string> = {
     'dokumentasjon': 'Dokumentasjon',
     'digitalt-besok': 'Digitalt besøk',
-    'fysisk-besok': 'Fysisk besøk'
+    'fysisk-besok': 'Digitalt besøk'
   };
   return labels[method];
 }
@@ -287,13 +287,41 @@ function StatusBadge({ status, requiresAction }: { status: StatusType; requiresA
   );
 }
 
-export function AvvikoversiktPage() {
+export function AvvikoversiktPage({ initialDeviationId }: { initialDeviationId?: string } = {}) {
   const [activeTab, setActiveTab] = useState<TabType>('apne');
   const [selectedForetakId, setSelectedForetakId] = useState<string | null>('alle');
-  const [selectedDeviationId, setSelectedDeviationId] = useState<string | null>(null);
+  const [selectedDeviationId, setSelectedDeviationId] = useState<string | null>(initialDeviationId || null);
   const [isDetailBottomSheetOpen, setIsDetailBottomSheetOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false); // New state for filter BottomSheet
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false); // New state for desktop advanced search panel visibility
+  
+  // Open the deviation on initial mount if initialDeviationId is provided
+  useEffect(() => {
+    if (initialDeviationId) {
+      // Find which tab this deviation belongs to
+      const deviation = allDeviations.find(d => d.id === initialDeviationId);
+      if (deviation) {
+        // Set the appropriate tab based on deviation status
+        if (deviation.status === 'lukket') {
+          setActiveTab('lukket');
+        } else if (deviation.requiresAction) {
+          setActiveTab('tilHandling');
+        } else if (deviation.status === 'besok-planlagt') {
+          setActiveTab('besokPlanlagt');
+        } else {
+          setActiveTab('apne');
+        }
+        
+        // Select the deviation
+        setSelectedDeviationId(initialDeviationId);
+        
+        // On mobile/tablet, open bottom sheet
+        if (typeof window !== 'undefined' && window.innerWidth < 1200) {
+          setIsDetailBottomSheetOpen(true);
+        }
+      }
+    }
+  }, [initialDeviationId]);
   
   // Manage deviations as state so they can be updated
   const [deviations, setDeviations] = useState<Deviation[]>(allDeviations);

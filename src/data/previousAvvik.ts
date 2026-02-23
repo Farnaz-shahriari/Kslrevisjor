@@ -1,34 +1,20 @@
-// Mock data for previous open avviks from external audits
-// This simulates avviks that were found in previous external audits and are still open
-
-export interface PreviousAvvik {
-  id: string;
-  questionId: string; // The question ID this avvik is associated with
-  severity: 'kritisk' | 'avvik' | 'lite';
-  foretakName: string;
-  checklist: string;
-  deadline: Date;
-  status: 'tidspunkt-foreslatt' | 'besok-planlagt' | 'venter-godkjenning' | 'onsker-fristforlengelse' | 'dokument-levert' | 'avventer-moteforslag' | 'avventer-dokumentasjon' | 'lukket';
-  requiresAction: boolean;
-  confirmationMethod?: 'dokumentasjon' | 'digitalt-besok' | 'fysisk-besok';
-  source: 'external' | 'internal'; // From external audit or internal self-audit
-  auditDate?: string; // When was this avvik registered
-}
-
 // Mock data for question 1.1.3 - has an open avvik from previous external audit
 export const previousAvvikData: PreviousAvvik[] = [
   {
-    id: 'prev-avvik-1',
+    id: 'prev-1.1.3-1',
     questionId: '1.1.3',
     severity: 'kritisk',
     foretakName: 'Haugseter Gård',
-    checklist: '1.1.3 – En plan for håndtering eller tilbakekalling av helseskadelige produkter, inkludert varsling til Mattilsynet og varemottaker?',
-    deadline: new Date(2026, 1, 18), // February 18, 2026
+    checklist: '1.1.3 – Arkivert analyseresultater, vedtak og tilbakemeldinger fra varemottaker og myndigheter?',
+    deadline: new Date('2026-03-21'), // March 21, 2026
     status: 'avventer-dokumentasjon',
     requiresAction: true,
     confirmationMethod: 'dokumentasjon',
     source: 'external',
-    auditDate: 'Mandag 15. desember 2025'
+    auditDate: 'Torsdag 5. desember 2025',
+    mangel: 'Ingen dokumentasjon fremvist for trykkokontroll',
+    bevis: 'Må være helgent',
+    krav: 'Må være helgent\nTidsfrist for lukking av avvik\nFredag 21. mars 2026'
   },
   // Add more previous avviks for other questions as needed
 ];
